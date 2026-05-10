@@ -83,7 +83,8 @@ class Interferometer(Entity):
                 time = 2 * self.path_difference
 
         if self.get_generator().random() < self.phase_error:
-            quantum_state.state = list(multiply([1, -1], quantum_state))
+            coeffs = list(quantum_state.state)
+            quantum_state.state = tuple(multiply([1, -1], coeffs))
 
         if quantum_state.state == (complex(sqrt(1/2)), complex(sqrt(1/2))):  # Early + Late
             if random_num <= 0.25:

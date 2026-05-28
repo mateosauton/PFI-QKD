@@ -1,0 +1,102 @@
+\chapter{Estado del arte de QKD y redes cuánticas}
+\label{chap:estado_arte}
+
+Este capítulo ubica el proyecto dentro del estado actual de la tecnología. La distribución cuántica de claves no es una idea aislada de laboratorio: existen prototipos metropolitanos, documentos de normalización, interfaces de entrega de claves, productos comerciales y una discusión activa sobre su relación con la criptografía post-cuántica. Al mismo tiempo, QKD todavía tiene restricciones prácticas fuertes. Por eso el objetivo de esta sección no es presentar la tecnología como una solución universal, sino delimitar qué problema resuelve, qué infraestructura requiere y qué tipo de banco de pruebas tiene sentido para una universidad.
+
+\section{QKD dentro de la seguridad post-cuántica}
+
+El avance de la computación cuántica afecta principalmente a la criptografía de clave pública basada en problemas como factorización y logaritmos discretos. La respuesta de mayor alcance industrial es la criptografía post-cuántica (PQC), que busca algoritmos clásicos resistentes a adversarios con computadoras cuánticas. NIST publicó en 2024 sus primeros estándares finales de PQC, incluyendo ML-KEM para establecimiento de claves y esquemas de firma digital ML-DSA y SLH-DSA \cite{nistPQC2024}. Estos estándares son relevantes porque pueden desplegarse sobre redes existentes sin requerir fibra ni equipos ópticos cuánticos.
+
+QKD resuelve el problema desde otro plano. No reemplaza AES, TLS ni las firmas digitales. Produce material de clave compartido entre dos puntos mediante una capa física cuántica y un canal clásico autenticado. Luego esa clave puede alimentar cifrado simétrico, autenticación o aplicaciones de red. La comparación correcta no es ``QKD contra todo el sistema criptográfico'', sino ``QKD como mecanismo físico de distribución de llaves'' frente a mecanismos matemáticos de establecimiento de secretos.
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.22\textwidth}XX}
+    \toprule
+    Criterio & QKD & PQC \\
+    \midrule
+    Principio de seguridad & Propiedades físicas de estados cuánticos y detección de perturbación & Dificultad matemática de problemas resistentes a algoritmos cuánticos conocidos \\
+    Infraestructura & Requiere canal óptico cuántico, hardware dedicado y canal clásico autenticado & Corre en infraestructura clásica y protocolos existentes \\
+    Alcance natural & Enlaces punto a punto o redes con nodos confiables & Internet, software, certificados, protocolos de aplicación \\
+    Producto entregado & Material de clave simétrica compartida & Encapsulación de claves, firmas o primitivas criptográficas \\
+    Riesgo principal & Pérdidas, costo, distancia, ataques laterales, confianza en nodos intermedios & Criptoanálisis futuro, migración, compatibilidad y performance \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Comparación conceptual entre QKD y criptografía post-cuántica.}
+  \label{tab:qkd_pqc}
+\end{table}
+
+Para este PFI, la consecuencia es clara: no hace falta presentar QKD como reemplazo de PQC. Es más riguroso plantearla como una línea experimental complementaria. Un banco de pruebas universitario permite medir, simular y comprender una tecnología física de distribución de claves. PQC, en cambio, representa la ruta de migración de software más amplia. Ambas pertenecen al universo de seguridad post-cuántica, pero tienen supuestos, costos y superficies de ataque distintas.
+
+\section{De enlaces punto a punto a redes QKD}
+
+La unidad básica de una red QKD es un enlace punto a punto entre dos nodos, Alice y Bob. Cada enlace produce claves compartidas entre sus extremos. Para construir una red con más de dos sitios, existen varias estrategias. La más madura en términos de implementación es la red con nodos confiables: cada tramo punto a punto genera claves locales, y los nodos intermedios ayudan a transportar o reencapsular material de clave hacia otros destinos. Esta arquitectura exige confianza física y operacional en los nodos intermedios.
+
+En el largo plazo, una red cuántica ideal podría usar repetidores cuánticos, memorias cuánticas y distribución de entrelazamiento para evitar que los nodos intermedios conozcan las claves extremo a extremo. Ese escenario es tecnológicamente más exigente y no forma parte del alcance de este trabajo. Para un banco de pruebas de campus, el camino razonable es empezar con un enlace Alice--Bob, validar métricas físicas y luego estudiar una extensión a tres nodos con un relay confiable.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1.5cm,
+    box/.style={draw, rounded corners, align=center, minimum width=2.8cm, minimum height=1cm, fill=blue!5},
+    app/.style={draw, rounded corners, align=center, minimum width=2.8cm, minimum height=0.9cm, fill=green!6},
+    arrow/.style={-{Latex[length=3mm]}, thick}
+  ]
+    \node[box] (a) {Nodo A\\Alice};
+    \node[box, right=3.2cm of a] (b) {Nodo B\\Bob};
+    \node[box, right=3.2cm of b] (c) {Nodo C\\Relay/KMS};
+    \node[app, below=1.6cm of b] (app) {Aplicaciones\\VPN, cifrado, servicios};
+
+    \draw[arrow, blue] (a) -- node[above, align=center] {canal\\cuántico} (b);
+    \draw[arrow, dashed] (a) to[bend right=16] node[below, align=center] {canal clásico\\autenticado} (b);
+    \draw[arrow, blue] (b) -- node[above, align=center] {enlace\\QKD} (c);
+    \draw[arrow, dashed] (b) to[bend right=16] node[below, align=center] {mensajes\\clásicos} (c);
+    \draw[arrow, green!60!black] (b) -- node[right] {llaves} (app);
+    \draw[arrow, green!60!black] (c) |- (app);
+  \end{tikzpicture}
+  \caption{Evolución conceptual desde un enlace punto a punto hacia una red de campus con nodo confiable y consumo de llaves por aplicaciones.}
+  \label{fig:red_qkd_conceptual}
+\end{figure}
+
+La recomendación ITU-T Y.3800 define una visión general de redes que soportan QKD \cite{ituY3800}. Su valor para este proyecto es terminológico y arquitectónico: separa la capa cuántica que genera claves, las funciones de administración de claves y las aplicaciones que consumen ese material. Aunque esta memoria no implementa una red completa, adoptar esa separación evita mezclar niveles. El enlace BB84 simulado pertenece a la capa de generación. El KMS y las aplicaciones pertenecen a etapas posteriores.
+
+\section{Normalización e interoperabilidad}
+
+La normalización es importante porque un sistema QKD práctico no termina en el detector. Debe entregar claves a equipos de red, aplicaciones o módulos de cifrado mediante interfaces estables. ETSI mantiene un grupo de especificación industrial sobre QKD que trabaja en interfaces, seguridad de módulos, perfiles de protección, vocabulario y elementos de integración \cite{etsiISGQKD}. Para una memoria de ingeniería, esto permite fundamentar que la pregunta de integración no es secundaria: si el banco genera bits pero no existe una forma clara de entregarlos, el proyecto queda incompleto como sistema de telecomunicaciones.
+
+Un documento especialmente relevante es ETSI GS QKD 014, que define una API REST para entrega de claves \cite{etsiQKD014}. La existencia de esa API no implica que el presente proyecto deba implementarla, pero sí define una frontera conceptual: una entidad de aplicación segura puede pedir material de clave a un sistema QKD/KMS mediante una interfaz acordada. Esta idea se retoma en el Capítulo~\ref{chap:kms} para evitar que la discusión sobre blockchain o aplicaciones distribuidas quede en una capa abstracta.
+
+Otro documento útil es ETSI GS QKD 016, orientado a perfiles de protección Common Criteria para pares de módulos QKD prepare-and-measure \cite{etsiQKD016}. En esta memoria no se realiza una evaluación Common Criteria, pero el documento refuerza una idea central: la seguridad de QKD práctica depende de módulos concretos, supuestos de implementación, interfaces, control de acceso y protección física. Por eso la simulación debe leerse como paso de diseño, no como certificación.
+
+\section{Productos comerciales y parámetros de referencia}
+
+La existencia de productos QKD comerciales ayuda a calibrar expectativas. Toshiba, por ejemplo, publica sistemas QKD multiplexados y de larga distancia con protocolos BB84 eficientes con estados señuelo y codificación de fase \cite{toshibaQKDProducts}. Sus especificaciones públicas distinguen entre sistemas diseñados para operar con tráfico de datos en la misma infraestructura y sistemas optimizados para mayor rango o tasa. Estos productos no son la plantilla directa del banco UNSAM, pero sirven como referencia de órdenes de magnitud: rango, tasa típica, requerimiento de fibra, formato rack y necesidad de software de administración de claves.
+
+La comparación con productos comerciales debe hacerse con cuidado. Una tasa publicada bajo una pérdida determinada no se traslada automáticamente a un simulador académico. Depende de detectores, electrónica, filtrado, sincronización, postprocesamiento, protocolo, seguridad finita y condiciones de operación. En el paper se usan esas referencias para justificar variables de diseño, no para afirmar que el banco propuesto alcanzará prestaciones comerciales.
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.24\textwidth}XX}
+    \toprule
+    Elemento & Uso en productos/redes QKD & Uso en este PFI \\
+    \midrule
+    BB84 con estados señuelo & Base de implementaciones prepare-and-measure con fuentes coherentes débiles & Comparación analítica decoy/no-decoy y motivación del modelo \\
+    Codificación de fase o time-bin & Robusta para fibra y compatible con interferometría & Variable central: visibilidad del interferómetro \\
+    KMS & Entrega, almacena y administra llaves hacia aplicaciones & Arquitectura futura, no implementada en la simulación \\
+    Fibra dedicada o multiplexada & Define costo y posibilidad de despliegue en red existente & Criterio de relevamiento para Campus Miguelete \\
+    Detector de fotón único & Condiciona tasa, ruido y distancia & Barrido de eficiencia y conteos oscuros \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Relación entre elementos de sistemas QKD reales y el alcance del proyecto.}
+  \label{tab:productos_pfi}
+\end{table}
+
+\section{Simuladores y rol de SeQUeNCe}
+
+La simulación de redes cuánticas tiene varios niveles posibles. Un cálculo cerrado de tasa permite estudiar límites analíticos, pero no representa eventos, mensajes ni componentes. Un simulador físico detallado puede modelar decoherencia y estados con mayor fidelidad, pero puede exigir parámetros que aún no se conocen. SeQUeNCe se ubica en un punto intermedio útil para este PFI: modela eventos discretos, componentes de hardware, canales y protocolos de red \cite{wu2021sequence}.
+
+El artículo de SeQUeNCe lo presenta como un simulador personalizable de redes cuánticas, orientado a prototipos que capturen tecnologías y protocolos actuales y futuros \cite{wu2021sequence}. Esa descripción encaja con el trabajo: no se busca únicamente calcular una curva de tasa, sino construir un escenario Alice--Bob que pueda evolucionar hacia topologías de red. La elección también es práctica: el repositorio ya contiene SeQUeNCe y la implementación BB84 utilizada por el experimento.
+
+\section{Conclusión del estado del arte}
+
+El estado del arte sugiere tres decisiones para la memoria. Primero, concentrarse en BB84 con estados señuelo es razonable porque combina madurez teórica, implementaciones prácticas y relación directa con fuentes coherentes débiles. Segundo, estudiar \textit{time-bin} o codificación de fase sobre fibra tiene sentido para telecomunicaciones porque se alinea con canales ópticos reales. Tercero, una red de campus debe pensarse por capas: enlace QKD, administración de llaves y aplicación. La simulación actual cubre la primera capa; las demás se documentan como arquitectura futura.

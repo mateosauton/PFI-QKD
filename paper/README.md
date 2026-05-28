@@ -9,6 +9,7 @@ Esta carpeta contiene una memoria técnica en LaTeX para el Proyecto Final Integ
 - `chapters/`: capítulos y apéndices.
 - `assets/`: imágenes conceptuales generadas para la memoria.
 - Las figuras de resultados se referencian desde `../experiments/results/`.
+- La memoria expandida está organizada como documento técnico largo de PFI, con capítulos de teoría, estado del arte, diseño de campus, hardware, simulación, resultados, discusión, KMS y apéndices.
 
 ## Compilación
 

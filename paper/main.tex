@@ -4,6 +4,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[spanish,es-tabla]{babel}
 \usepackage{amsmath,amssymb}
+\usepackage{array}
 \usepackage{booktabs}
 \usepackage{csquotes}
 \usepackage{enumitem}
@@ -12,10 +13,15 @@
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{listings}
+\usepackage{longtable}
 \usepackage{siunitx}
+\usepackage{tabularx}
+\usepackage{tikz}
 \usepackage{xcolor}
+\usetikzlibrary{arrows.meta,calc,fit,positioning,shapes.geometric}
 
 \geometry{margin=2.7cm}
+\emergencystretch=3em
 \graphicspath{{../experiments/results/}{assets/}}
 \hypersetup{
   colorlinks=true,
@@ -60,14 +66,23 @@
 
 \input{chapters/01_introduccion}
 \input{chapters/02_marco_teorico}
+\input{chapters/03_estado_arte_qkd}
+\input{chapters/04_diseno_campus}
+\input{chapters/05_hardware_presupuesto}
 \input{chapters/03_herramientas_modelo}
 \input{chapters/04_metodologia}
 \input{chapters/05_resultados}
+\input{chapters/09_discusion_validez}
+\input{chapters/10_kms_aplicaciones}
 \input{chapters/06_conclusiones}
 
 \appendix
 \input{chapters/a_reproduccion}
 \input{chapters/b_codigo_relevante}
+\input{chapters/c_parametros_relevamiento}
+\input{chapters/d_riesgos_cronograma}
+\input{chapters/e_glosario}
+\input{chapters/f_protocolo_ensayo}
 
 \bibliographystyle{ieeetr}
 \bibliography{references}

@@ -47,6 +47,28 @@ Todos los barridos comparten el mismo procedimiento:
 
 Este procedimiento hace que los resultados sean reproducibles desde el repositorio. Además, permite extender el trabajo agregando nuevos barridos sin reescribir el modelo central. Por ejemplo, una futura versión podría barrer longitud de llave, tasa de repetición, pérdida de acoplamiento o jitter temporal manteniendo la misma estructura de simulación.
 
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.22\textwidth}XXX}
+    \toprule
+    Experimento & Variable independiente & Métricas & Decisión que informa \\
+    \midrule
+    Distancia & Longitud de fibra & QBER, \(P_\text{det}\), SKR & Rango operativo y presupuesto de pérdidas \\
+    Detector & Eficiencia y conteos oscuros & QBER, SKR & Especificación mínima de receptor \\
+    Visibilidad & Contraste interferométrico & QBER, SKR & Requisito de estabilidad óptica \\
+    Decoy & Distancia e intensidades \(\mu,\nu\) & SKR simple y decoy & Necesidad de estados señuelo \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Resumen de los barridos experimentales y su función de diseño.}
+  \label{tab:resumen_barridos}
+\end{table}
+
+\section{Criterio de no modificación del modelo}
+
+En esta versión de la memoria se decidió no modificar el modelo Python ni agregar nuevas corridas. Esta decisión mantiene trazabilidad con los resultados ya generados y evita mezclar dos objetivos: mejorar el simulador y ampliar la documentación. Por lo tanto, el crecimiento del paper se concentra en explicar mejor el contexto, las hipótesis, los supuestos, la interpretación de resultados y la conexión con una implementación de campus.
+
+La consecuencia metodológica es que algunas mejoras se formulan como trabajo futuro, no como resultados nuevos. En particular, barras de error, mapas bidimensionales, exportación CSV e implementación decoy completa quedan identificados, pero no se presentan como evidencia experimental de esta iteración. Esta separación hace que la memoria sea más honesta: documenta lo hecho, justifica por qué sirve y declara qué falta para una siguiente etapa.
+
 \section{Experimento 1: distancia}
 
 \textbf{Pregunta técnica.} ¿Hasta qué distancia puede operar el enlace simulado antes de que la pérdida de fibra degrade demasiado la detección y la generación de llave?

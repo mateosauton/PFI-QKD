@@ -1,0 +1,89 @@
+\chapter{Discusión técnica y validez del modelo}
+\label{chap:discusion}
+
+Los resultados del Capítulo~\ref{chap:resultados} muestran tendencias coherentes, pero una memoria de ingeniería debe discutir con precisión qué tan lejos pueden llevarse esas conclusiones. Este capítulo separa tres planos: lo que el simulador representa explícitamente, lo que se calcula de manera analítica y lo que queda fuera del modelo. Esta separación es necesaria para que el trabajo no sobredimensione su alcance ni subestime el valor de la simulación.
+
+\section{Qué valida la simulación}
+
+La simulación valida el flujo lógico de un enlace BB84 \textit{time-bin} dentro de SeQUeNCe: creación de nodos, emisión de pulsos, pérdida de canal, detección, elección de bases, tamizado y cálculo de métricas. También permite verificar que las variables barridas tienen el sentido físico esperado. Al aumentar distancia, disminuye la probabilidad de detección. Al degradar visibilidad, se espera mayor error en la medición interferométrica. Al cambiar eficiencia o conteos oscuros, se modifica la sensibilidad del receptor.
+
+Esto es valioso porque transforma una discusión abstracta en un banco numérico reproducible. El código puede ejecutarse, las figuras se regeneran y los parámetros quedan documentados. Para un proyecto de campus, esa trazabilidad es central: cuando se obtengan datos reales de fibra o detectores, se podrá reemplazar el valor ilustrativo y observar cómo cambian las curvas.
+
+\section{Qué no valida la simulación}
+
+La simulación no certifica seguridad criptográfica. No implementa autenticación del canal clásico, no ejecuta Cascade completo, no aplica amplificación de privacidad como software de postprocesamiento, no considera tamaño finito y no modela ataques laterales. Tampoco modela calibraciones reales, deriva térmica, fluctuaciones de intensidad, dispersión, retroreflexiones, saturación detallada de detectores ni errores de sincronización a nivel de electrónica. La seguridad de QKD práctica requiere tratar explícitamente la diferencia entre prueba ideal e implementación real \cite{scarani2009security}.
+
+Estas limitaciones no invalidan el trabajo, pero fijan el lenguaje correcto. Es válido decir que el modelo permite estudiar sensibilidad y factibilidad preliminar. No es válido afirmar que el enlace simulado produce llaves listas para uso operacional. La memoria debe mantener esa diferencia en todas sus conclusiones.
+
+\section{Variabilidad estadística}
+
+Los barridos actuales usan pocas llaves por punto y una cantidad limitada de semillas. Esto hace que algunas curvas muestren oscilaciones locales. En una simulación estocástica, un punto aislado puede recibir más o menos detecciones útiles por azar. Por eso la forma global de la curva es más confiable que la comparación exacta entre dos puntos vecinos.
+
+Una versión estadísticamente más fuerte debería repetir cada punto con \(N\) semillas independientes. Para cada distancia, eficiencia, dark count o visibilidad se calcularía media, desviación estándar e intervalo de confianza. Una expresión simple para un intervalo aproximado de \SI{95}{\percent} es
+
+\begin{equation}
+  \bar{x} \pm 1.96 \frac{s}{\sqrt{N}},
+  \label{eq:intervalo_confianza}
+\end{equation}
+
+donde \(\bar{x}\) es la media muestral y \(s\) la desviación estándar. Esta mejora no requiere cambiar el modelo físico; requiere más corridas y guardar resultados crudos. Por eso se propone como trabajo posterior sin modificar el alcance de esta iteración.
+
+\section{Métricas simuladas y métricas analíticas}
+
+Una fuente importante de ambigüedad es la mezcla de métricas. El QBER y el throughput provienen de la implementación BB84 del simulador. La probabilidad de detección se calcula mediante una expresión cerrada de fuente coherente débil. La curva decoy combina QBER simulado con ganancias analíticas. Esta combinación es útil, pero debe estar documentada.
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.24\textwidth}XX}
+    \toprule
+    Métrica & Origen & Interpretación correcta \\
+    \midrule
+    QBER & Lista \texttt{error\_rates} de BB84 & Error medio en llaves tamizadas generadas \\
+    Throughput & Lista \texttt{throughputs} de BB84 & Proxy de tasa tamizada, no tasa final certificada \\
+    \(P_\text{det}\) & Fórmula WCS analítica & Probabilidad aproximada de click por pulso \\
+    SKR simple & QBER + throughput + entropía binaria & Cota de diseño con corte en \SI{11}{\percent} \\
+    SKR decoy & QBER simulado + ganancias analíticas & Comparación conceptual, no protocolo decoy completo \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Origen e interpretación de las métricas usadas.}
+  \label{tab:origen_metricas}
+\end{table}
+
+La decisión de combinar modelos no es extraña en etapas tempranas. En ingeniería, es frecuente unir simulación de eventos con cálculos cerrados para reducir costo computacional. Lo importante es no ocultar la frontera. Si en el futuro se implementa decoy dentro de SeQUeNCe, la comparación debería repetirse y distinguir resultados previos de resultados protocolarmente completos.
+
+\section{Validez externa}
+
+La validez externa responde a una pregunta: hasta qué punto los resultados aplican a un banco real. La respuesta depende de la cercanía de los parámetros a hardware y fibra medidos. En la versión actual, muchos valores son ilustrativos. Por eso las curvas deben interpretarse como mapas de sensibilidad. Indican qué variables importan y en qué dirección afectan el desempeño, pero no fijan una especificación definitiva para UNSAM.
+
+La validez externa aumentará cuando se incorporen mediciones de laboratorio y campus. Si se mide pérdida real de fibra, eficiencia de detector, visibilidad y conteos oscuros, el modelo puede recalibrarse. Si después se compara QBER simulado contra QBER medido, se podrá identificar qué fenómenos faltan. Este ciclo simulación--medición--ajuste es el camino natural de madurez del proyecto.
+
+\section{Criterios de aceptación para una maqueta}
+
+Aunque el trabajo no construye el banco, puede proponer criterios de aceptación. Un primer criterio es obtener QBER bajo el umbral de referencia con margen, no apenas por debajo. Un segundo criterio es reproducibilidad: repetir una corrida o medición y obtener resultados compatibles. Un tercer criterio es estabilidad temporal: que la visibilidad y el QBER no se degraden rápidamente por temperatura o vibración. Un cuarto criterio es trazabilidad: que cada parámetro usado en la simulación tenga una medición o una fuente documentada.
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.26\textwidth}XX}
+    \toprule
+    Criterio & Indicador & Razón \\
+    \midrule
+    Margen de QBER & QBER claramente menor a \SI{11}{\percent} & Evita operar en borde de inseguridad \\
+    Repetibilidad & Variación acotada entre semillas/corridas & Distingue tendencia de azar \\
+    Estabilidad & Visibilidad y tasa sin deriva fuerte & Necesario para operar fuera del laboratorio ideal \\
+    Trazabilidad & Parámetros medidos o citados & Permite defender conclusiones ante jurado \\
+    Separación de capas & Métrica física, protocolo y KMS documentados & Evita confundir enlace con aplicación \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Criterios de aceptación preliminares para la maqueta QKD.}
+  \label{tab:criterios_aceptacion}
+\end{table}
+
+\section{Mejoras prioritarias}
+
+La primera mejora es estadística: múltiples semillas y barras de error. La segunda es de datos: exportar CSV con cada punto, cada semilla y cada métrica. La tercera es de protocolo: implementar selección aleatoria de intensidades decoy dentro de la simulación. La cuarta es de hardware: agregar pérdidas fijas de conectores, jitter y ventanas temporales. La quinta es de integración: modelar una capa KMS mínima que consuma tasas generadas por el enlace.
+
+Estas mejoras tienen distinto costo. Exportar CSV es simple y aumenta mucho la trazabilidad. Implementar decoy completo requiere tocar el protocolo y validar supuestos. Modelar jitter exige entender mejor la electrónica. Por eso conviene priorizar mejoras que aumenten confianza en resultados sin destruir la reproducibilidad actual.
+
+\section{Conclusión de validez}
+
+El modelo actual es suficiente para una memoria de factibilidad y diseño preliminar. No es suficiente para certificar seguridad, comprar hardware sin más análisis ni desplegar una red operativa. Esta conclusión no debilita el PFI; lo ubica correctamente. El trabajo aporta una base reproducible para tomar mejores decisiones en una etapa posterior de laboratorio y campus.

@@ -1,0 +1,155 @@
+\chapter{Hardware y presupuesto de enlace}
+\label{chap:hardware}
+
+El modelo de simulación usa parámetros compactos: distancia, atenuación, número medio de fotones, eficiencia de detector, conteos oscuros y visibilidad. Detrás de cada parámetro hay componentes físicos. Este capítulo explica qué hardware representa cada variable, qué compromisos aparecen en un banco \textit{time-bin} y cómo se puede construir un presupuesto de enlace preliminar. La intención no es cerrar una lista de compra, sino mostrar qué especificaciones importan y cómo se conectan con QBER y SKR.
+
+\section{Arquitectura física del enlace}
+
+Un enlace prepare-and-measure de dos nodos puede separarse en cuatro bloques: emisor, canal, receptor y control clásico. Alice prepara pulsos ópticos débiles con estados temporales e intensidades elegidas. El canal transporta esos pulsos con pérdidas y retardo. Bob mide en una base temporal directa o en una base interferométrica. El control clásico coordina bases, tamizado, estimación de error y, en una implementación completa, reconciliación y entrega de llaves.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1.1cm,
+    block/.style={draw, rounded corners, align=center, minimum width=2.8cm, minimum height=1cm, fill=blue!5},
+    sub/.style={draw, rounded corners, align=center, minimum width=2.4cm, minimum height=0.75cm, fill=white},
+    arrow/.style={-{Latex[length=2.8mm]}, thick}
+  ]
+    \node[block] (alice) {Alice\\emisor};
+    \node[sub, below=0.8cm of alice] (laser) {láser DFB\\atenuador};
+    \node[sub, below=0.35cm of laser] (mods) {moduladores\\fase/intensidad};
+
+    \node[block, right=2.3cm of alice] (fibra) {Canal\\fibra óptica};
+    \node[sub, below=0.8cm of fibra] (loss) {pérdida\\conectores};
+
+    \node[block, right=2.3cm of fibra] (bob) {Bob\\receptor};
+    \node[sub, below=0.8cm of bob] (mzi) {switch + MZI};
+    \node[sub, below=0.35cm of mzi] (det) {detectores\\time tagger};
+
+    \node[block, below=3.2cm of fibra] (ctrl) {Control clásico\\BB84/KMS futuro};
+
+    \draw[arrow, blue] (alice) -- node[above] {pulsos} (fibra);
+    \draw[arrow, blue] (fibra) -- node[above] {fotones} (bob);
+    \draw[arrow, dashed] (bob) |- (ctrl);
+    \draw[arrow, dashed] (ctrl) -| (alice);
+    \draw[arrow] (laser) -- (mods);
+    \draw[arrow] (mzi) -- (det);
+  \end{tikzpicture}
+  \caption{Bloques físicos de un enlace QKD \textit{time-bin}.}
+  \label{fig:hardware_bloques}
+\end{figure}
+
+\section{Emisor Alice}
+
+El emisor debe generar pulsos ópticos con intensidad controlada, separación temporal estable y codificación de base/bit. En un banco de pruebas realista, una fuente posible es un láser de telecomunicaciones atenuado, por ejemplo en torno a 1550 nm, junto con moduladores de fase o intensidad. El láser opera muy por debajo de un régimen clásico de alta potencia: se busca que el número medio de fotones por pulso sea bajo. En la simulación, ese comportamiento se resume en \(\mu\), el parámetro \texttt{mean\_photon\_num}.
+
+El control de \(\mu\) es delicado. Si \(\mu\) es demasiado pequeño, la mayoría de los pulsos son vacíos y el enlace genera pocos bits. Si \(\mu\) es demasiado grande, aumenta la probabilidad de pulsos con más de un fotón. Esa probabilidad no es un detalle menor: motiva el uso de estados señuelo. En una implementación con decoy states, Alice debe cambiar aleatoriamente la intensidad entre señal, señuelo y vacío, y Bob debe registrar estadísticas separadas para estimar cotas de seguridad.
+
+Otro aspecto importante es la fase. En sistemas con fuentes coherentes débiles, puede ser necesario randomizar la fase entre símbolos para evitar que un adversario extraiga información de coherencias no deseadas. Esto introduce requisitos sobre moduladores, generadores de números aleatorios, electrónica de control y calibración. La simulación actual no modela esta randomización de manera explícita; lo documenta como requisito de una implementación madura.
+
+\section{Canal óptico}
+
+El canal ideal para la primera maqueta es fibra monomodo estándar de telecomunicaciones. La pérdida base se modela con \(\alpha=\SI{0.2}{\decibel\per\kilo\meter}\), valor típico para fibra en la ventana de 1550 nm. En un enlace real, sin embargo, la pérdida total no es solo \(\alpha L\). También aparecen conectores, empalmes, acoplamientos, splitters, filtros y pérdidas internas de componentes. Por eso el presupuesto de enlace debe sumar pérdidas distribuidas y fijas.
+
+Una forma preliminar de expresar la pérdida total es
+
+\begin{equation}
+  A_\text{total} = \alpha L + N_c A_c + A_\text{acoplo} + A_\text{otros},
+  \label{eq:perdida_total}
+\end{equation}
+
+donde \(L\) es la distancia de fibra, \(N_c\) el número de conectores relevantes, \(A_c\) la pérdida por conector y \(A_\text{otros}\) agrupa pérdidas de filtros, splitters o componentes no modelados. La transmitancia equivalente es
+
+\begin{equation}
+  \eta_\text{total} = 10^{-A_\text{total}/10}.
+  \label{eq:transmitancia_total}
+\end{equation}
+
+Esta formulación permite traducir un relevamiento físico a parámetros de simulación. Si el enlace de campus tiene muchos patch panels, la distancia puede ser moderada pero la pérdida total alta. Para una primera implementación conviene minimizar conectores y usar conectores con baja reflexión, especialmente si el banco se vuelve sensible a retroreflexiones.
+
+\section{Receptor Bob}
+
+Bob debe medir estados en bases aleatorias o efectivamente aleatorizadas. En \textit{time-bin}, la base directa distingue llegada temprana y tardía. La base conjugada requiere interferir componentes temporales. Una arquitectura habitual usa un interferómetro Mach--Zehnder desbalanceado, cuyo retardo iguala la separación entre bins. La calidad de esa interferencia se resume en la visibilidad \(V\). En el simulador, \(V\) se transforma en error de fase mediante \(p_\text{fase}=(1-V)/2\).
+
+Los detectores son críticos. Su eficiencia determina qué fracción de fotones incidentes se convierten en clicks. Los conteos oscuros agregan clicks falsos. El tiempo muerto limita la tasa máxima de eventos. El jitter y la resolución temporal afectan la asignación de clicks a ventanas \textit{time-bin}. Para sistemas en 1550 nm, las tecnologías comunes incluyen APD InGaAs y detectores superconductores de nanohilo. Los APD suelen ser más simples de operar, mientras que los superconductores pueden ofrecer mejores prestaciones a costa de criogenia y complejidad.
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.25\textwidth}XX}
+    \toprule
+    Parámetro & Impacto en QKD & Representación en el modelo \\
+    \midrule
+    Eficiencia & Aumenta clicks útiles y tasa tamizada & \texttt{detector\_efficiency} \\
+    Conteos oscuros & Introducen clicks aleatorios y errores & \texttt{dark\_count\_hz} \\
+    Tiempo muerto & Limita detecciones cercanas & \texttt{count\_rate\_hz} como aproximación \\
+    Resolución temporal & Define separación de bins & \texttt{time\_resolution\_ps} \\
+    Visibilidad & Controla errores en base interferométrica & \texttt{visibility} y \texttt{phase\_error} \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Parámetros de receptor y su mapeo al simulador.}
+  \label{tab:receptor_parametros}
+\end{table}
+
+\section{Control, sincronización y temporización}
+
+Un banco QKD necesita más que óptica. La preparación de estados, el disparo de moduladores, el registro de detecciones y la asociación de eventos a ventanas temporales requieren electrónica de control. En una implementación de laboratorio pueden intervenir generadores de pulsos, FPGA, time taggers, computadoras de control y software de protocolo. La sincronización es particularmente importante en \textit{time-bin}: si Alice y Bob no comparten una referencia temporal suficiente, Bob asignará clicks a bins incorrectos.
+
+El modelo actual no simula una arquitectura completa de sincronización. SeQUeNCe agenda eventos con una línea temporal ideal y el detector tiene resolución temporal. Esto es suficiente para estudiar tendencias de diseño, pero no reemplaza una medición real de jitter ni una estrategia de sincronización. En el plan de implementación, la sincronización debería tratarse como una línea de trabajo propia, junto con visibilidad y calibración de intensidad.
+
+\section{Presupuesto preliminar de enlace}
+
+El presupuesto de enlace conecta hardware y simulación. Para una fuente coherente débil, una aproximación de probabilidad de detección es \(P_\text{det}=1-\exp(-\mu \eta_\text{total}\eta_d)\). La pérdida total reduce \(\eta_\text{total}\); la eficiencia del detector multiplica esa transmitancia; \(\mu\) controla el número medio de fotones emitidos. Por lo tanto, una mejora en detector o una reducción de conectores puede tener un efecto similar sobre la probabilidad de click.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{lccc}
+    \toprule
+    Escenario & Fibra & Conectores & Pérdida total estimada \\
+    \midrule
+    Laboratorio corto & \SI{1}{\kilo\meter} & 2 x \SI{0.5}{\decibel} & \SI{1.2}{\decibel} \\
+    Campus moderado & \SI{10}{\kilo\meter} & 4 x \SI{0.5}{\decibel} & \SI{4.0}{\decibel} \\
+    Campus exigente & \SI{30}{\kilo\meter} & 6 x \SI{0.5}{\decibel} & \SI{9.0}{\decibel} \\
+    Enlace largo & \SI{70}{\kilo\meter} & 6 x \SI{0.5}{\decibel} & \SI{17.0}{\decibel} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Ejemplo de presupuesto de pérdida con \(\alpha=\SI{0.2}{\decibel\per\kilo\meter}\).}
+  \label{tab:presupuesto_perdida}
+\end{table}
+
+La tabla no pretende describir rutas reales de UNSAM. Muestra cómo se transforma un relevamiento en una magnitud de diseño. En una versión posterior, cada fila debería reemplazarse por un tramo candidato real, medido con OTDR o instrumentos ópticos equivalentes. Si se identifica una ruta con pérdida excesiva, se puede decidir cambiar nodos, reducir conectores o comenzar la validación en laboratorio.
+
+\section{Referencia con sistemas comerciales}
+
+Los productos QKD comerciales muestran que BB84 eficiente con estados señuelo y codificación de fase es una arquitectura madura. Toshiba publica sistemas multiplexados y de larga distancia con tasas típicas bajo pérdidas especificadas y rangos de decenas a más de cien kilómetros en fibra ideal \cite{toshibaQKDProducts}. Para este PFI, esas cifras no son metas directas. Un sistema comercial incluye optimización de hardware, postprocesamiento, control de estabilidad, seguridad de módulos y soporte operacional.
+
+La utilidad de la referencia comercial es otra: ayuda a identificar variables de especificación. Si un producto diferencia entre sistema multiplexado y sistema de larga distancia, entonces la decisión de usar fibra dedicada o compartida es central. Si publica requerimientos de fibra, entonces el relevamiento físico importa. Si incluye Q-KMS, entonces la administración de llaves no es un agregado opcional sino parte de la solución. Estas observaciones alimentan el diseño de capítulos posteriores.
+
+\section{Criterios de selección de componentes}
+
+Para seleccionar hardware, el proyecto debería evitar dos extremos. El primero es elegir componentes por disponibilidad sin evaluar si permiten QBER bajo. El segundo es diseñar directamente un sistema de prestaciones comerciales inalcanzable para un banco universitario. El criterio correcto es escalonado: componentes suficientes para validar transmisión y detección, luego mejoras orientadas por las métricas.
+
+\begin{longtable}{p{0.22\textwidth}p{0.36\textwidth}p{0.30\textwidth}}
+  \caption{Criterios técnicos para selección de hardware.}
+  \label{tab:criterios_hardware}\\
+  \toprule
+  Componente & Especificaciones a mirar & Relación con experimentos \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Componente & Especificaciones a mirar & Relación con experimentos \\
+  \midrule
+  \endhead
+  Láser & Longitud de onda, ancho de línea, estabilidad, potencia modulable & Define fuente y repetición de pulsos \\
+  Moduladores & Ancho de banda, pérdida de inserción, voltaje de manejo & Codificación, decoy, fase aleatoria \\
+  Atenuadores & Rango, precisión, estabilidad & Control de \(\mu\) \\
+  Fibra & Atenuación, disponibilidad, conectores & Experimento de distancia \\
+  Interferómetro & Retardo, visibilidad, estabilidad térmica & Experimento de visibilidad \\
+  Detectores & Eficiencia, dark counts, jitter, dead time & Experimento de detector \\
+  Time tagger & Resolución, canales, tasa máxima & Asignación temporal de bins \\
+  Control & FPGA/PC, sincronización, software & Operación del protocolo \\
+  \bottomrule
+\end{longtable}
+
+\section{Conclusión de hardware}
+
+El hardware no es un anexo accidental de la teoría; define los parámetros que la simulación barre. La distancia se traduce en pérdida, la fuente en \(\mu\), el detector en eficiencia y ruido, el interferómetro en visibilidad y el control en estabilidad temporal. Por eso un PFI de telecomunicaciones debe mantener juntas las tres capas: física, simulación y decisión de diseño. La memoria actual no compra ni instala componentes, pero deja claro qué debe medirse y cómo esas mediciones afectarían QBER y SKR.

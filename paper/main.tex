@@ -11,11 +11,12 @@
 \usepackage{geometry}
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{listings}
 \usepackage{siunitx}
 \usepackage{xcolor}
 
 \geometry{margin=2.7cm}
-\graphicspath{{../experiments/results/}}
+\graphicspath{{../experiments/results/}{assets/}}
 \hypersetup{
   colorlinks=true,
   linkcolor=black,
@@ -28,6 +29,17 @@
   detect-all=true
 }
 \setlist{itemsep=0.2em, topsep=0.4em}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single,
+  rulecolor=\color{black!25},
+  numbers=left,
+  numberstyle=\tiny\color{black!50},
+  xleftmargin=1.5em,
+  framexleftmargin=1.2em
+}
 
 \title{
   \textbf{Diseño y evaluación por simulación de un banco de pruebas de QKD BB84 en time-bin con estados señuelo}\\[0.5em]
@@ -55,6 +67,7 @@
 
 \appendix
 \input{chapters/a_reproduccion}
+\input{chapters/b_codigo_relevante}
 
 \bibliographystyle{ieeetr}
 \bibliography{references}

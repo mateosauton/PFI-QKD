@@ -85,3 +85,13 @@ La comparación también muestra una diferencia conceptual importante. La curva 
 \end{table}
 
 En conjunto, los resultados cumplen la función del experimento: no entregan una especificación final cerrada del banco, pero sí identifican las variables que dominan el diseño. Para avanzar hacia hardware, la prioridad debería ser validar primero un enlace corto con QBER bajo, luego aumentar distancia, medir visibilidad real del interferómetro y finalmente incorporar estados señuelo como parte del flujo protocolar.
+
+\section{Lectura para el diseño de campus}
+
+La lectura más útil para el proyecto UNSAM no es elegir un único ``mejor'' punto de operación, sino ordenar decisiones. El barrido de distancia indica que el relevamiento físico del campus debe producir una tabla de distancias ópticas reales, no solo distancias geográficas. También debe registrar conectores, empalmes, bandejas y posibles tramos compartidos, porque cada pérdida adicional reduce el margen observado en la simulación.
+
+El barrido de detectores indica que la selección de hardware no puede basarse únicamente en disponibilidad o costo. La eficiencia, los conteos oscuros y el tiempo muerto condicionan la tasa de llave y la estabilidad del QBER. En una comparación de proveedores, estos parámetros deberían normalizarse a una misma ventana temporal y a una misma longitud de enlace. De lo contrario, dos detectores pueden parecer comparables en hoja de datos pero producir tasas muy diferentes en un banco \textit{time-bin}.
+
+El barrido de visibilidad conecta directamente con la instalación. Una red de campus introduce vibración, temperatura, manipulación de fibra y cambios ambientales. Si el receptor requiere interferencia estable, el montaje mecánico y térmico importa tanto como el protocolo. Por eso una prueba de laboratorio de corta distancia debería medir visibilidad y QBER antes de intentar distancias largas.
+
+Finalmente, la comparación decoy marca el camino de madurez del proyecto. Una primera maqueta puede validar emisión, detección y tamizado BB84. Una segunda etapa debe incorporar intensidades señuelo, estimación estadística, reconciliación y amplificación de privacidad. Recién ahí el banco empieza a parecerse a un sistema que entrega llaves defendibles para una capa KMS o para aplicaciones de red.

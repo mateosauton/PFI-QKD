@@ -32,6 +32,14 @@ Un sistema QKD completo puede separarse en cuatro etapas:
 
 Este proyecto simula con detalle la transmisión, detección y tamizado implementados por BB84 en SeQUeNCe. La corrección de errores y la amplificación de privacidad no se ejecutan como protocolos completos; se incorporan mediante una cota de tasa secreta. Esta decisión define el alcance de la memoria: se estudia la factibilidad de un banco de pruebas y la sensibilidad de sus componentes, no la certificación de una llave final lista para producción.
 
+\section{Canal clásico, corrección de errores y privacidad}
+
+Un punto que suele quedar oculto en una explicación breve de BB84 es que el protocolo no termina cuando Bob detecta fotones. Después de la transmisión cuántica, Alice y Bob necesitan un canal clásico autenticado. Este canal no debe ser secreto, pero sí debe impedir que un adversario suplante mensajes. Sobre ese canal se publican bases, se seleccionan índices compatibles, se estima el error y se ejecutan algoritmos de reconciliación.
+
+La corrección de errores transforma dos claves tamizadas parecidas en dos claves idénticas. Una familia conocida de protocolos para esta etapa es Cascade: Alice y Bob dividen la clave en bloques, comparan paridades y localizan discrepancias mediante búsquedas binarias e iteraciones con permutaciones distintas. El costo de esta etapa no es solo computacional. Cada paridad publicada filtra información parcial sobre la clave, por lo que debe contabilizarse como fuga de información al estimar la tasa secreta.
+
+La amplificación de privacidad compensa esa fuga y cualquier información parcial que pudiera haber adquirido un adversario. En términos prácticos, Alice y Bob aplican una función hash universal para comprimir la clave reconciliada. La salida es más corta, pero más segura. En esta memoria esa etapa aparece resumida en los factores de entropía de las ecuaciones de SKR. Por eso conviene leer la SKR como una tasa final estimada bajo un modelo, no como el resultado de haber ejecutado un software completo de postprocesamiento.
+
 \section{Protocolo BB84}
 
 BB84 fue propuesto por Bennett y Brassard en 1984 \cite{bennettBrassard1984}. Es el protocolo de referencia para introducir QKD porque combina una estructura simple con una intuición física fuerte. Alice elige aleatoriamente un bit y una base de preparación. Bob elige aleatoriamente una base de medición. Después de la transmisión, ambos publican únicamente las bases usadas, no los bits. Las posiciones donde las bases coinciden forman la clave cruda o tamizada.
@@ -78,6 +86,8 @@ Los protocolos ideales suelen describirse con fotones individuales, pero los sis
 
 Los pulsos multifotónicos son relevantes porque abren la puerta a ataques por división de número de fotones (PNS). En términos intuitivos, si un pulso contiene más de un fotón con la misma información, un adversario podría intentar extraer una parte y dejar pasar otra. La técnica de estados señuelo reduce esta vulnerabilidad variando aleatoriamente la intensidad de los pulsos. Como Eve no sabe de antemano si un pulso es señal o señuelo, Alice y Bob pueden estimar cotas sobre el comportamiento de eventos monofotónicos \cite{loMaChen2005,maQiZhaoLo2005}.
 
+Esta discusión es particularmente importante para el proyecto porque el banco propuesto no parte de una fuente ideal de fotones individuales. Las notas de relevamiento técnico consideran una fuente láser atenuada y modulada, que es una solución experimental plausible, pero obliga a controlar el número medio de fotones por pulso. Si \(\mu\) es demasiado bajo, muchos pulsos son vacíos y la tasa cae. Si \(\mu\) es demasiado alto, crece la probabilidad de pulsos multifotónicos y la interpretación de seguridad se debilita. Los estados señuelo son la herramienta que permite trabajar en ese compromiso de manera más realista.
+
 Para una intensidad media \(\mu\), una transmitancia total \(\eta\) y una eficiencia de detector \(\eta_d\), una aproximación de la probabilidad de detección por pulso es
 
 \begin{equation}
@@ -120,6 +130,20 @@ La fibra introduce atenuación aproximadamente exponencial con la distancia. En 
 Esta expresión conecta directamente teoría y experimento: al aumentar la distancia, disminuye la probabilidad de detección, se acumulan menos bits tamizados por unidad de tiempo y la tasa secreta esperada cae. El primer barrido del proyecto existe para observar esa transición.
 
 Los detectores agregan eficiencia finita, tasa máxima de conteo, resolución temporal y conteos oscuros. La eficiencia determina qué fracción de fotones incidentes produce clicks válidos. Los conteos oscuros son clicks no asociados a un fotón de señal y pueden introducir bits erróneos. La resolución temporal define cuán bien puede discriminarse una ventana \textit{time-bin}. En un banco de pruebas real, estos parámetros interactúan con sincronización, jitter, pérdidas de acoplamiento y estabilidad interferométrica.
+
+\section{Componentes físicos de un banco time-bin}
+
+Un enlace QKD \textit{time-bin} de laboratorio puede descomponerse en emisor, canal, receptor y control clásico. En el emisor, una implementación práctica puede usar un láser DFB atenuado, moduladores de fase o amplitud y electrónica de disparo de alta velocidad. Para que una fuente coherente débil sea compatible con estados señuelo, el sistema debe controlar la intensidad media de cada pulso y, en una implementación rigurosa, randomizar la fase entre símbolos para no revelar información adicional.
+
+En el receptor, Bob necesita separar o seleccionar bases y medir eventos temporales. Una arquitectura típica incluye un conmutador o divisor, un interferómetro Mach--Zehnder desbalanceado para la base de superposición y detectores de fotón único en ventanas temporales bien definidas. Las tecnologías de detección relevantes en 1550 nm incluyen fotodiodos de avalancha y detectores superconductores. Para un PFI orientado a ingeniería de telecomunicaciones, las variables más importantes para seleccionar detectores son eficiencia, cuentas de oscuridad, tiempo muerto, jitter, tasa máxima de conteo, facilidad de operación y costo de mantenimiento.
+
+El canal puede implementarse con fibra óptica estándar de telecomunicaciones. El diseño debe decidir si se usa fibra oscura dedicada para el canal cuántico, si el canal clásico viaja por una fibra separada o si se multiplexa con suficiente aislamiento. También deben contabilizarse conectores, empalmes, splitters, moduladores y pérdidas de acoplamiento. En las notas de trabajo aparece un valor orientativo de \SI{0.5}{\decibel} por conector FC/PC; en una memoria final con relevamiento físico, esas pérdidas deberían sumarse al presupuesto de enlace o absorberse en la eficiencia efectiva del receptor.
+
+\section{Criterios para una red de campus}
+
+Pasar de un enlace de laboratorio a una red de campus agrega restricciones que no aparecen en el protocolo ideal. La selección de nodos debe considerar distancia, disponibilidad de fibra, seguridad física, acceso para mantenimiento, energía, refrigeración, estabilidad ambiental y cercanía a equipos de red. Un banco de pruebas no requiere resolver todas las aplicaciones desde el primer día, pero sí conviene definir qué servicio recibirá las llaves y cómo se auditará su uso.
+
+En una extensión a tres nodos, una opción realista es un esquema de nodo confiable. Alice genera una llave con un nodo intermedio y ese nodo genera otra llave con Bob o con un tercer sitio. El nodo intermedio debe ser físicamente seguro porque tiene acceso a material de clave. Un KMS puede administrar estas llaves, entregarlas a aplicaciones autorizadas y registrar su uso. Esta capa no se implementa en el simulador actual, pero condiciona la interpretación del proyecto: la QKD produce material criptográfico; la red y el KMS deciden cómo se distribuye y consume.
 
 \section{Vinculación con el proyecto}
 

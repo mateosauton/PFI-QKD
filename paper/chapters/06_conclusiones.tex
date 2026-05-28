@@ -11,6 +11,8 @@ El barrido de detectores indica que la eficiencia de detección y la acumulació
 
 La comparación con estados señuelo muestra la diferencia entre una estimación de desempeño y una cota de tasa segura más conservadora. Las fuentes coherentes débiles simplifican el diseño experimental, pero introducen pulsos multifotónicos. Por eso, una implementación de mayor madurez debería incorporar intensidades señuelo dentro del protocolo y no solo como cálculo posterior.
 
+Desde el punto de vista del PFI, el resultado principal es que el proyecto tiene una ruta técnica razonable: comenzar con un enlace de dos nodos, usar la simulación para fijar rangos de operación, validar en laboratorio una distancia corta y luego trasladar el análisis a una topología de campus. El aporte de la simulación es reducir incertidumbre antes de la etapa costosa: ayuda a decidir qué medir, qué hardware comparar y qué límites esperar.
+
 \section{Limitaciones}
 
 Las limitaciones principales son las siguientes:
@@ -30,6 +32,8 @@ El siguiente paso natural es aumentar la fidelidad del modelo sin perder reprodu
 También resulta conveniente extender el modelo de hardware. Para \textit{time-bin}, la prioridad es representar con más detalle sincronización, jitter, ventanas de detección y estabilidad de fase. Para el canal, se pueden incorporar pérdidas de acoplamiento y dispersión. Para el receptor, se puede explorar una matriz de tecnologías de detector y condiciones de operación.
 
 Finalmente, una vez construido un banco físico, las curvas simuladas deberían usarse como línea base. La comparación entre mediciones reales y simulación permitiría ajustar parámetros, detectar efectos no modelados y decidir qué nivel de complejidad requiere el simulador para acompañar el desarrollo experimental.
+
+En términos de documento final, conviene incorporar tres bloques que todavía quedan como trabajo futuro. El primero es un relevamiento del Campus Miguelete con distancias ópticas, disponibilidad de fibra, seguridad física de nodos y restricciones de instalación. El segundo es una matriz de hardware con fuente, moduladores, detectores, time tagger, FPGA/control, conectores y costos estimados. El tercero es una arquitectura de tres nodos con KMS, donde se explique qué nodo es confiable, qué llaves se generan por enlace y cómo se entregarían a una aplicación.
 
 \section{Cierre}
 

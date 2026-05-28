@@ -1,0 +1,139 @@
+\chapter{Fragmentos de código relevantes}
+\label{app:codigo}
+
+Este apéndice documenta los fragmentos del script que hacen posible la simulación. No reemplaza al archivo completo \path{experiments/qkd_2node_simulation.py}; selecciona las partes que conectan directamente el modelo físico con los resultados de la memoria.
+
+\section{Parámetros de simulación}
+
+\begin{lstlisting}[language=Python, caption={Estructura de parámetros usada por cada punto de barrido.}]
+@dataclass
+class SimParams:
+    distance_km: float
+    attenuation_db_km: float = DEFAULT_ALPHA_DB_KM
+    detector_efficiency: float = 0.1
+    dark_count_hz: float = 100.0
+    mean_photon_num: float = 0.1
+    frequency_hz: float = DEFAULT_FREQUENCY_HZ
+    visibility: float = 0.98
+    key_length: int = DEFAULT_KEY_LENGTH
+    num_keys: int = DEFAULT_NUM_KEYS
+    runtime_ps: float = DEFAULT_RUNTIME_PS
+    alice_seed: int = 0
+    bob_seed: int = 1
+    polarization_fidelity: float = 1.0
+    count_rate_hz: float = 50e6
+    time_resolution_ps: int = 10
+\end{lstlisting}
+
+\texttt{SimParams} es el contrato entre la pregunta experimental y el simulador. Cada barrido modifica uno o dos campos y deja el resto fijo. Esto evita que las curvas mezclen efectos: si se estudia distancia, la eficiencia del detector no cambia; si se estudia visibilidad, la fibra se mantiene fija. La estructura también permite registrar semillas independientes para Alice y Bob, lo cual hace reproducible cada punto sin eliminar la naturaleza estocástica del protocolo.
+
+Los campos tienen una interpretación física directa. La distancia y la atenuación definen el presupuesto de pérdida de canal. La eficiencia, los conteos oscuros, la tasa máxima y la resolución temporal resumen el receptor. El número medio de fotones y la frecuencia resumen la fuente. La visibilidad resume la calidad interferométrica. Por eso la tabla de parámetros del Capítulo~\ref{chap:metodologia} puede leerse como una versión documental de esta clase.
+
+\section{Creación del enlace Alice--Bob}
+
+\begin{lstlisting}[language=Python, caption={Estructura central de una corrida en SeQUeNCe.}]
+def run_single_simulation(p: SimParams) -> dict[str, Any]:
+    distance_m = p.distance_km * 1000.0
+    attenuation_db_m = p.attenuation_db_km / 1000.0
+    eta_ch = channel_transmittance(distance_m, attenuation_db_m)
+
+    tl = Timeline(p.runtime_ps)
+    qc0 = QuantumChannel("qc0", tl, distance=distance_m,
+                         attenuation=attenuation_db_m,
+                         frequency=p.frequency_hz)
+    cc0 = ClassicalChannel("cc0", tl, distance=distance_m)
+    cc0.delay += DEFAULT_CLASSICAL_EXTRA_DELAY_PS
+
+    alice = QKDNode("alice", tl, encoding=time_bin, stack_size=1)
+    bob = QKDNode("bob", tl, encoding=time_bin, stack_size=1)
+
+    alice.update_lightsource_params("frequency", p.frequency_hz)
+    alice.update_lightsource_params("mean_photon_num",
+                                    p.mean_photon_num)
+
+    phase_error = max(0.0, min(1.0, (1.0 - p.visibility) / 2.0))
+    qsd = bob.components["bob.qsdetector"]
+    qsd.update_interferometer_params("phase_error", phase_error)
+
+    qc0.set_ends(alice, bob.name)
+    cc0.set_ends(alice, bob.name)
+    pair_bb84_protocols(alice.protocol_stack[0],
+                        bob.protocol_stack[0])
+
+    proc = Process(alice.protocol_stack[0], "push",
+                   [p.key_length, p.num_keys, p.runtime_ps - 1e6])
+    tl.schedule(Event(0, proc))
+    tl.init()
+    tl.run()
+\end{lstlisting}
+
+Este fragmento muestra la lógica de eventos discretos. La simulación no calcula una tasa en una sola expresión; arma una línea temporal, crea objetos que pueden agendar eventos y deja que el protocolo avance. El canal cuántico recibe distancia, atenuación y frecuencia; el canal clásico recibe distancia y retardo extra; los nodos QKD reciben la codificación \textit{time-bin}; y el protocolo BB84 se agenda como un proceso futuro.
+
+La línea \texttt{phase\_error = (1 - visibility) / 2} es una simplificación clave. En vez de modelar todos los detalles mecánicos y térmicos del interferómetro, el experimento traduce la visibilidad óptica a una probabilidad de error de fase. Esto permite responder una pregunta de ingeniería concreta: si el montaje óptico pierde contraste, cuánto se degrada QBER/SKR en el modelo.
+
+\section{Detector, fuente coherente y probabilidad de detección}
+
+\begin{lstlisting}[language=Python, caption={Modelo analítico de detección para fuente coherente débil.}]
+def channel_transmittance(distance_m: float,
+                          attenuation_db_per_m: float) -> float:
+    return float(10 ** (distance_m * attenuation_db_per_m / -10))
+
+
+def wcs_detection_prob(mean_photon: float,
+                       eta_channel: float,
+                       eta_det: float) -> float:
+    eta = max(0.0, min(1.0, eta_channel * eta_det))
+    if mean_photon <= 0:
+        return 0.0
+    return float(1.0 - math.exp(-mean_photon * eta))
+\end{lstlisting}
+
+La primera función convierte pérdida en dB a transmitancia de potencia. Si la atenuación es \(\alpha\) dB/m y la distancia es \(L\), la transmitancia se calcula como \(10^{-\alpha L/10}\). Esta es la razón por la que la curva de detección del Experimento 1 cae exponencialmente con la distancia.
+
+La segunda función usa una propiedad de las fuentes coherentes débiles: el número de fotones por pulso sigue una distribución de Poisson. Si el número medio efectivo de fotones que llega al detector es \(\mu \eta_\text{canal}\eta_\text{det}\), la probabilidad de que haya al menos un evento detectable se aproxima por \(1-\exp(-\mu\eta)\). En el script, esta probabilidad es una métrica analítica complementaria. No reemplaza al QBER simulado; ayuda a explicar por qué, al aumentar distancia, cada vez hay menos oportunidades de generar bits útiles.
+
+\section{Tasa secreta simple}
+
+\begin{lstlisting}[language=Python, caption={Cota simple de tasa secreta usada en los primeros barridos.}]
+def secret_key_rate_bb84_simple(qber: float,
+                                r_sifted_bps: float,
+                                f_ec: float = 1.16) -> float:
+    if not math.isfinite(qber) or qber >= 0.11:
+        return 0.0
+    h = _binary_entropy(qber)
+    factor = max(0.0, 1.0 - f_ec * h - h)
+    return r_sifted_bps * factor
+\end{lstlisting}
+
+Esta función resume el postprocesamiento clásico en un factor de tasa. La tasa tamizada proviene del protocolo BB84 de SeQUeNCe. El factor \(1-f_\text{EC}h_2(Q)-h_2(Q)\) descuenta información necesaria para corrección de errores y amplificación de privacidad. El parámetro \(f_\text{EC}\) representa la ineficiencia práctica de la corrección de errores frente al límite ideal.
+
+El corte en \(QBER \geq 0,11\) hace que la tasa se anule cuando el error supera el umbral de referencia usado para BB84. Esta decisión es útil para graficar un límite operativo, pero introduce una discontinuidad. Por eso, cuando la curva de SKR cae abruptamente en los resultados, una parte de esa caída es física (pérdida y ruido) y otra parte es el criterio discreto implementado en esta función.
+
+\section{Cotas con estados señuelo}
+
+\begin{lstlisting}[language=Python, caption={Núcleo del cálculo decoy asintótico.}]
+def decoy_yield_y1_lower(mu, nu, q_mu, q_nu, y0):
+    denom = mu * nu - nu * nu
+    term = q_nu * math.exp(nu)
+    term -= q_mu * math.exp(mu) * (nu / mu) ** 2
+    term -= ((mu * mu - nu * nu) / (mu * mu)) * y0
+    y1 = (mu / denom) * term
+    return max(0.0, y1)
+
+
+def secret_key_rate_asymptotic_decoy(mu, q_mu, e_mu,
+                                     y1, e1, pulse_rate,
+                                     f_ec=1.16):
+    if y1 <= 0:
+        return 0.0
+    q1 = mu * math.exp(-mu) * y1
+    r_pulse = 0.5 * (
+        -q_mu * f_ec * _binary_entropy(e_mu)
+        + q1 * (1.0 - _binary_entropy(e1))
+    )
+    return max(0.0, r_pulse) * pulse_rate
+\end{lstlisting}
+
+El cálculo decoy intenta separar qué parte de los clicks puede atribuirse a pulsos de un solo fotón, que son los eventos útiles para una interpretación de seguridad más fuerte. \texttt{decoy\_yield\_y1\_lower} combina ganancias asociadas a intensidad de señal \(\mu\), intensidad señuelo \(\nu\) y vacío \(Y_0\) para estimar una cota inferior del rendimiento monofotónico \(Y_1\). La tasa final usa \(Q_1^L=\mu e^{-\mu}Y_1^L\) y descuenta el costo de corrección de errores sobre la ganancia total observada.
+
+En la versión actual, \texttt{q\_mu} y \texttt{q\_nu} se calculan con el modelo analítico de detección, mientras que \texttt{e\_mu} y \texttt{e\_nu} provienen de simulaciones BB84 separadas. Esta mezcla es deliberada y debe quedar documentada: permite comparar tendencias con y sin decoy, pero todavía no equivale a un protocolo decoy completo dentro de SeQUeNCe.

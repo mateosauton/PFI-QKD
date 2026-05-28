@@ -1,26 +1,52 @@
 # QKD experiments
 
-## 2-node time-bin BB84 (`qkd_2node_simulation.py`)
+2-node time-bin BB84 simulations using SeQUeNCe `QKDNode` + `BB84`.
 
-Runs four sweeps using SeQUeNCe `QKDNode` + `BB84` with `time_bin` encoding:
+Shared code lives in `qkd_common.py`. Each experiment has its own script.
 
-1. **Distance** — QBER, analytic detection probability, and model secret key rate vs fiber length.
-2. **Detector sensitivity** — efficiency and dark-count sweeps at 50 km.
-3. **Interferometer visibility** — maps visibility `V` to `Interferometer.phase_error = (1-V)/2` on Bob’s `QSDetectorTimeBin`.
-4. **Decoy impact** — compares a simple no-decoy SKR estimate from simulated QBER/throughput with an **asymptotic decoy-state bound** using analytic WCS gains and Lo–Ma–Chen / Ma–Qi style `Y_1` / `e_1` bounds (see script docstrings).
-
-### Run
+## Run individually
 
 From the repository root:
+
+```bash
+uv run python experiments/exp1_distance_sweep.py
+uv run python experiments/exp3_visibility.py
+uv run python experiments/exp4_decoy_impact.py
+```
+
+### Experiment 2 (detector sensitivity)
+
+Four cumulative improvement steps (run separately or all at once):
+
+```bash
+# One step (1–4)
+uv run python experiments/exp2_detector_sensitivity.py --step 1
+
+# Steps 1–3 sequentially (default `all`; step 4 is separate)
+uv run python experiments/exp2_detector_sensitivity.py --step all
+```
+
+| Step | Changes (cumulative) | Output |
+|------|----------------------|--------|
+| 1 | `num_keys=100` | `exp2_detector_sensitivity_step1.png` |
+| 2 | + `runtime_ps=2e13` | `exp2_detector_sensitivity_step2.png` |
+| 3 | + 5 repeats/point, error bars | `exp2_detector_sensitivity_step3.png` |
+| 4 | + common seeds across sweep (run with `--step 4`) | `exp2_detector_sensitivity_step4.png` |
+
+## Run all (exp 1–4)
 
 ```bash
 uv run python experiments/qkd_2node_simulation.py
 ```
 
-Figures are written to `experiments/results/` (PNG).
+Note: the combined runner uses experiment 2 **step 1 only** for speed. Use `exp2_detector_sensitivity.py --step all` for steps 1–3; add `--step 4` separately if needed.
 
-### Notes
+## Figures
 
-- Simulation time is dominated by discrete-event scheduling; pulse rate is set to `80e6` Hz (not GHz) so sweeps finish in reasonable wall time.
-- **Decoy protocol is not implemented inside SeQUeNCe**; experiment 4 combines **simulated QBER** at signal/decoy intensities with **analytic** gain formulas for the rate bound.
-- A small **bugfix** in `sequence/components/interferometer.py` corrects `phase_error` handling for `FreeQuantumState` (required for visibility &lt; 1).
+Written to `experiments/results/` (PNG).
+
+## Notes
+
+- Simulation time is dominated by discrete-event scheduling; pulse rate is `80e6` Hz.
+- Experiment 4 uses **analytic** decoy bounds (not a full decoy protocol in SeQUeNCe).
+- Visibility maps to `Interferometer.phase_error = (1-V)/2` on Bob’s `QSDetectorTimeBin`.

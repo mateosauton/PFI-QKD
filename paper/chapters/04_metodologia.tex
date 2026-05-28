@@ -3,7 +3,9 @@
 
 \section{Diseño general}
 
-La metodología consiste en ejecutar barridos paramétricos sobre un enlace QKD de dos nodos y observar cómo cambian QBER, SKR y probabilidad de detección. Cada punto del barrido crea una línea temporal nueva, configura canales y componentes, ejecuta BB84 durante un horizonte de simulación y registra las métricas obtenidas. Los barridos se encuentran en \texttt{experiments/qkd\_2node\_simulation.py}; las figuras resultantes se guardan en \texttt{experiments/results/}.
+La metodología consiste en ejecutar barridos paramétricos sobre un enlace QKD de dos nodos y observar cómo cambian QBER, SKR y probabilidad de detección. Cada punto del barrido crea una línea temporal nueva, configura canales y componentes, ejecuta BB84 durante un horizonte de simulación y registra las métricas obtenidas. Los barridos se encuentran en \path{experiments/qkd_2node_simulation.py}; las figuras resultantes se guardan en \path{experiments/results/}.
+
+El diseño experimental parte de una idea simple: modificar una variable dominante por vez y mantener el resto del sistema en condiciones controladas. Esto permite interpretar cada curva como respuesta a una pregunta de diseño. La distancia responde al presupuesto de pérdidas del enlace. La eficiencia y los conteos oscuros responden a la elección de detector. La visibilidad responde a la estabilidad interferométrica. Los estados señuelo responden al problema de usar fuentes coherentes débiles en lugar de fotones individuales ideales.
 
 La tasa de repetición de pulsos se fija en \SI{80}{\mega\hertz}. Este valor no representa el límite tecnológico máximo de un sistema QKD, sino una elección práctica para que la simulación de eventos discretos finalice en tiempos razonables. Las llaves solicitadas tienen longitud de 128 bits, lo cual también es una elección de simulación para obtener muestras rápidas; no debe confundirse con una longitud de llave final de producción.
 
@@ -29,23 +31,61 @@ La tasa de repetición de pulsos se fija en \SI{80}{\mega\hertz}. Este valor no 
   \label{tab:parametros_base}
 \end{table}
 
+\section{Procedimiento común}
+
+Todos los barridos comparten el mismo procedimiento:
+
+\begin{enumerate}
+  \item Definir el conjunto de valores de la variable barrida.
+  \item Para cada valor, construir una instancia de \texttt{SimParams}.
+  \item Crear Alice, Bob, canales cuánticos y canales clásicos.
+  \item Configurar fuente, detectores e interferómetro.
+  \item Ejecutar BB84 hasta generar el número de llaves solicitado o alcanzar el tiempo máximo.
+  \item Calcular QBER medio, throughput tamizado y SKR.
+  \item Guardar los arreglos de resultados y generar figuras.
+\end{enumerate}
+
+Este procedimiento hace que los resultados sean reproducibles desde el repositorio. Además, permite extender el trabajo agregando nuevos barridos sin reescribir el modelo central. Por ejemplo, una futura versión podría barrer longitud de llave, tasa de repetición, pérdida de acoplamiento o jitter temporal manteniendo la misma estructura de simulación.
+
 \section{Experimento 1: distancia}
 
-El primer barrido varía la longitud de fibra entre aproximadamente \SI{1}{\kilo\meter} y \SI{100}{\kilo\meter}. Para cada distancia se calcula la transmitancia del canal, se ejecuta BB84 y se estiman QBER, probabilidad de detección y SKR. Este experimento permite responder una pregunta central para el banco de pruebas: hasta qué rango de distancia el enlace mantiene un QBER compatible con extracción de llave bajo el modelo usado.
+\textbf{Pregunta técnica.} ¿Hasta qué distancia puede operar el enlace simulado antes de que la pérdida de fibra degrade demasiado la detección y la generación de llave?
+
+\textbf{Procedimiento.} Se barre la longitud de fibra entre aproximadamente 1 km y 100 km. Para cada distancia se actualizan los canales cuánticos y clásicos, se calcula la transmitancia asociada a la atenuación base, se ejecuta BB84 y se registran QBER, SKR y probabilidad de detección analítica.
+
+\textbf{Comportamiento esperado.} Se espera que la probabilidad de detección disminuya con la distancia porque la transmitancia de fibra cae exponencialmente. También se espera que la SKR disminuya, ya que hay menos eventos útiles por unidad de tiempo. El QBER no necesariamente debe crecer de manera suave en todos los puntos, pero a distancias grandes puede aumentar porque el enlace acumula menos eventos válidos y se vuelve más sensible a ruido y fluctuaciones estadísticas.
+
+\textbf{Relevancia para el banco de pruebas.} Este experimento establece un rango inicial de longitudes de fibra razonables para laboratorio. Si una distancia simulada produce QBER por encima del umbral, no es una buena condición inicial para calibrar el banco. Conviene comenzar por distancias con margen y luego aumentar complejidad.
 
 \section{Experimento 2: sensibilidad del detector}
 
-El segundo barrido fija la distancia en \SI{50}{\kilo\meter} y explora dos familias de parámetros. Primero varía la eficiencia de detección entre 0,05 y 0,85. Luego varía la tasa de conteos oscuros entre \SI{1}{\hertz} y \SI{10000}{\hertz}. La eficiencia afecta la cantidad de eventos válidos; los conteos oscuros pueden introducir detecciones no correlacionadas con el estado enviado. En un banco experimental, ambos parámetros dependen de la tecnología de detector y de sus condiciones de operación.
+\textbf{Pregunta técnica.} ¿Qué impacto tienen la eficiencia de detección y los conteos oscuros sobre QBER y SKR a una distancia fija?
+
+\textbf{Procedimiento.} Se fija la distancia en \SI{50}{\kilo\meter}. Primero se barre la eficiencia de detección entre 0,05 y 0,85 con conteos oscuros constantes. Luego se barre la tasa de conteos oscuros entre \SI{1}{\hertz} y \SI{10000}{\hertz} con eficiencia fija. En ambos casos se ejecuta el mismo flujo Alice--Bob y se calcula la tasa secreta simple a partir del QBER y throughput simulados.
+
+\textbf{Comportamiento esperado.} Al aumentar la eficiencia de detección, deberían aumentar los eventos útiles y mejorar la tasa de bits tamizados. Si el QBER se mantiene bajo, una mayor eficiencia debería favorecer la SKR. Al aumentar los conteos oscuros, se espera mayor probabilidad de clicks no correlacionados con el estado enviado; en condiciones de baja señal esto puede elevar QBER.
+
+\textbf{Relevancia para el banco de pruebas.} El detector suele ser uno de los componentes más críticos y costosos de un sistema QKD. Este barrido ayuda a decidir si el diseño está limitado por eficiencia, por ruido o por ambos. También orienta qué especificaciones conviene mirar en hojas de datos: eficiencia cuántica, dark count rate, dead time, jitter y resolución temporal.
 
 \section{Experimento 3: visibilidad interferométrica}
 
-El tercer barrido fija la distancia en \SI{30}{\kilo\meter} y varía la visibilidad del interferómetro entre 0,82 y 0,999. La visibilidad se traduce a error de fase mediante la Ecuación~\ref{eq:phase_visibility}. Este experimento es especialmente relevante para \textit{time-bin}, porque la medición en la base de superposición depende de interferencia estable entre los modos temporales. Una visibilidad baja aumenta la probabilidad de errores aun cuando la atenuación del canal sea moderada.
+\textbf{Pregunta técnica.} ¿Cuánta visibilidad necesita el interferómetro para sostener QBER bajo en una codificación \textit{time-bin}?
+
+\textbf{Procedimiento.} Se fija la distancia en \SI{30}{\kilo\meter} y se barre la visibilidad entre 0,82 y 0,999. Cada valor se traduce a error de fase mediante la Ecuación~\ref{eq:phase_visibility}. El resto de los parámetros se mantiene fijo para aislar el efecto de la calidad interferométrica.
+
+\textbf{Comportamiento esperado.} Una visibilidad alta debería reducir errores en la base de superposición y, por lo tanto, reducir QBER. Una visibilidad baja debería degradar la medición de fase y reducir SKR. Debido a que se usan llaves cortas y pocas repeticiones, puede aparecer dispersión estadística, pero la tendencia física esperada es clara.
+
+\textbf{Relevancia para el banco de pruebas.} En \textit{time-bin}, el interferómetro no es un accesorio sino parte central del receptor. Este barrido permite traducir una especificación óptica, la visibilidad, en una métrica criptográfica, QBER/SKR. Eso ayuda a definir requisitos de estabilidad, balance de caminos y control térmico/mecánico.
 
 \section{Experimento 4: impacto de estados señuelo}
 
-El cuarto barrido compara una estimación simple sin estados señuelo contra una cota asintótica decoy para distancias entre \SI{5}{\kilo\meter} y \SI{90}{\kilo\meter}. Se usan intensidades \(\mu=0,6\), \(\nu=0,2\) y un nivel de vacío efectivo pequeño. Para cada distancia se ejecutan simulaciones con intensidad de señal y señuelo para obtener QBER representativo, mientras las ganancias \(Q_\mu\), \(Q_\nu\), el rendimiento \(Y_1\) y el error \(e_1\) se calculan de forma analítica.
+\textbf{Pregunta técnica.} ¿Cómo cambia la tasa de llave estimada cuando se considera una cota decoy frente a una estimación simple sin estados señuelo?
 
-La comparación no debe interpretarse como una competencia directa entre dos implementaciones completas. La curva decoy es una cota de tasa secreta con supuestos de seguridad más conservadores frente a pulsos multifotónicos. La curva sin decoy es útil como referencia de desempeño del modelo, pero no captura la misma superficie de seguridad.
+\textbf{Procedimiento.} Se comparan dos curvas entre \SI{5}{\kilo\meter} y \SI{90}{\kilo\meter}. La curva sin decoy usa la tasa simple calculada desde QBER y throughput simulados. La curva decoy usa intensidades \(\mu=0,6\), \(\nu=0,2\) y un nivel de vacío efectivo pequeño. Para cada distancia se ejecutan simulaciones con intensidad de señal y señuelo para obtener QBER representativo, mientras las ganancias \(Q_\mu\), \(Q_\nu\), el rendimiento \(Y_1\) y el error \(e_1\) se calculan de forma analítica.
+
+\textbf{Comportamiento esperado.} Se espera que ambas tasas disminuyan con distancia. La curva decoy puede quedar por debajo de la curva simple porque estima una tasa segura bajo un modelo más conservador frente a pulsos multifotónicos. Esto no significa que los estados señuelo perjudiquen el sistema; significa que una tasa defendible bajo supuestos más realistas suele ser menor que una estimación de desempeño sin esa restricción.
+
+\textbf{Relevancia para el banco de pruebas.} Las fuentes coherentes débiles son prácticas, pero no equivalen a fuentes ideales de fotones individuales. Este experimento muestra por qué un diseño serio debe considerar estados señuelo si pretende avanzar hacia una implementación con interpretación de seguridad más sólida.
 
 \section{Criterios de interpretación}
 
@@ -54,5 +94,5 @@ Los resultados se interpretan con tres criterios:
 \begin{itemize}
   \item Si el QBER supera el umbral de referencia de \SI{11}{\percent}, la SKR simple se anula.
   \item Si la probabilidad de detección cae fuertemente con distancia, se espera mayor dificultad para acumular llaves en un tiempo fijo.
-  \item Si una variable de hardware modifica mucho la SKR, esa variable se considera crítica para especificar el banco de pruebas.
+  \item Si una variable de hardware modifica mucho la SKR o el QBER, esa variable se considera crítica para especificar el banco de pruebas.
 \end{itemize}

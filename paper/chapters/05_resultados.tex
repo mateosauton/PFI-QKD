@@ -1,9 +1,13 @@
 \chapter{Resultados}
 \label{chap:resultados}
 
+Este capítulo presenta las figuras generadas por el script de simulación y las interpreta a la luz de las preguntas metodológicas. En cada caso se distingue entre la tendencia esperada por el modelo físico y lo observado en la corrida. Esta separación es importante porque la simulación usa muestras finitas: algunas curvas muestran dispersión punto a punto, pero aun así permiten extraer conclusiones de diseño.
+
 \section{Distancia de fibra}
 
-La Figura~\ref{fig:exp1_distance} muestra el barrido de distancia. La probabilidad de detección analítica cae casi exponencialmente con la distancia, como se espera para una fibra con atenuación expresada en dB/km. El QBER se mantiene bajo durante la mayor parte del barrido y aumenta abruptamente en el punto de mayor distancia, donde supera el umbral de referencia de \SI{11}{\percent}. Este comportamiento indica que, bajo los parámetros elegidos, el enlace conserva margen operativo hasta distancias del orden de varias decenas de kilómetros, pero se vuelve inestable cerca del extremo superior del barrido.
+La Figura~\ref{fig:exp1_distance} muestra el barrido de distancia. La probabilidad de detección analítica cae casi exponencialmente con la distancia, como se espera para una fibra con atenuación expresada en dB/km. Este resultado valida el comportamiento básico del canal: al crecer la longitud de fibra, disminuye la transmitancia y llegan menos pulsos detectables a Bob.
+
+El QBER se mantiene bajo durante la mayor parte del barrido y aumenta abruptamente en el punto de mayor distancia, donde supera el umbral de referencia de \SI{11}{\percent}. La interpretación de diseño es que el enlace conserva margen operativo hasta distancias del orden de varias decenas de kilómetros, pero se vuelve inestable cerca del extremo superior del barrido. Para un banco físico, esto sugiere comenzar por distancias moderadas y usar distancias largas solo después de validar sincronización, detección y visibilidad.
 
 \begin{figure}[H]
   \centering
@@ -12,7 +16,7 @@ La Figura~\ref{fig:exp1_distance} muestra el barrido de distancia. La probabilid
   \label{fig:exp1_distance}
 \end{figure}
 
-La Figura~\ref{fig:exp1_skr} presenta la tasa de llave secreta estimada. La tasa cae gradualmente con la distancia mientras el QBER permanece por debajo del umbral, y se anula en la práctica cuando el error excede el margen de seguridad del modelo. La escala logarítmica permite observar tanto la degradación progresiva como la caída final.
+La Figura~\ref{fig:exp1_skr} presenta la tasa de llave secreta estimada. La tasa cae gradualmente con la distancia mientras el QBER permanece por debajo del umbral, y se anula en la práctica cuando el error excede el margen de seguridad del modelo. La escala logarítmica permite observar tanto la degradación progresiva como la caída final. La tendencia es consistente con el presupuesto de pérdidas: menos detecciones útiles implican menor throughput tamizado y menor tasa secreta.
 
 \begin{figure}[H]
   \centering
@@ -24,6 +28,8 @@ La Figura~\ref{fig:exp1_skr} presenta la tasa de llave secreta estimada. La tasa
 \section{Sensibilidad del detector}
 
 La Figura~\ref{fig:exp2_detector} resume el impacto de eficiencia y conteos oscuros a \SI{50}{\kilo\meter}. En el barrido de eficiencia, el QBER permanece por debajo del umbral para todos los puntos simulados. La SKR cambia con la eficiencia de detector, aunque el resultado muestra variaciones punto a punto asociadas al carácter estocástico y al tamaño finito de muestra. Esto refuerza que el barrido sirve como indicador de tendencia y sensibilidad, no como predicción determinista punto por punto.
+
+El resultado esperado era que mayor eficiencia favoreciera la tasa útil. La curva de SKR muestra que la eficiencia es relevante, pero también que la métrica queda afectada por la cantidad limitada de llaves generadas en cada punto. Para una segunda etapa del proyecto convendría repetir cada punto varias veces, aumentar el número de llaves y guardar resultados tabulares para estimar barras de error.
 
 En el barrido de conteos oscuros, el QBER también se mantiene bajo en las condiciones simuladas. La degradación esperada por conteos oscuros no domina fuertemente este conjunto de parámetros, lo que sugiere que, para el banco de pruebas inicial, la eficiencia y la acumulación de eventos válidos pueden ser restricciones más visibles que los conteos oscuros dentro del rango elegido. En una implementación física, este resultado debería revisarse con ventanas temporales, jitter y tasas de repetición reales.
 
@@ -38,7 +44,7 @@ En el barrido de conteos oscuros, el QBER también se mantiene bajo en las condi
 
 La Figura~\ref{fig:exp3_visibility} muestra el barrido de visibilidad. A medida que la visibilidad mejora, el QBER tiende a disminuir y la SKR se ubica en valores más altos. El efecto no es perfectamente monótono porque la simulación usa llaves cortas y un número limitado de repeticiones; aun así, la relación física principal se conserva: la calidad interferométrica es una variable crítica para una codificación \textit{time-bin}.
 
-Este resultado es importante para el diseño del banco de pruebas. La estabilidad de fase, el balance de caminos ópticos y la resolución temporal del detector no son detalles secundarios, sino condiciones necesarias para que la base de superposición produzca resultados confiables. En consecuencia, el interferómetro y la sincronización deberían considerarse subsistemas de alta prioridad experimental.
+El resultado tiene una lectura directa para el diseño óptico. Si el receptor no mantiene buena visibilidad, la medición de la base de superposición se degrada y el protocolo empieza a producir errores aunque la distancia no sea extrema. Esto significa que el interferómetro, la estabilidad de fase, el balance de caminos y la resolución temporal del detector deben considerarse requisitos de primer orden, no detalles de implementación.
 
 \begin{figure}[H]
   \centering
@@ -51,7 +57,7 @@ Este resultado es importante para el diseño del banco de pruebas. La estabilida
 
 La Figura~\ref{fig:exp4_decoy} compara la estimación sin estados señuelo con la cota analítica decoy. Ambas curvas disminuyen con la distancia. La curva decoy queda por debajo de la estimación simple porque aplica una cota más conservadora sobre la contribución segura de eventos monofotónicos. Por lo tanto, el resultado no implica que los estados señuelo empeoren el sistema; indica que la tasa segura certificable bajo ese modelo es menor que una estimación simple que no contempla la misma exposición a pulsos multifotónicos.
 
-Para un banco de pruebas real, la lectura correcta es que los estados señuelo agregan complejidad experimental y de procesamiento, pero son relevantes para acercar la estimación de tasa a un modelo de seguridad más realista con fuentes coherentes débiles. El paso siguiente sería implementar selección aleatoria de intensidades y estimación estadística dentro del flujo protocolar, en lugar de calcular la cota como postproceso analítico.
+La comparación también muestra una diferencia conceptual importante. La curva sin decoy responde a ``cuánto parece rendir el enlace bajo una estimación simple''. La curva decoy responde a ``cuánta tasa puede defenderse si se intenta acotar la contribución segura de eventos de un solo fotón''. Para un banco de pruebas real, ambas preguntas son útiles, pero no equivalentes. La primera ayuda a calibrar desempeño; la segunda acerca el diseño a una interpretación de seguridad más realista.
 
 \begin{figure}[H]
   \centering
@@ -77,3 +83,5 @@ Para un banco de pruebas real, la lectura correcta es que los estados señuelo a
   \caption{Resumen de conclusiones experimentales para el diseño del banco de pruebas.}
   \label{tab:sintesis_resultados}
 \end{table}
+
+En conjunto, los resultados cumplen la función del experimento: no entregan una especificación final cerrada del banco, pero sí identifican las variables que dominan el diseño. Para avanzar hacia hardware, la prioridad debería ser validar primero un enlace corto con QBER bajo, luego aumentar distancia, medir visibilidad real del interferómetro y finalmente incorporar estados señuelo como parte del flujo protocolar.

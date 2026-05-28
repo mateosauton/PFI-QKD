@@ -1,9 +1,34 @@
 \chapter{Herramientas y modelo de simulación}
 \label{chap:modelo}
 
+El objetivo de este capítulo es explicar cómo se pasa del marco teórico a un experimento simulado. Primero se describe por qué se usa un simulador de eventos discretos, luego se introduce SeQUeNCe y finalmente se detalla el modelo Alice--Bob implementado en el repositorio. Esta sección es importante porque las conclusiones del trabajo dependen de entender qué fenómenos están representados, qué parámetros se controlan y qué aspectos quedan fuera del modelo.
+
+\section{Por qué simular antes de construir}
+
+Un banco QKD requiere coordinar fuente óptica, canal de fibra, detectores, interferometría, sincronización y comunicación clásica. Construir directamente el banco físico sin una etapa de diseño puede llevar a invertir tiempo en configuraciones que no tienen margen operativo. La simulación permite explorar esas configuraciones con bajo costo, identificar variables sensibles y estimar rangos razonables antes de pasar a laboratorio.
+
+En este proyecto la simulación no se usa como sustituto del experimento real, sino como herramienta de diseño. La pregunta no es ``cuál será exactamente la tasa de llave de un equipo final'', sino ``qué condiciones hacen plausible un banco de pruebas y qué parámetros conviene controlar primero''. Esa diferencia define la forma de interpretar resultados: se buscan tendencias, umbrales y dependencias, no certificación criptográfica final.
+
 \section{SeQUeNCe}
 
-SeQUeNCe es un simulador de eventos discretos para redes cuánticas que organiza el sistema en módulos de hardware, gestión de entrelazamiento, gestión de recursos, gestión de red y aplicación \cite{wu2021sequence}. Para este proyecto resulta útil porque permite modelar nodos, canales ópticos, canales clásicos, fuentes, detectores y protocolos QKD dentro de una línea temporal común. Esta arquitectura facilita estudiar interacciones entre pérdidas de canal, eventos de detección, retardo y mensajes clásicos sin construir primero el banco físico.
+SeQUeNCe es un simulador de eventos discretos para redes cuánticas desarrollado por Wu, Kolar, Chung, Jin, Zhong, Kettimuthu y Suchara \cite{wu2021sequence}. Su propósito es ofrecer una plataforma configurable para estudiar redes cuánticas con componentes de hardware, canales, protocolos y aplicaciones. A diferencia de un cálculo puramente analítico, SeQUeNCe permite agendar eventos en el tiempo y observar cómo interactúan transmisión óptica, retardo de canal, detecciones y mensajes clásicos.
+
+La arquitectura de SeQUeNCe se organiza alrededor de una línea temporal. Los objetos del sistema agendan procesos como eventos futuros; la simulación avanza ejecutando esos eventos en orden temporal. Este enfoque es natural para telecomunicaciones porque muchos fenómenos relevantes son discretos: emisión de pulsos, llegada de fotones, clicks de detector, envío de mensajes clásicos y finalización de ventanas de medición.
+
+El simulador incluye módulos para hardware, gestión de entrelazamiento, gestión de recursos, gestión de red y aplicación. En este trabajo se usan principalmente el kernel de eventos, componentes ópticos, canales, nodos QKD y el protocolo BB84. No se desarrolla una nueva arquitectura de simulación; se aprovecha la infraestructura existente para construir un escenario específico.
+
+\section{Elementos de SeQUeNCe usados}
+
+Los elementos principales usados por el experimento son:
+
+\begin{itemize}
+  \item \textbf{\texttt{Timeline}}: reloj global de la simulación. Contiene y ejecuta los eventos agendados.
+  \item \textbf{\texttt{Event}} y \textbf{\texttt{Process}}: representan acciones futuras, como iniciar una emisión o procesar una recepción.
+  \item \textbf{\texttt{QuantumChannel}}: modela propagación por fibra, distancia, atenuación y retardo de los estados ópticos.
+  \item \textbf{\texttt{ClassicalChannel}}: transporta mensajes clásicos entre nodos con retardo asociado.
+  \item \textbf{\texttt{QKDNode}}: nodo preparado para distribución de claves, con fuente, detector y pila de protocolos.
+  \item \textbf{\texttt{BB84}}: protocolo que coordina generación de bits, elección de bases, tamizado y métricas básicas.
+\end{itemize}
 
 El repositorio usado en esta memoria contiene el código base de SeQUeNCe y un script de experimentos específico en \path{experiments/qkd_2node_simulation.py}. La implementación reutiliza \texttt{QKDNode} y el protocolo \texttt{BB84} existente en \path{sequence/qkd/BB84.py}. La memoria documenta ese experimento; no modifica la API del simulador ni agrega un nuevo protocolo QKD.
 
@@ -18,18 +43,30 @@ El escenario consiste en dos nodos QKD:
 
 Ambos nodos se conectan con un canal cuántico y un canal clásico. El canal cuántico transporta los estados ópticos preparados por Alice hacia Bob. El canal clásico transporta los mensajes de coordinación BB84: inicio de pulso, recepción de qubits, lista de bases y lista de índices con bases coincidentes. El simulador también configura el canal inverso para mantener la estructura de nodos bidireccional de SeQUeNCe, aunque el envío cuántico relevante del experimento se analiza en el sentido Alice--Bob.
 
+\section{Flujo de una corrida}
+
+Cada punto de barrido ejecuta el mismo flujo:
+
+\begin{enumerate}
+  \item Se crea una línea temporal con horizonte de simulación finito.
+  \item Se crean canales cuánticos y clásicos con la distancia del punto evaluado.
+  \item Se crean Alice y Bob con codificación \texttt{time\_bin}.
+  \item Se fijan parámetros de fuente, detector e interferómetro.
+  \item Se vinculan las instancias BB84 de ambos nodos.
+  \item Alice agenda una solicitud de generación de llaves.
+  \item La línea temporal ejecuta eventos hasta completar llaves o agotar el tiempo.
+  \item Se extraen QBER, throughput, probabilidad de detección analítica y tasa secreta modelo.
+\end{enumerate}
+
+Esta estructura hace que los experimentos sean comparables. Cuando se barre distancia, eficiencia o visibilidad, el resto del flujo se mantiene constante. Así, las diferencias observadas se pueden atribuir a la variable modificada con menos ambigüedad.
+
 \section{Codificación y hardware modelado}
 
 La codificación seleccionada es \texttt{time\_bin}, provista por SeQUeNCe. Alice prepara una secuencia de bits y bases aleatorias, traduce cada bit al estado óptico correspondiente y emite pulsos mediante la fuente. Bob elige bases de medición aleatorias y registra detecciones mediante el detector \textit{time-bin}. Luego, el protocolo conserva posiciones con bases coincidentes para formar la llave.
 
-Los parámetros de hardware usados por el script son deliberadamente simples. Se modela una fuente coherente débil mediante el número medio de fotones por pulso, una fibra con atenuación fija, detectores con eficiencia y conteos oscuros, y una visibilidad interferométrica traducida a error de fase:
+Los parámetros de hardware usados por el script son deliberadamente simples, pero están conectados con variables físicas reales. La fuente se describe mediante frecuencia de emisión y número medio de fotones por pulso. La fibra se describe mediante distancia y atenuación. Los detectores se describen mediante eficiencia, tasa de conteos oscuros, tasa máxima de conteo y resolución temporal. El interferómetro se resume mediante una visibilidad \(V\), que se traduce a error de fase usando la Ecuación~\ref{eq:phase_visibility}.
 
-\begin{equation}
-  p_\text{fase} = \frac{1 - V}{2}.
-  \label{eq:phase_visibility}
-\end{equation}
-
-Esta relación permite estudiar cómo una degradación de visibilidad impacta sobre el QBER sin modelar todos los detalles físicos de un interferómetro real.
+Esta abstracción permite responder preguntas de diseño sin modelar todos los detalles internos de cada componente. Por ejemplo, no se simula la electrónica completa del detector, pero sí se puede estudiar qué ocurre si la eficiencia mejora o si aumentan los conteos oscuros. No se simula una plataforma mecánica real para el interferómetro, pero sí se puede representar el efecto neto de una menor visibilidad.
 
 \section{Métricas extraídas}
 
@@ -42,7 +79,7 @@ El script registra cuatro magnitudes principales:
   \item \textbf{Probabilidad de detección analítica}: probabilidad aproximada de al menos un click por pulso para fuente coherente débil, canal y detector.
 \end{itemize}
 
-La separación entre métricas simuladas y métricas analíticas es importante. QBER y throughput provienen de eventos discretos del protocolo. La probabilidad de detección y parte del análisis con estados señuelo se calculan con expresiones cerradas para complementar la simulación.
+La separación entre métricas simuladas y métricas analíticas es importante. QBER y throughput provienen de eventos discretos del protocolo. La probabilidad de detección y parte del análisis con estados señuelo se calculan con expresiones cerradas para complementar la simulación. Esta separación evita atribuir al simulador una funcionalidad que todavía no implementa, especialmente en el caso decoy.
 
 \section{Supuestos y límites del modelo}
 

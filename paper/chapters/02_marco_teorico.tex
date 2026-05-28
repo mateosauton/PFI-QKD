@@ -1,17 +1,55 @@
 \chapter{Marco teórico}
 \label{chap:marco}
 
+Este capítulo reúne el contexto necesario para entender el experimento. La intención no es desarrollar toda la teoría de comunicaciones cuánticas, sino construir el puente entre tres niveles: el problema criptográfico, el protocolo BB84 y las variables físicas que luego se barren en la simulación. Cada sección introduce conceptos que serán usados explícitamente en el modelo de SeQUeNCe o en la interpretación de resultados.
+
 \section{Distribución de claves y seguridad}
 
-La criptografía simétrica puede alcanzar seguridad perfecta si la clave es verdaderamente aleatoria, se usa una sola vez, tiene longitud comparable al mensaje y permanece secreta. Shannon formalizó esta idea en su teoría de los sistemas secretos \cite{shannon1949}. El obstáculo operativo es distribuir claves seguras entre usuarios remotos sin que un adversario pueda obtenerlas. QKD no reemplaza a la criptografía simétrica; busca resolver la etapa de distribución de claves para alimentar esquemas simétricos ya conocidos.
+La criptografía simétrica permite cifrar y descifrar información usando una clave compartida. Si la clave es verdaderamente aleatoria, tiene longitud comparable al mensaje, se usa una sola vez y permanece secreta, el esquema de libreta de un solo uso puede alcanzar seguridad perfecta en el sentido de Shannon \cite{shannon1949}. El problema no es únicamente cifrar, sino distribuir esa clave entre usuarios remotos sin que un tercero pueda obtenerla.
 
-En QKD se distinguen dos canales. El canal cuántico transporta estados físicos individuales o pulsos débiles preparados por una de las partes. El canal clásico permite publicar información de bases, realizar tamizado, estimar errores, corregir discrepancias y ejecutar amplificación de privacidad. Este canal clásico debe estar autenticado, aunque no necesita ser confidencial. Revisiones generales de QKD presentan esta arquitectura como base de los sistemas prácticos \cite{gisin2002qkd}; la estructura completa de un sistema DCC, incluyendo transmisión cuántica, tamizado y postprocesamiento, es tratada en detalle por López Grande \cite{lopezGrande2018}.
+En redes actuales, la distribución de claves suele resolverse mediante criptografía de clave pública. Protocolos basados en problemas matemáticos difíciles permiten negociar secretos sobre canales inseguros, y sistemas como RSA fueron fundamentales para desplegar comunicaciones seguras a gran escala \cite{rivest1978rsa}. Sin embargo, estos mecanismos no ofrecen seguridad incondicional: dependen de supuestos sobre la dificultad computacional de ciertos problemas y sobre las capacidades tecnológicas del adversario.
+
+QKD propone una solución física al problema de distribución de claves. Alice y Bob no intentan ocultar toda la conversación: usan un canal cuántico para transmitir estados y un canal clásico autenticado para coordinar el protocolo. La confidencialidad surge de que un adversario que mide estados cuánticos no ortogonales modifica las estadísticas observadas. La etapa experimental no produce por sí sola una clave final perfecta; produce datos correlacionados y una estimación de error. Luego se requieren tamizado, reconciliación de información y amplificación de privacidad.
+
+\section{Fundamentos cuánticos mínimos}
+
+El protocolo BB84 puede entenderse con pocos elementos de mecánica cuántica. Un qubit es un sistema de dos niveles que puede representarse como una superposición de dos estados base. Si se mide en la misma base en la que fue preparado, el resultado ideal es determinista. Si se mide en una base incompatible, el resultado es probabilístico. Esta diferencia es la base operacional de QKD.
+
+Dos ideas son especialmente importantes. La primera es la perturbación por medición: medir un estado en una base incompatible destruye parte de la información de preparación. La segunda es el teorema de no clonación: no existe una operación física que copie perfectamente un estado cuántico arbitrario desconocido. Por lo tanto, un adversario no puede copiar todos los estados, guardarse una copia y dejar pasar otra intacta sin riesgo de ser detectado.
+
+En la práctica, los estados no se implementan como qubits abstractos perfectos. Se preparan con sistemas físicos, en este caso pulsos ópticos. La información puede codificarse en polarización, fase, tiempo de llegada u otros grados de libertad. Cada elección de codificación trae ventajas y problemas experimentales propios. La tesis de López Grande \cite{lopezGrande2018} discute esta transición entre protocolo ideal y dispositivos ópticos reales para DCC en fibra.
+
+\section{Estructura de un sistema QKD}
+
+Un sistema QKD completo puede separarse en cuatro etapas:
+
+\begin{enumerate}
+  \item \textbf{Transmisión cuántica}: Alice prepara estados ópticos y Bob los mide.
+  \item \textbf{Tamizado}: Alice y Bob comparan bases por el canal clásico y conservan solo eventos compatibles.
+  \item \textbf{Estimación y reconciliación}: se estima QBER y se corrigen discrepancias entre las claves tamizadas.
+  \item \textbf{Amplificación de privacidad}: se comprime la clave reconciliada para reducir información potencialmente conocida por un adversario.
+\end{enumerate}
+
+Este proyecto simula con detalle la transmisión, detección y tamizado implementados por BB84 en SeQUeNCe. La corrección de errores y la amplificación de privacidad no se ejecutan como protocolos completos; se incorporan mediante una cota de tasa secreta. Esta decisión define el alcance de la memoria: se estudia la factibilidad de un banco de pruebas y la sensibilidad de sus componentes, no la certificación de una llave final lista para producción.
 
 \section{Protocolo BB84}
 
-BB84 fue propuesto por Bennett y Brassard en 1984 \cite{bennettBrassard1984}. En su forma ideal, Alice codifica bits aleatorios en dos bases mutuamente no compatibles. Bob mide cada estado en una base elegida aleatoriamente. Luego, mediante el canal clásico, ambos publican las bases usadas y conservan solo las posiciones donde las bases coincidieron. Esa secuencia constituye la clave cruda o tamizada.
+BB84 fue propuesto por Bennett y Brassard en 1984 \cite{bennettBrassard1984}. Es el protocolo de referencia para introducir QKD porque combina una estructura simple con una intuición física fuerte. Alice elige aleatoriamente un bit y una base de preparación. Bob elige aleatoriamente una base de medición. Después de la transmisión, ambos publican únicamente las bases usadas, no los bits. Las posiciones donde las bases coinciden forman la clave cruda o tamizada.
 
-La seguridad intuitiva surge de que un espía que desconoce la base correcta no puede medir todos los estados sin introducir errores. Si Eve intercepta y reenvía estados, en una fracción de los casos medirá en la base equivocada y perturbará el resultado. El QBER estimado sobre una muestra de la clave permite detectar esa perturbación. La prueba de seguridad de Shor y Preskill conecta BB84 con códigos correctores y privacidad, y da soporte formal a umbrales de error usados como criterio práctico \cite{shorPreskill2000}.
+En una implementación ideal, si Alice y Bob usan la misma base y no hay ruido ni adversario, sus bits coinciden. Si Bob mide en una base incompatible, el resultado no se conserva. Si Eve intercepta y reenvía sin conocer la base, medirá algunas veces en la base equivocada; al reenviar un estado preparado desde ese resultado, introduce errores detectables en una fracción de las posiciones conservadas.
+
+El protocolo se puede resumir así:
+
+\begin{enumerate}
+  \item Alice genera bits y bases aleatorias.
+  \item Alice prepara un estado óptico que representa cada par bit/base.
+  \item Bob mide cada estado con una base aleatoria.
+  \item Alice y Bob anuncian bases por el canal clásico.
+  \item Se conservan posiciones con bases coincidentes.
+  \item Se estima el QBER y se decide si la clave puede procesarse.
+\end{enumerate}
+
+La prueba de Shor y Preskill conecta BB84 con códigos correctores y amplificación de privacidad, y da soporte formal a umbrales de error usados como criterio práctico \cite{shorPreskill2000}. En esta memoria se usa el umbral de aproximadamente \SI{11}{\percent} como referencia para anular la cota simple de SKR cuando el error es demasiado alto.
 
 \section{QBER y tasa de llave secreta}
 
@@ -22,7 +60,9 @@ El QBER se define como la fracción de bits distintos entre las claves tamizadas
   \label{eq:qber}
 \end{equation}
 
-En el simulador, el QBER se estima comparando las llaves generadas en ambos extremos después del tamizado implementado por BB84. Para una cota simple de tasa secreta sin estados señuelo se usa una forma tipo Shor--Preskill:
+El QBER concentra varios efectos: errores de preparación, mediciones en estados degradados, conteos oscuros, mala sincronización, visibilidad interferométrica insuficiente y potencial intervención de un adversario. En un simulador, el QBER permite comparar configuraciones. En un banco real, además, funciona como alarma de que el enlace no puede usarse sin reducir tasa o mejorar componentes.
+
+La tasa de llave secreta (SKR) estima cuántos bits secretos por segundo pueden extraerse después del postprocesamiento. En el script se usa una cota simple tipo Shor--Preskill:
 
 \begin{equation}
   R_\text{simple} = R_\text{tamizada}
@@ -30,11 +70,13 @@ En el simulador, el QBER se estima comparando las llaves generadas en ambos extr
   \label{eq:skr_simple}
 \end{equation}
 
-donde \(R_\text{tamizada}\) es el throughput de bits tamizados, \(Q\) es el QBER, \(f_\text{EC}\) modela la ineficiencia de corrección de errores y \(h_2\) es la entropía binaria. La simulación usa el umbral práctico de aproximadamente \SI{11}{\percent} como referencia: por encima de ese valor la cota simple se anula.
+donde \(R_\text{tamizada}\) es el throughput de bits tamizados, \(Q\) es el QBER, \(f_\text{EC}\) modela la ineficiencia de corrección de errores y \(h_2\) es la entropía binaria. Esta expresión tiene un uso concreto en el proyecto: convertir los eventos simulados por BB84 en una métrica de desempeño comparable entre barridos. No equivale a implementar todo el postprocesamiento clásico.
 
 \section{Fuentes coherentes débiles y estados señuelo}
 
-Los protocolos ideales suelen describirse con fotones individuales, pero los sistemas de laboratorio emplean con frecuencia pulsos coherentes débiles. En una fuente coherente débil, el número de fotones por pulso sigue una distribución de Poisson. Esto introduce la posibilidad de pulsos multifotónicos, relevantes frente a ataques por división de número de fotones. La técnica de estados señuelo mitiga este problema al variar la intensidad de los pulsos y estimar cotas sobre los eventos de un solo fotón \cite{loMaChen2005,maQiZhaoLo2005}.
+Los protocolos ideales suelen describirse con fotones individuales, pero los sistemas de laboratorio emplean con frecuencia fuentes coherentes débiles. En una fuente coherente débil, el número de fotones por pulso sigue una distribución de Poisson. Si la intensidad media es baja, la mayoría de los pulsos tiene cero o un fotón, pero existe una probabilidad no nula de pulsos multifotónicos.
+
+Los pulsos multifotónicos son relevantes porque abren la puerta a ataques por división de número de fotones (PNS). En términos intuitivos, si un pulso contiene más de un fotón con la misma información, un adversario podría intentar extraer una parte y dejar pasar otra. La técnica de estados señuelo reduce esta vulnerabilidad variando aleatoriamente la intensidad de los pulsos. Como Eve no sabe de antemano si un pulso es señal o señuelo, Alice y Bob pueden estimar cotas sobre el comportamiento de eventos monofotónicos \cite{loMaChen2005,maQiZhaoLo2005}.
 
 Para una intensidad media \(\mu\), una transmitancia total \(\eta\) y una eficiencia de detector \(\eta_d\), una aproximación de la probabilidad de detección por pulso es
 
@@ -55,9 +97,16 @@ donde \(q=1/2\) representa el factor de tamizado BB84, \(f_\text{rep}\) es la ta
 
 \section{Codificación time-bin}
 
-En codificación \textit{time-bin}, la información se codifica en modos temporales discretos de un pulso óptico. La base computacional puede asociarse a un pulso temprano y uno tardío, mientras que la base conjugada depende de la coherencia de fase entre ambos modos. Este enfoque es atractivo para fibra óptica porque los modos temporales pueden ser más robustos frente a perturbaciones de polarización que una codificación puramente polarimétrica.
+En codificación \textit{time-bin}, la información se codifica en modos temporales discretos de un pulso óptico. La base computacional puede asociarse a un pulso temprano y uno tardío. La base conjugada se obtiene preparando o midiendo superposiciones de esos modos, lo que requiere interferencia estable. Esta codificación es atractiva para fibra óptica porque los modos temporales pueden ser menos sensibles a perturbaciones de polarización que una codificación puramente polarimétrica.
 
-La tesis de López Grande presenta implementaciones de DCC en fibra tanto con polarización como con modos temporales, y remarca los desafíos tecnológicos asociados a preparación, transmisión y detección de estados \cite{lopezGrande2018}. En el modelo de este proyecto, la visibilidad del interferómetro resume parte de esa calidad experimental: menor visibilidad implica mayor error de fase y, por lo tanto, mayor QBER esperado.
+Para medir superposiciones \textit{time-bin}, Bob necesita un sistema interferométrico que haga indistinguibles ciertos caminos temporales. Si la visibilidad del interferómetro es alta, las salidas tienen buen contraste y la base conjugada puede medirse con baja tasa de error. Si la visibilidad cae, aumenta el error de fase. En el modelo usado aquí, esa degradación se resume mediante
+
+\begin{equation}
+  p_\text{fase} = \frac{1 - V}{2}.
+  \label{eq:phase_visibility}
+\end{equation}
+
+La tesis de López Grande presenta implementaciones de DCC en fibra tanto con polarización como con modos temporales, y remarca los desafíos tecnológicos asociados a preparación, transmisión y detección de estados \cite{lopezGrande2018}. En esta memoria, \textit{time-bin} no es solo un detalle de codificación: determina qué variable experimental conviene barrer, por qué se estudia visibilidad y por qué la sincronización temporal debe tratarse como parte central del diseño.
 
 \section{Canal de fibra y detectores}
 
@@ -68,4 +117,10 @@ La fibra introduce atenuación aproximadamente exponencial con la distancia. En 
   \label{eq:fiber_loss}
 \end{equation}
 
-Los detectores agregan eficiencia finita, tasa máxima de conteo, resolución temporal y conteos oscuros. En un banco de pruebas real, esos parámetros interactúan con sincronización, jitter, pérdidas de acoplamiento y estabilidad interferométrica. En esta memoria se selecciona un subconjunto de variables para mantener el estudio reproducible y enfocado en decisiones de diseño iniciales.
+Esta expresión conecta directamente teoría y experimento: al aumentar la distancia, disminuye la probabilidad de detección, se acumulan menos bits tamizados por unidad de tiempo y la tasa secreta esperada cae. El primer barrido del proyecto existe para observar esa transición.
+
+Los detectores agregan eficiencia finita, tasa máxima de conteo, resolución temporal y conteos oscuros. La eficiencia determina qué fracción de fotones incidentes produce clicks válidos. Los conteos oscuros son clicks no asociados a un fotón de señal y pueden introducir bits erróneos. La resolución temporal define cuán bien puede discriminarse una ventana \textit{time-bin}. En un banco de pruebas real, estos parámetros interactúan con sincronización, jitter, pérdidas de acoplamiento y estabilidad interferométrica.
+
+\section{Vinculación con el proyecto}
+
+El marco teórico define las preguntas que luego se convierten en barridos. La atenuación de fibra motiva el experimento de distancia. La eficiencia y los conteos oscuros motivan el experimento de detectores. La codificación \textit{time-bin} motiva el experimento de visibilidad. Las fuentes coherentes débiles motivan la comparación con estados señuelo. Por lo tanto, la simulación no es una colección arbitraria de gráficos: cada gráfico responde a una restricción física o protocolar del banco de pruebas.

@@ -1,0 +1,162 @@
+\chapter{Diseño conceptual de red QKD para Campus Miguelete}
+\label{chap:campus}
+
+El proyecto nace con una motivación aplicada: evaluar la viabilidad de una red QKD en el Campus Miguelete de la UNSAM. La simulación de dos nodos es el primer paso técnico, pero la memoria debe explicar cómo ese enlace se transformaría en una maqueta de investigación con sentido para una universidad. Este capítulo formula esa transición. No fija ubicaciones definitivas, porque eso requiere relevamiento físico, pero establece criterios, topologías candidatas y datos que deben recopilarse para convertir la simulación en un diseño de despliegue.
+
+\section{Objetivo de la maqueta de campus}
+
+Una maqueta QKD universitaria no tiene el mismo objetivo que una red comercial. Su función principal es permitir investigación, formación, validación de componentes y desarrollo de capacidades locales. Debe ser suficientemente realista para exponer problemas de fibra, sincronización, detección y operación, pero no necesita prometer disponibilidad productiva desde el inicio. Por eso la arquitectura propuesta se organiza en etapas.
+
+La primera etapa es un enlace punto a punto entre dos nodos controlados. Esta etapa permite medir QBER, tasa tamizada, estabilidad temporal, visibilidad y sensibilidad a pérdidas. La segunda etapa agrega un nodo intermedio o una segunda ruta para discutir administración de llaves y confianza en nodos. La tercera etapa conecta el material de clave a una aplicación de prueba mediante un KMS o una interfaz equivalente. Cada etapa agrega complejidad solo después de validar la anterior.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1.4cm,
+    fase/.style={draw, rounded corners, align=center, minimum width=3.7cm, minimum height=1.2cm, fill=blue!5},
+    arrow/.style={-{Latex[length=3mm]}, thick}
+  ]
+    \node[fase] (f1) {Etapa 1\\Enlace Alice--Bob};
+    \node[fase, right=1.2cm of f1] (f2) {Etapa 2\\Tres nodos / relay};
+    \node[fase, right=1.2cm of f2] (f3) {Etapa 3\\KMS y aplicación};
+    \node[fase, below=1.2cm of f1] (r1) {Métricas físicas\\QBER, SKR, visibilidad};
+    \node[fase, below=1.2cm of f2] (r2) {Confianza y ruteo\\llaves por enlace};
+    \node[fase, below=1.2cm of f3] (r3) {Consumo de llaves\\servicios de red};
+    \draw[arrow] (f1) -- (f2);
+    \draw[arrow] (f2) -- (f3);
+    \draw[arrow] (f1) -- (r1);
+    \draw[arrow] (f2) -- (r2);
+    \draw[arrow] (f3) -- (r3);
+  \end{tikzpicture}
+  \caption{Evolución propuesta para una maqueta QKD de campus.}
+  \label{fig:etapas_campus}
+\end{figure}
+
+\section{Criterios de selección de nodos}
+
+La elección de nodos es una decisión de telecomunicaciones y de seguridad física. En QKD, la distancia no es únicamente una variable geométrica: importa la longitud óptica real, la cantidad de conectores, empalmes, bandejas, curvaturas, patch panels y equipos intermedios. Un enlace aparentemente corto puede tener pérdidas elevadas si atraviesa múltiples puntos de conexión. Por eso el relevamiento debe registrar tanto la ruta física como su presupuesto de pérdidas.
+
+Los nodos también deben ser accesibles. Un banco de pruebas requiere calibración, reinicios, cambios de fibra, mediciones con instrumentos y acceso a computadoras de control. Si un nodo está en una sala difícil de acceder, el tiempo experimental aumenta y la disponibilidad cae. Al mismo tiempo, no puede ubicarse en un lugar sin seguridad física: un adversario con acceso al emisor, receptor o KMS podría comprometer el sistema aunque el protocolo cuántico sea correcto.
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.22\textwidth}XX}
+    \toprule
+    Criterio & Relevancia para QKD & Dato a relevar \\
+    \midrule
+    Distancia óptica & Determina pérdida, tasa y margen de QBER & Longitud de fibra real, no solo distancia en plano \\
+    Seguridad física & Protege fuente, detector, KMS y llaves & Control de acceso, racks, sala, registro de ingreso \\
+    Infraestructura & Define costo de instalación & Fibra disponible, ductos, patch panels, energía \\
+    Estabilidad ambiental & Afecta interferometría y detectores & Temperatura, vibración, ventilación, ruido eléctrico \\
+    Operabilidad & Permite calibración y mantenimiento & Acceso a instrumentos, PC, red clásica y soporte técnico \\
+    Escalabilidad & Habilita tercera etapa de red & Posibilidad de agregar un nodo confiable o ruta alternativa \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Criterios de selección de nodos para una red QKD de campus.}
+  \label{tab:criterios_nodos}
+\end{table}
+
+\section{Canal cuántico y canal clásico}
+
+El diseño debe separar dos planos. El canal cuántico transporta pulsos ópticos débiles y debe minimizar pérdidas, ruido y contaminación por señales intensas. El canal clásico transporta mensajes de coordinación: bases, índices, información de reconciliación y control. El canal clásico debe estar autenticado, pero no necesita ser secreto. Esta distinción es esencial para evitar un error frecuente: QKD no elimina la necesidad de criptografía clásica, porque la autenticación del canal público sigue siendo necesaria.
+
+Existen tres alternativas de infraestructura. La primera es usar dos fibras: una dedicada al canal cuántico y otra al canal clásico. Es simple de analizar y recomendable para un banco inicial. La segunda es usar fibra cuántica dedicada y red IP existente para el canal clásico. Esta opción reduce tendido, pero obliga a controlar latencia, autenticación y disponibilidad. La tercera es multiplexar señales cuánticas y clásicas en la misma fibra usando longitudes de onda separadas y filtrado. Es atractiva para despliegues comerciales, pero más compleja para un primer banco porque señales clásicas intensas pueden generar ruido por dispersión Raman u otros efectos.
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.25\textwidth}XXX}
+    \toprule
+    Alternativa & Ventaja & Riesgo & Recomendación inicial \\
+    \midrule
+    Dos fibras dedicadas & Aislamiento y análisis simple & Requiere disponibilidad de fibra & Preferida para primera maqueta \\
+    Fibra cuántica + IP clásica & Aprovecha red existente & Dependencia de autenticación y latencia & Viable si hay control de red \\
+    Multiplexado en una fibra & Reduce infraestructura dedicada & Mayor complejidad óptica y ruido & Dejar para etapa posterior \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Alternativas de separación entre canal cuántico y canal clásico.}
+  \label{tab:canales_campus}
+\end{table}
+
+\section{Topologías candidatas}
+
+La topología recomendada para la primera entrega es punto a punto. Tiene menor cantidad de variables, permite validar el modelo de simulación y concentra el trabajo en los componentes físicos. Una vez que Alice y Bob generan llaves con QBER bajo, se puede introducir un tercer nodo. Ese tercer nodo puede cumplir dos roles distintos: nodo receptor alternativo para comparar enlaces, o nodo confiable que participe en una arquitectura de distribución de llaves.
+
+La topología estrella tiene sentido si existe un sitio central seguro, por ejemplo una sala técnica con rack, energía y acceso controlado. En ese esquema, el nodo central se conecta a otros nodos mediante enlaces QKD independientes. La ventaja es operacional: el KMS puede ubicarse cerca del nodo central. La desventaja es que la confianza se concentra en ese punto.
+
+Una topología en línea A--B--C es útil para explicar trusted relay. Alice comparte una llave con B, y B comparte otra con C. Si B es confiable, puede ayudar a transportar material de clave o permitir aplicaciones entre extremos. Esta topología no ofrece seguridad extremo a extremo frente a un B comprometido, pero es realista para redes QKD actuales. Para una universidad, además, permite estudiar la diferencia entre seguridad protocolar y seguridad operacional.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1.4cm,
+    nodo/.style={circle, draw, minimum size=1.1cm, fill=blue!6},
+    kms/.style={draw, rounded corners, align=center, fill=green!7, minimum width=2.2cm, minimum height=0.8cm},
+    q/.style={-{Latex[length=2.5mm]}, thick, blue},
+    c/.style={-{Latex[length=2.5mm]}, dashed, thick}
+  ]
+    \node[nodo] (a1) {A};
+    \node[nodo, right=2.4cm of a1] (b1) {B};
+    \node[below=0.7cm of a1] {Punto a punto};
+    \draw[q] (a1) -- (b1);
+    \draw[c] (a1) to[bend right=22] (b1);
+
+    \node[nodo, right=4.2cm of b1] (s) {S};
+    \node[nodo, above right=1cm and 1.7cm of s] (a2) {A};
+    \node[nodo, right=2.4cm of s] (b2) {B};
+    \node[nodo, below right=1cm and 1.7cm of s] (c2) {C};
+    \node[below=1.9cm of s] {Estrella};
+    \draw[q] (s) -- (a2);
+    \draw[q] (s) -- (b2);
+    \draw[q] (s) -- (c2);
+
+    \node[nodo, below=3.5cm of b1] (a3) {A};
+    \node[nodo, right=2.4cm of a3] (b3) {B};
+    \node[nodo, right=2.4cm of b3] (c3) {C};
+    \node[kms, below=0.9cm of b3] (kms) {KMS};
+    \node[below=2.0cm of b3] {Relay confiable};
+    \draw[q] (a3) -- (b3);
+    \draw[q] (b3) -- (c3);
+    \draw[c] (b3) -- (kms);
+  \end{tikzpicture}
+  \caption{Topologías candidatas para una maqueta QKD de campus.}
+  \label{fig:topologias_campus}
+\end{figure}
+
+\section{Datos que debe producir el relevamiento}
+
+El relevamiento del campus debe producir una tabla de entrada para el simulador y para el diseño de hardware. Como mínimo, debe incluir longitud de fibra por tramo, pérdida medida o estimada, número de conectores, disponibilidad de fibras libres, tipo de conector, ubicación de racks, disponibilidad de energía, temperatura de sala, seguridad física y acceso a red IP. Si no se dispone de mediciones ópticas, se puede comenzar con estimaciones, pero deben marcarse como tales.
+
+La salida esperada del relevamiento no es solo descriptiva. Debe traducirse en parámetros: distancia \(L\), atenuación \(\alpha\), pérdida fija por conectores, eficiencia efectiva del receptor, restricciones de canal clásico y límites de instalación. Esos datos permiten reemplazar los valores ilustrativos de la simulación por valores propios de UNSAM. En ese momento, los barridos del Capítulo~\ref{chap:metodologia} se convierten en herramientas de decisión para el campus.
+
+\begin{longtable}{p{0.24\textwidth}p{0.32\textwidth}p{0.32\textwidth}}
+  \caption{Datos mínimos para relevar un enlace candidato.}
+  \label{tab:datos_relevamiento}\\
+  \toprule
+  Categoría & Dato & Uso en el proyecto \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Categoría & Dato & Uso en el proyecto \\
+  \midrule
+  \endhead
+  Ruta óptica & Longitud real de fibra, patch panels, bandejas & Distancia y pérdida total del canal \\
+  Conectividad & Fibras libres, tipo de conector, empalmes & Viabilidad y pérdida fija \\
+  Sala técnica & Rack, energía, UPS, ventilación & Instalación de emisor, receptor y control \\
+  Seguridad & Acceso físico, cerraduras, registro & Validez de trusted node/KMS \\
+  Ambiente & Temperatura, vibración, ruido eléctrico & Estabilidad de interferómetro y detectores \\
+  Red clásica & IP disponible, latencia, autenticación & Canal clásico BB84 y entrega de llaves \\
+  Operación & Acceso a instrumentos y personal & Mantenimiento, calibración y pruebas \\
+  \bottomrule
+\end{longtable}
+
+\section{Relación entre simulación y diseño físico}
+
+El valor de la simulación es que permite anticipar sensibilidad. Si el barrido de distancia muestra que el enlace pierde margen cerca de cierto rango, el relevamiento debe priorizar rutas con menor pérdida. Si el barrido de detectores indica que la eficiencia tiene fuerte impacto, la selección de hardware debe ponderar detectores mejores aunque sean más costosos. Si la visibilidad domina el QBER, la instalación debe privilegiar estabilidad mecánica y térmica.
+
+Esta relación evita que la memoria sea una colección de capítulos desconectados. La teoría define variables, la simulación las barre, el diseño de campus busca dónde aparecen en la infraestructura real y el hardware ofrece maneras de controlarlas. El entregable final esperado no es una orden de compra cerrada, sino una guía técnica para decidir qué banco construir primero y qué datos faltan para sostener la decisión.
+
+\section{Alcance de la propuesta para UNSAM}
+
+La propuesta más prudente para UNSAM es iniciar con un banco de laboratorio punto a punto usando tramos de fibra controlados. Una vez validado el funcionamiento, el siguiente paso es trasladar el enlace a una ruta corta del campus con buena accesibilidad. Recién después conviene discutir tres nodos, KMS y aplicaciones. Este orden reduce riesgo: si la capa física no entrega QBER bajo, ninguna integración superior resolverá el problema.
+
+El aporte del PFI en este capítulo es ordenar esa ruta. Se definen criterios de nodo, opciones de canal, topologías y datos de relevamiento. La simulación existente no decide por sí sola dónde instalar equipos, pero sí indica qué preguntas de ingeniería deben responderse antes de hacerlo.

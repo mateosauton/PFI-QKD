@@ -7,7 +7,9 @@ Esta carpeta contiene una memoria técnica en LaTeX para el Proyecto Final Integ
 - `main.tex`: archivo principal.
 - `references.bib`: bibliografía.
 - `chapters/`: capítulos y apéndices.
-- Las figuras se referencian desde `../experiments/results/`.
+- `assets/`: imágenes conceptuales generadas para la memoria.
+- Las figuras de resultados se referencian desde `../experiments/results/`.
+- La memoria expandida está organizada como documento técnico largo de PFI, con capítulos de teoría, estado del arte, diseño de campus, hardware, simulación, resultados, discusión, KMS y apéndices.
 
 ## Compilación
 
@@ -26,4 +28,8 @@ Si `latexmk` está instalado:
 latexmk -pdf main.tex
 ```
 
-En este entorno local no se detectaron `pdflatex` ni `latexmk`; la fuente queda lista para compilar en una instalación LaTeX completa.
+En este entorno también se puede compilar con Tectonic:
+
+```bash
+tectonic --keep-logs main.tex
+```

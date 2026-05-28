@@ -1,0 +1,74 @@
+\chapter{Riesgos, mitigaciones y cronograma}
+\label{app:riesgos}
+
+Este apéndice convierte las notas de planificación en una herramienta de gestión del proyecto. Un banco QKD combina teoría, simulación, óptica, electrónica, software y acceso a infraestructura. Por lo tanto, los riesgos no son solo técnicos: también hay riesgos de disponibilidad de laboratorio, compras, permisos, acceso a fibra y tiempo de calibración.
+
+\section{Matriz de riesgos}
+
+\begin{longtable}{p{0.16\textwidth}p{0.28\textwidth}p{0.08\textwidth}p{0.09\textwidth}p{0.22\textwidth}}
+  \caption{Matriz de riesgos del proyecto.}
+  \label{tab:matriz_riesgos}\\
+  \toprule
+  Riesgo & Desc. & Prob. & Imp. & Mitigación \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Riesgo & Desc. & Prob. & Imp. & Mitigación \\
+  \midrule
+  \endhead
+  Parámetros no medidos & Usar valores típicos sin datos de campus & Media & Alto & Marcar supuestos y planificar relevamiento \\
+  Varianza estadística & Pocas semillas generan curvas ruidosas & Alta & Medio & Repetir corridas y guardar CSV \\
+  Hardware no disponible & Detectores o moduladores difíciles de conseguir & Media & Alto & Diseñar banco por etapas y comparar alternativas \\
+  Visibilidad insuficiente & Interferómetro inestable eleva QBER & Media & Alto & Validar en mesa óptica antes de campus \\
+  Fibra no dedicada & Ruido o falta de pelos libres & Media & Alto & Empezar en laboratorio y relevar rutas \\
+  Falta de sincronización & Jitter o temporización degradan time-bin & Media & Alto & Diseñar prueba específica de timing \\
+  Lectura excesiva & Confundir simulación con certificación & Media & Alto & Documentar límites y supuestos \\
+  Dependencia de acceso & Salas o laboratorio no disponibles & Media & Medio & Acordar ventanas de trabajo y responsables \\
+  Integración KMS prematura & Desarrollar aplicación antes de validar enlace & Baja & Medio & Separar etapas: enlace, KMS, aplicación \\
+  Costos de importación & Equipos sin proveedor local o con demora & Media & Medio & Evaluar opciones, ROECyT y compras escalonadas \\
+  \bottomrule
+\end{longtable}
+
+\section{Mitigaciones técnicas}
+
+La mitigación principal es trabajar por etapas. Primero se valida el modelo en simulación. Luego se valida un enlace corto en laboratorio. Después se aumenta distancia o pérdida controlada. Recién entonces se traslada el enlace a campus. Este orden reduce la cantidad de variables simultáneas: si algo falla en campus, ya existe una línea base de laboratorio.
+
+Otra mitigación es mantener trazabilidad de parámetros. Cada valor usado en una figura debería tener una fuente: código, medición, hoja de datos o supuesto explícito. Si un valor cambia, se puede regenerar la figura y comparar. Esta práctica es especialmente importante para eficiencia de detector, dark counts, pérdidas de conectores y visibilidad.
+
+La tercera mitigación es separar el lenguaje de desempeño del lenguaje de seguridad. Una curva de SKR modelo puede informar diseño, pero no certifica una llave final. Si la memoria mantiene esa distinción, evita conclusiones excesivas y deja un camino claro para mejoras: postprocesamiento completo, decoy protocolar, tamaño finito y autenticación clásica.
+
+\section{Cronograma técnico sugerido}
+
+\begin{longtable}{p{0.12\textwidth}p{0.30\textwidth}p{0.42\textwidth}}
+  \caption{Cronograma sugerido para completar el PFI.}
+  \label{tab:cronograma}\\
+  \toprule
+  Etapa & Actividad & Entregable \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Etapa & Actividad & Entregable \\
+  \midrule
+  \endhead
+  1 & Marco teórico y estado del arte & Capítulos teóricos, bibliografía y glosario \\
+  2 & Consolidación de simulación & Scripts reproducibles, figuras y documentación \\
+  3 & Repetición estadística & CSV, barras de error y análisis de varianza \\
+  4 & Relevamiento campus & Fichas de enlaces candidatos y presupuesto de pérdida \\
+  5 & Ensayo de laboratorio & Medición corta Alice--Bob, QBER y visibilidad \\
+  6 & Selección de hardware & Tabla comparativa de fuente, detectores y control \\
+  7 & Diseño de implementación & Topología, KMS conceptual, riesgos y costos \\
+  8 & Redacción final & Memoria, anexos, conclusiones y presentación \\
+  \bottomrule
+\end{longtable}
+
+\section{Criterios de avance entre etapas}
+
+Cada etapa debería tener una condición de cierre. La etapa de simulación se cierra cuando el paper compila, las figuras se regeneran y los parámetros están documentados. La etapa de relevamiento se cierra cuando existen fichas de enlaces con distancia, pérdidas y restricciones. La etapa de laboratorio se cierra cuando se mide QBER en un enlace corto y se compara con el modelo. La etapa de diseño final se cierra cuando se puede justificar una topología y una lista de componentes con base en métricas.
+
+Definir criterios de avance evita que el proyecto avance por intuición. Si no se mide visibilidad, no conviene prometer \textit{time-bin} estable en campus. Si no se conoce la pérdida de fibra, no conviene fijar distancia máxima. Si no se implementa postprocesamiento, no conviene afirmar que hay claves finales de producción.
+
+\section{Costos y disponibilidad}
+
+El análisis de costos debe separar CAPEX y OPEX. CAPEX incluye fuente, moduladores, detectores, time tagger, FPGA/control, fibra, conectores, racks e instrumentos. OPEX incluye mantenimiento, calibración, soporte, consumo, criogenia si se usan detectores superconductores, reemplazos y tiempo de personal. En Argentina, además, la importación de componentes ópticos especializados puede dominar plazos y costos.
+
+Para una primera memoria, conviene evitar presupuestos falsamente precisos. Es preferible construir una matriz de componentes con rangos y criticidad. Los detectores, moduladores y time taggers son componentes críticos. Conectores, patch cords y elementos pasivos son menos costosos pero pueden afectar pérdida y estabilidad. El objetivo de la tabla de costos no es cerrar una compra, sino identificar qué decisiones tienen mayor impacto técnico y económico.

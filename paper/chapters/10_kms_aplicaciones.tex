@@ -1,0 +1,108 @@
+\chapter{Integración futura con KMS y aplicaciones}
+\label{chap:kms}
+
+QKD no cifra mensajes por sí misma. Su producto es material de clave compartido. Para que ese material sea útil en una red, debe almacenarse, administrarse, entregarse a aplicaciones autorizadas y auditarse. Esa función la cumple un sistema de administración de claves o KMS. Este capítulo explica cómo se conectaría el enlace simulado con una arquitectura de red más completa, incluyendo un nodo confiable y posibles aplicaciones de campus.
+
+\section{De bits tamizados a material de clave}
+
+El simulador actual produce QBER y throughput tamizado. En un sistema completo, la secuencia posterior sería reconciliación, amplificación de privacidad, autenticación y almacenamiento seguro. Solo después de esas etapas se obtiene material de clave apto para consumo. Por lo tanto, entre el resultado del Capítulo~\ref{chap:resultados} y una aplicación real existe una capa de postprocesamiento que esta memoria modela parcialmente mediante SKR.
+
+Esta distinción es importante para no sobreprometer. Una aplicación no debería consumir directamente bits crudos ni bits tamizados. Debe consumir llaves finales con identificador, longitud, estado, política de uso y control de acceso. La capa KMS se encarga de esa mediación. En términos de ingeniería, QKD es una fuente de entropía compartida; el KMS la convierte en un recurso operativo.
+
+\section{Arquitectura KMS mínima}
+
+Una arquitectura mínima para el banco tendría tres entidades: el enlace QKD, el KMS y una aplicación de prueba. El enlace genera llaves entre dos nodos. El KMS almacena llaves y expone una interfaz local para que aplicaciones pidan material. La aplicación usa esas llaves para cifrado simétrico, renovación de claves de túnel o autenticación experimental.
+
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[
+    node distance=1.2cm,
+    box/.style={draw, rounded corners, align=center, minimum width=3.0cm, minimum height=1cm, fill=blue!5},
+    kms/.style={draw, rounded corners, align=center, minimum width=3.2cm, minimum height=1.1cm, fill=green!7},
+    app/.style={draw, rounded corners, align=center, minimum width=3.2cm, minimum height=1cm, fill=orange!8},
+    arrow/.style={-{Latex[length=2.8mm]}, thick}
+  ]
+    \node[box] (alice) {Nodo QKD A};
+    \node[box, right=2.2cm of alice] (bob) {Nodo QKD B};
+    \node[kms, below=1.5cm of bob] (kms) {KMS\\almacén de llaves};
+    \node[app, left=2.2cm of kms] (app) {Aplicación\\VPN / servicio};
+
+    \draw[arrow, blue] (alice) -- node[above] {enlace QKD} (bob);
+    \draw[arrow, dashed] (bob) -- node[right] {llaves finales} (kms);
+    \draw[arrow, green!50!black] (app) -- node[above] {solicitud} (kms);
+    \draw[arrow, green!50!black] (kms) -- node[below] {clave + ID} (app);
+  \end{tikzpicture}
+  \caption{Flujo conceptual entre enlace QKD, KMS y aplicación consumidora de llaves.}
+  \label{fig:kms_flujo}
+\end{figure}
+
+ETSI GS QKD 014 define una API REST para entrega de claves \cite{etsiQKD014}. Para el proyecto, esa referencia permite diseñar una interfaz futura sin inventar un modelo arbitrario. No es necesario implementar la API completa en esta memoria, pero sí conviene respetar sus ideas: una aplicación solicita una clave, el sistema devuelve material y metadatos, y las entidades autorizadas coordinan el uso de identificadores de clave.
+
+\section{Trusted relay}
+
+En una red de tres nodos, el caso más realista para una primera expansión es el trusted relay. El nodo B comparte una llave con A y otra con C. Si B es confiable, puede permitir que A y C coordinen material de clave usando operaciones clásicas protegidas. La seguridad depende de la protección física y lógica de B. Si B se compromete, el modelo de confianza cae.
+
+Esta característica no es un defecto oculto; es una propiedad de muchas redes QKD desplegables antes de contar con repetidores cuánticos. Para el PFI, el trusted relay es interesante porque obliga a discutir seguridad de sistema, no solo seguridad de protocolo. El QBER puede ser bajo en ambos enlaces y aun así la arquitectura ser insegura si el nodo intermedio no está protegido.
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.24\textwidth}XX}
+    \toprule
+    Elemento & Función & Riesgo principal \\
+    \midrule
+    Enlace A--B & Genera llave local entre A y B & Pérdida, QBER, hardware \\
+    Enlace B--C & Genera llave local entre B y C & Pérdida, QBER, hardware \\
+    Nodo B & Traduce o administra material entre enlaces & Compromiso físico/lógico \\
+    KMS & Controla almacenamiento y entrega & Acceso no autorizado, auditoría débil \\
+    Aplicación & Consume llaves para cifrado o autenticación & Uso incorrecto o reutilización de claves \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Roles y riesgos en una expansión con nodo confiable.}
+  \label{tab:trusted_relay}
+\end{table}
+
+\section{Aplicaciones de campus}
+
+Las aplicaciones candidatas deben elegirse con prudencia. La primera aplicación de prueba no debería ser una blockchain completa ni una red crítica de producción. Conviene comenzar con un servicio controlado: cifrado de archivos entre dos servidores, renovación de claves de un túnel VPN de laboratorio o autenticación de mensajes entre procesos. Esto permite validar la interfaz KMS sin mezclar problemas de disponibilidad, consenso distribuido o cumplimiento normativo.
+
+Una vez validado el flujo, se puede estudiar una aplicación distribuida. Si el proyecto conserva la motivación de blockchain, la forma rigurosa de plantearlo es: QKD puede proveer claves simétricas o material de autenticación para canales entre nodos de una red distribuida; no vuelve cuánticamente segura a toda la blockchain por sí misma. La seguridad de consenso, firmas, contratos y almacenamiento sigue requiriendo análisis criptográfico propio.
+
+\section{Relación con blockchain}
+
+El título de trabajo original menciona blockchain cuántica. Esa expresión puede ser ambigua. Una blockchain no se protege únicamente por cifrar enlaces: depende de firmas digitales, consenso, reglas de validación, disponibilidad y resistencia a ataques económicos o de red. QKD puede ayudar en comunicaciones entre nodos autorizados, pero no reemplaza firmas post-cuánticas ni resuelve consenso.
+
+La forma más defendible de vincular ambos mundos es acotar el caso de uso. Por ejemplo, una red permisionada de campus podría usar llaves derivadas de QKD para cifrar o autenticar canales entre nodos validadores. En ese caso, QKD protege el transporte de información entre entidades conocidas, mientras que la capa blockchain mantiene sus mecanismos de consenso y registro. Para una blockchain pública abierta, QKD tiene menor aplicabilidad directa porque requiere enlaces físicos y relaciones punto a punto.
+
+\section{Requisitos para una integración real}
+
+Para integrar QKD con aplicaciones, se necesitan requisitos que no aparecen en el experimento físico. Debe haber control de identidad de aplicaciones, políticas de longitud y uso de claves, prevención de reutilización, registro de auditoría, manejo de agotamiento de llaves y comportamiento ante falla del enlace QKD. Si la SKR cae por debajo de la demanda, el KMS debe decidir si bloquea solicitudes, usa reserva, degrada servicio o recurre a claves clásicas.
+
+\begin{longtable}{p{0.24\textwidth}p{0.34\textwidth}p{0.30\textwidth}}
+  \caption{Requisitos de integración KMS/aplicación.}
+  \label{tab:requisitos_kms}\\
+  \toprule
+  Requisito & Descripción & Relación con QKD \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Requisito & Descripción & Relación con QKD \\
+  \midrule
+  \endhead
+  Identidad & Aplicaciones autorizadas para pedir claves & Evita consumo no autorizado \\
+  Metadatos & ID, longitud, estado y tiempo de creación & Permite sincronizar extremos \\
+  Política de uso & Una clave no debe reutilizarse fuera de política & Protege material generado \\
+  Reserva & Buffer ante variación de SKR & Absorbe caídas temporales del enlace \\
+  Auditoría & Registro de solicitudes y entregas & Trazabilidad operacional \\
+  Falla & Comportamiento si QBER sube o no hay llaves & Seguridad ante degradación \\
+  \bottomrule
+\end{longtable}
+
+\section{Camino de implementación futuro}
+
+La integración debería avanzar en tres pasos. Primero, guardar llaves finales simuladas o generadas en laboratorio en un almacén local simple, con identificadores y estados. Segundo, exponer una API mínima inspirada en ETSI para una aplicación de prueba. Tercero, reemplazar el origen simulado por el enlace QKD real una vez que exista postprocesamiento completo. Esta secuencia permite desarrollar software de integración antes de que todo el hardware esté maduro.
+
+En la memoria actual, este capítulo cumple una función de diseño. Explica hacia dónde se dirige el banco, qué interfaz debería mirar y por qué las métricas QBER/SKR importan para aplicaciones. Si la SKR es baja o inestable, el KMS tendrá poca reserva y la aplicación sufrirá. Si el QBER sube, la generación debe detenerse. Por lo tanto, la capa de aplicación depende directamente de los resultados físicos.
+
+\section{Conclusión de integración}
+
+La expansión a KMS y aplicaciones es necesaria para que el proyecto sea una red de distribución de llaves y no solo un enlace óptico. Sin embargo, debe venir después de validar la capa física y protocolar. QKD entrega llaves; el KMS las administra; las aplicaciones las consumen. Mantener esta separación permite discutir blockchain, VPN o servicios seguros sin atribuir a QKD propiedades que no tiene.

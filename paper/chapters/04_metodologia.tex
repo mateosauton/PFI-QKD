@@ -47,6 +47,28 @@ Todos los barridos comparten el mismo procedimiento:
 
 Este procedimiento hace que los resultados sean reproducibles desde el repositorio. Además, permite extender el trabajo agregando nuevos barridos sin reescribir el modelo central. Por ejemplo, una futura versión podría barrer longitud de llave, tasa de repetición, pérdida de acoplamiento o jitter temporal manteniendo la misma estructura de simulación.
 
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.22\textwidth}XXX}
+    \toprule
+    Experimento & Variable independiente & Métricas & Decisión que informa \\
+    \midrule
+    Distancia & Longitud de fibra & QBER, \(P_\text{det}\), SKR & Rango operativo y presupuesto de pérdidas \\
+    Detector & Eficiencia y conteos oscuros & QBER, SKR & Especificación mínima de receptor \\
+    Visibilidad & Contraste interferométrico & QBER, SKR & Requisito de estabilidad óptica \\
+    Decoy & Distancia e intensidades \(\mu,\nu\) & SKR simple y decoy & Necesidad de estados señuelo \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Resumen de los barridos experimentales y su función de diseño.}
+  \label{tab:resumen_barridos}
+\end{table}
+
+\section{Criterio de no modificación del modelo}
+
+En esta versión de la memoria se decidió no modificar el modelo Python ni agregar nuevas corridas. Esta decisión mantiene trazabilidad con los resultados ya generados y evita mezclar dos objetivos: mejorar el simulador y ampliar la documentación. Por lo tanto, el crecimiento del paper se concentra en explicar mejor el contexto, las hipótesis, los supuestos, la interpretación de resultados y la conexión con una implementación de campus.
+
+La consecuencia metodológica es que algunas mejoras se formulan como trabajo futuro, no como resultados nuevos. En particular, barras de error, mapas bidimensionales, exportación CSV e implementación decoy completa quedan identificados, pero no se presentan como evidencia experimental de esta iteración. Esta separación hace que la memoria sea más honesta: documenta lo hecho, justifica por qué sirve y declara qué falta para una siguiente etapa.
+
 \section{Experimento 1: distancia}
 
 \textbf{Pregunta técnica.} ¿Hasta qué distancia puede operar el enlace simulado antes de que la pérdida de fibra degrade demasiado la detección y la generación de llave?
@@ -56,6 +78,10 @@ Este procedimiento hace que los resultados sean reproducibles desde el repositor
 \textbf{Comportamiento esperado.} Se espera que la probabilidad de detección disminuya con la distancia porque la transmitancia de fibra cae exponencialmente. También se espera que la SKR disminuya, ya que hay menos eventos útiles por unidad de tiempo. El QBER no necesariamente debe crecer de manera suave en todos los puntos, pero a distancias grandes puede aumentar porque el enlace acumula menos eventos válidos y se vuelve más sensible a ruido y fluctuaciones estadísticas.
 
 \textbf{Relevancia para el banco de pruebas.} Este experimento establece un rango inicial de longitudes de fibra razonables para laboratorio. Si una distancia simulada produce QBER por encima del umbral, no es una buena condición inicial para calibrar el banco. Conviene comenzar por distancias con margen y luego aumentar complejidad.
+
+\textbf{Configuración usada.} La distancia toma 14 valores entre 1 km y 100 km. Se fija \(\alpha=\SI{0.2}{\decibel\per\kilo\meter}\), eficiencia de detector 0,1, conteos oscuros de \SI{100}{\hertz}, \(\mu=0,1\), frecuencia de \SI{80}{\mega\hertz}, visibilidad \(V=0,98\), llaves de 128 bits, tres llaves por punto y horizonte de \SI{2}{\milli\second}. Las semillas cambian por punto para evitar repetir exactamente la misma secuencia aleatoria.
+
+\textbf{Lectura esperada.} La curva de detección debe caer casi lineal en escala semilogarítmica porque la pérdida se expresa en dB/km. El QBER puede mantenerse bajo hasta que la señal se vuelve comparable al ruido y a la variabilidad estadística. La SKR puede mostrar una caída abrupta porque el modelo simple anula la tasa cuando el QBER alcanza el umbral de \SI{11}{\percent}. Esa discontinuidad no debe interpretarse como una transición física exacta, sino como consecuencia del criterio de seguridad adoptado por el script.
 
 \section{Experimento 2: sensibilidad del detector}
 
@@ -67,6 +93,10 @@ Este procedimiento hace que los resultados sean reproducibles desde el repositor
 
 \textbf{Relevancia para el banco de pruebas.} El detector suele ser uno de los componentes más críticos y costosos de un sistema QKD. Este barrido ayuda a decidir si el diseño está limitado por eficiencia, por ruido o por ambos. También orienta qué especificaciones conviene mirar en hojas de datos: eficiencia cuántica, dark count rate, dead time, jitter y resolución temporal.
 
+\textbf{Configuración usada.} El experimento se divide en dos barridos unidimensionales. En el primero, la eficiencia toma 12 valores entre 0,05 y 0,85, con distancia fija de \SI{50}{\kilo\meter} y conteos oscuros de \SI{100}{\hertz}. En el segundo, los conteos oscuros toman 12 valores logarítmicos entre \SI{1}{\hertz} y \SI{10000}{\hertz}, con eficiencia fija de 0,2. En ambos casos se usan cuatro llaves por punto y un horizonte de \SI{2.5}{\milli\second}.
+
+\textbf{Lectura esperada.} Si el enlace está dominado por señal, aumentar eficiencia debería mejorar la tasa más que el QBER. Si el enlace está dominado por ruido, los conteos oscuros deberían elevar QBER y reducir SKR. Si ninguna curva muestra tendencia limpia, no necesariamente significa que los detectores no importan; puede significar que las corridas son demasiado cortas para resolver diferencias finas. Por eso este experimento también funciona como diagnóstico estadístico del simulador.
+
 \section{Experimento 3: visibilidad interferométrica}
 
 \textbf{Pregunta técnica.} ¿Cuánta visibilidad necesita el interferómetro para sostener QBER bajo en una codificación \textit{time-bin}?
@@ -76,6 +106,10 @@ Este procedimiento hace que los resultados sean reproducibles desde el repositor
 \textbf{Comportamiento esperado.} Una visibilidad alta debería reducir errores en la base de superposición y, por lo tanto, reducir QBER. Una visibilidad baja debería degradar la medición de fase y reducir SKR. Debido a que se usan llaves cortas y pocas repeticiones, puede aparecer dispersión estadística, pero la tendencia física esperada es clara.
 
 \textbf{Relevancia para el banco de pruebas.} En \textit{time-bin}, el interferómetro no es un accesorio sino parte central del receptor. Este barrido permite traducir una especificación óptica, la visibilidad, en una métrica criptográfica, QBER/SKR. Eso ayuda a definir requisitos de estabilidad, balance de caminos y control térmico/mecánico.
+
+\textbf{Configuración usada.} La visibilidad toma 12 valores entre 0,82 y 0,999. La distancia se fija en \SI{30}{\kilo\meter}, la eficiencia en 0,15 y los conteos oscuros en \SI{200}{\hertz}. El script convierte la visibilidad en error de fase mediante \(p_\text{fase}=(1-V)/2\) y actualiza ese parámetro en el interferómetro del receptor. La fuente se mantiene con \(\mu=0,1\) y \SI{80}{\mega\hertz}.
+
+\textbf{Lectura esperada.} Este experimento se enfoca en la base de superposición. En la base temporal directa, Bob decide entre llegada temprana y tardía. En la base interferométrica, la decisión depende de contraste de interferencia. Por eso una degradación de visibilidad no es equivalente a una pérdida de fibra: puede introducir errores aun cuando todavía llegan fotones suficientes.
 
 \section{Experimento 4: impacto de estados señuelo}
 
@@ -87,6 +121,10 @@ Este procedimiento hace que los resultados sean reproducibles desde el repositor
 
 \textbf{Relevancia para el banco de pruebas.} Las fuentes coherentes débiles son prácticas, pero no equivalen a fuentes ideales de fotones individuales. Este experimento muestra por qué un diseño serio debe considerar estados señuelo si pretende avanzar hacia una implementación con interpretación de seguridad más sólida.
 
+\textbf{Configuración usada.} La intensidad de señal se fija en \(\mu=0,6\), la intensidad señuelo en \(\nu=0,2\) y la intensidad de vacío efectiva en \(10^{-4}\). La distancia toma 10 valores entre \SI{5}{\kilo\meter} y \SI{90}{\kilo\meter}. Para cada distancia se ejecutan dos simulaciones, una con \(\mu\) y otra con \(\nu\), y luego se combinan QBER simulado, probabilidad de detección analítica y cotas asintóticas de decoy para estimar la tasa.
+
+\textbf{Lectura esperada.} La curva decoy no es la salida de un protocolo decoy implementado de punta a punta en SeQUeNCe. Es un híbrido: usa errores simulados y ganancias analíticas. Esta elección es útil para mostrar el impacto conceptual de los estados señuelo, pero debe quedar claramente separada de una futura implementación completa con selección aleatoria de intensidades, clasificación de pulsos y estimación estadística finita.
+
 \section{Criterios de interpretación}
 
 Los resultados se interpretan con tres criterios:
@@ -96,3 +134,9 @@ Los resultados se interpretan con tres criterios:
   \item Si la probabilidad de detección cae fuertemente con distancia, se espera mayor dificultad para acumular llaves en un tiempo fijo.
   \item Si una variable de hardware modifica mucho la SKR o el QBER, esa variable se considera crítica para especificar el banco de pruebas.
 \end{itemize}
+
+\section{Mejoras metodológicas propuestas}
+
+A partir de las notas de análisis del proyecto, hay cuatro mejoras claras para una segunda versión experimental. Primero, repetir cada punto con al menos 30 semillas y graficar media e intervalo de confianza; esto permitiría separar tendencia física de ruido Monte Carlo. Segundo, guardar resultados crudos en CSV además de figuras PNG; así se podría recalcular tablas, barras de error y comparaciones sin volver a ejecutar todo. Tercero, convertir el barrido de detector en un mapa bidimensional eficiencia--conteos oscuros a distancia fija, porque en hardware ambos parámetros actúan juntos. Cuarto, implementar el protocolo decoy dentro de la simulación, en vez de mantenerlo como postprocesamiento analítico.
+
+Estas mejoras no cambian la estructura de la memoria, pero sí aumentan la fuerza de las conclusiones. La versión actual responde qué variables importan y cómo se comportan en el modelo. La versión siguiente debería cuantificar incertidumbre y acercar el simulador a la secuencia completa de un banco experimental.

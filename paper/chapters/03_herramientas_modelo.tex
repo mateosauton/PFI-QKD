@@ -17,6 +17,17 @@ La arquitectura de SeQUeNCe se organiza alrededor de una línea temporal. Los ob
 
 El simulador incluye módulos para hardware, gestión de entrelazamiento, gestión de recursos, gestión de red y aplicación. En este trabajo se usan principalmente el kernel de eventos, componentes ópticos, canales, nodos QKD y el protocolo BB84. No se desarrolla una nueva arquitectura de simulación; se aprovecha la infraestructura existente para construir un escenario específico.
 
+La decisión de usar SeQUeNCe es pragmática. El proyecto necesita un simulador que represente eventos de red y componentes, no únicamente una fórmula cerrada de tasa secreta. Herramientas más orientadas a física detallada pueden ser útiles en etapas posteriores, pero para el primer entregable el costo de adopción no se justifica si todavía faltan parámetros medidos del campus y del laboratorio. SeQUeNCe permite avanzar con un modelo trazable, modificable y suficientemente cercano al lenguaje de telecomunicaciones: nodos, canales, retardo, pérdida, mensajes y métricas.
+
+La Figura~\ref{fig:sequence_pipeline} resume el flujo conceptual de una corrida: se eligen parámetros, se agenda una secuencia de eventos, la fuente emite pulsos, el canal introduce retardo y pérdida, Bob mide con un receptor \textit{time-bin}, el protocolo realiza tamizado por el canal clásico y finalmente se calculan QBER, throughput y SKR.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sequence-event-pipeline.png}
+  \caption{Flujo conceptual de simulación de eventos discretos para el enlace BB84 \textit{time-bin}: parámetros de fuente/canal/receptor, eventos ópticos y clásicos, detección y extracción de métricas. Imagen generada con \textit{imagegen} para esta memoria.}
+  \label{fig:sequence_pipeline}
+\end{figure}
+
 \section{Elementos de SeQUeNCe usados}
 
 Los elementos principales usados por el experimento son:
@@ -32,6 +43,8 @@ Los elementos principales usados por el experimento son:
 
 El repositorio usado en esta memoria contiene el código base de SeQUeNCe y un script de experimentos específico en \path{experiments/qkd_2node_simulation.py}. La implementación reutiliza \texttt{QKDNode} y el protocolo \texttt{BB84} existente en \path{sequence/qkd/BB84.py}. La memoria documenta ese experimento; no modifica la API del simulador ni agrega un nuevo protocolo QKD.
 
+Una ventaja práctica de esta organización es que cada parte del experimento queda asociada a una clase concreta. Si se quiere estudiar atenuación, se modifica el \texttt{QuantumChannel}. Si se quiere estudiar detectores, se actualizan los parámetros de las tres instancias de \texttt{Detector} dentro de \texttt{QSDetectorTimeBin}. Si se quiere estudiar visibilidad, se modifica el error de fase del interferómetro. Esta separación ayuda a justificar por qué cada barrido del Capítulo~\ref{chap:metodologia} tensiona una variable física distinta.
+
 \section{Topología Alice--Bob}
 
 El escenario consiste en dos nodos QKD:
@@ -42,6 +55,8 @@ El escenario consiste en dos nodos QKD:
 \end{itemize}
 
 Ambos nodos se conectan con un canal cuántico y un canal clásico. El canal cuántico transporta los estados ópticos preparados por Alice hacia Bob. El canal clásico transporta los mensajes de coordinación BB84: inicio de pulso, recepción de qubits, lista de bases y lista de índices con bases coincidentes. El simulador también configura el canal inverso para mantener la estructura de nodos bidireccional de SeQUeNCe, aunque el envío cuántico relevante del experimento se analiza en el sentido Alice--Bob.
+
+En el script, los canales cuánticos se instancian con una distancia en metros, una atenuación en dB/m y una frecuencia máxima de transmisión. Los canales clásicos se instancian con la misma distancia y se les agrega un retardo fijo de procesamiento de \SI{1}{\milli\second}. Ese retardo no pretende modelar una pila de red completa; evita que los mensajes clásicos colapsen artificialmente a tiempo cero y mantiene una separación temporal razonable entre transmisión cuántica y coordinación protocolar.
 
 \section{Flujo de una corrida}
 
@@ -59,6 +74,8 @@ Cada punto de barrido ejecuta el mismo flujo:
 \end{enumerate}
 
 Esta estructura hace que los experimentos sean comparables. Cuando se barre distancia, eficiencia o visibilidad, el resto del flujo se mantiene constante. Así, las diferencias observadas se pueden atribuir a la variable modificada con menos ambigüedad.
+
+Los mensajes clásicos que aparecen durante la corrida son los propios de BB84: inicio de una tanda de pulsos, recepción de qubits, publicación de bases y comunicación de índices coincidentes. El resultado de esa interacción no es una llave final lista para usar, sino listas de tasas de error y throughput por llave generada. El script promedia esas listas para obtener un punto de cada gráfico.
 
 \section{Codificación y hardware modelado}
 
@@ -80,6 +97,8 @@ El script registra cuatro magnitudes principales:
 \end{itemize}
 
 La separación entre métricas simuladas y métricas analíticas es importante. QBER y throughput provienen de eventos discretos del protocolo. La probabilidad de detección y parte del análisis con estados señuelo se calculan con expresiones cerradas para complementar la simulación. Esta separación evita atribuir al simulador una funcionalidad que todavía no implementa, especialmente en el caso decoy.
+
+En particular, la probabilidad de detección no se obtiene contando todos los clicks del log interno. Se calcula como modelo cerrado de fuente coherente débil, transmitancia de canal y eficiencia de detector. En cambio, el QBER sí proviene de las llaves tamizadas generadas por la implementación BB84. Esta diferencia se mantiene explícita en las figuras y en el texto porque es una de las principales fuentes de interpretación incorrecta si se mezclan métricas.
 
 \section{Supuestos y límites del modelo}
 

@@ -1,0 +1,71 @@
+\chapter{Marco teórico}
+\label{chap:marco}
+
+\section{Distribución de claves y seguridad}
+
+La criptografía simétrica puede alcanzar seguridad perfecta si la clave es verdaderamente aleatoria, se usa una sola vez, tiene longitud comparable al mensaje y permanece secreta. Shannon formalizó esta idea en su teoría de los sistemas secretos \cite{shannon1949}. El obstáculo operativo es distribuir claves seguras entre usuarios remotos sin que un adversario pueda obtenerlas. QKD no reemplaza a la criptografía simétrica; busca resolver la etapa de distribución de claves para alimentar esquemas simétricos ya conocidos.
+
+En QKD se distinguen dos canales. El canal cuántico transporta estados físicos individuales o pulsos débiles preparados por una de las partes. El canal clásico permite publicar información de bases, realizar tamizado, estimar errores, corregir discrepancias y ejecutar amplificación de privacidad. Este canal clásico debe estar autenticado, aunque no necesita ser confidencial. Revisiones generales de QKD presentan esta arquitectura como base de los sistemas prácticos \cite{gisin2002qkd}; la estructura completa de un sistema DCC, incluyendo transmisión cuántica, tamizado y postprocesamiento, es tratada en detalle por López Grande \cite{lopezGrande2018}.
+
+\section{Protocolo BB84}
+
+BB84 fue propuesto por Bennett y Brassard en 1984 \cite{bennettBrassard1984}. En su forma ideal, Alice codifica bits aleatorios en dos bases mutuamente no compatibles. Bob mide cada estado en una base elegida aleatoriamente. Luego, mediante el canal clásico, ambos publican las bases usadas y conservan solo las posiciones donde las bases coincidieron. Esa secuencia constituye la clave cruda o tamizada.
+
+La seguridad intuitiva surge de que un espía que desconoce la base correcta no puede medir todos los estados sin introducir errores. Si Eve intercepta y reenvía estados, en una fracción de los casos medirá en la base equivocada y perturbará el resultado. El QBER estimado sobre una muestra de la clave permite detectar esa perturbación. La prueba de seguridad de Shor y Preskill conecta BB84 con códigos correctores y privacidad, y da soporte formal a umbrales de error usados como criterio práctico \cite{shorPreskill2000}.
+
+\section{QBER y tasa de llave secreta}
+
+El QBER se define como la fracción de bits distintos entre las claves tamizadas de Alice y Bob:
+
+\begin{equation}
+  QBER = \frac{N_\text{errores}}{N_\text{bits tamizados}}.
+  \label{eq:qber}
+\end{equation}
+
+En el simulador, el QBER se estima comparando las llaves generadas en ambos extremos después del tamizado implementado por BB84. Para una cota simple de tasa secreta sin estados señuelo se usa una forma tipo Shor--Preskill:
+
+\begin{equation}
+  R_\text{simple} = R_\text{tamizada}
+  \max\left(0, 1 - f_\text{EC} h_2(Q) - h_2(Q)\right),
+  \label{eq:skr_simple}
+\end{equation}
+
+donde \(R_\text{tamizada}\) es el throughput de bits tamizados, \(Q\) es el QBER, \(f_\text{EC}\) modela la ineficiencia de corrección de errores y \(h_2\) es la entropía binaria. La simulación usa el umbral práctico de aproximadamente \(11\,\%\) como referencia: por encima de ese valor la cota simple se anula.
+
+\section{Fuentes coherentes débiles y estados señuelo}
+
+Los protocolos ideales suelen describirse con fotones individuales, pero los sistemas de laboratorio emplean con frecuencia pulsos coherentes débiles. En una fuente coherente débil, el número de fotones por pulso sigue una distribución de Poisson. Esto introduce la posibilidad de pulsos multifotónicos, relevantes frente a ataques por división de número de fotones. La técnica de estados señuelo mitiga este problema al variar la intensidad de los pulsos y estimar cotas sobre los eventos de un solo fotón \cite{loMaChen2005,maQiZhaoLo2005}.
+
+Para una intensidad media \(\mu\), una transmitancia total \(\eta\) y una eficiencia de detector \(\eta_d\), una aproximación de la probabilidad de detección por pulso es
+
+\begin{equation}
+  P_\text{det} = 1 - \exp(-\mu \eta \eta_d).
+  \label{eq:pdet}
+\end{equation}
+
+En este proyecto, los estados señuelo se incorporan de manera analítica. El script calcula cotas asintóticas para \(Y_1\), la probabilidad de detección condicionada a un fotón, y \(e_1\), la tasa de error de eventos monofotónicos. Con esas cotas se estima una tasa secreta asintótica:
+
+\begin{equation}
+  R_\text{decoy} \geq q f_\text{rep}
+  \left[- Q_\mu f_\text{EC} h_2(E_\mu) + Q_1^L (1-h_2(e_1^U)) \right],
+  \label{eq:skr_decoy}
+\end{equation}
+
+donde \(q=1/2\) representa el factor de tamizado BB84, \(f_\text{rep}\) es la tasa de repetición de pulsos, \(Q_\mu\) y \(E_\mu\) son ganancia y error para la intensidad de señal, y \(Q_1^L\), \(e_1^U\) son cotas inferior y superior para eventos de un fotón.
+
+\section{Codificación time-bin}
+
+En codificación \textit{time-bin}, la información se codifica en modos temporales discretos de un pulso óptico. La base computacional puede asociarse a un pulso temprano y uno tardío, mientras que la base conjugada depende de la coherencia de fase entre ambos modos. Este enfoque es atractivo para fibra óptica porque los modos temporales pueden ser más robustos frente a perturbaciones de polarización que una codificación puramente polarimétrica.
+
+La tesis de López Grande presenta implementaciones de DCC en fibra tanto con polarización como con modos temporales, y remarca los desafíos tecnológicos asociados a preparación, transmisión y detección de estados \cite{lopezGrande2018}. En el modelo de este proyecto, la visibilidad del interferómetro resume parte de esa calidad experimental: menor visibilidad implica mayor error de fase y, por lo tanto, mayor QBER esperado.
+
+\section{Canal de fibra y detectores}
+
+La fibra introduce atenuación aproximadamente exponencial con la distancia. En unidades dB/km, la transmitancia de potencia para una distancia \(L\) puede escribirse como
+
+\begin{equation}
+  \eta_\text{fibra}(L) = 10^{-\alpha L/10}.
+  \label{eq:fiber_loss}
+\end{equation}
+
+Los detectores agregan eficiencia finita, tasa máxima de conteo, resolución temporal y conteos oscuros. En un banco de pruebas real, esos parámetros interactúan con sincronización, jitter, pérdidas de acoplamiento y estabilidad interferométrica. En esta memoria se selecciona un subconjunto de variables para mantener el estudio reproducible y enfocado en decisiones de diseño iniciales.

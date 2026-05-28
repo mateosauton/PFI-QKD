@@ -1,0 +1,51 @@
+\chapter{Herramientas y modelo de simulación}
+\label{chap:modelo}
+
+\section{SeQUeNCe}
+
+SeQUeNCe es un simulador de eventos discretos para redes cuánticas que organiza el sistema en módulos de hardware, gestión de entrelazamiento, gestión de recursos, gestión de red y aplicación \cite{wu2021sequence}. Para este proyecto resulta útil porque permite modelar nodos, canales ópticos, canales clásicos, fuentes, detectores y protocolos QKD dentro de una línea temporal común. Esta arquitectura facilita estudiar interacciones entre pérdidas de canal, eventos de detección, retardo y mensajes clásicos sin construir primero el banco físico.
+
+El repositorio usado en esta memoria contiene el código base de SeQUeNCe y un script de experimentos específico en \texttt{experiments/qkd\_2node\_simulation.py}. La implementación reutiliza \texttt{QKDNode} y el protocolo \texttt{BB84} existente en \texttt{sequence/qkd/BB84.py}. La memoria documenta ese experimento; no modifica la API del simulador ni agrega un nuevo protocolo QKD.
+
+\section{Topología Alice--Bob}
+
+El escenario consiste en dos nodos QKD:
+
+\begin{itemize}
+  \item \textbf{Alice}: nodo emisor, contiene la fuente óptica y la instancia BB84 que inicia la generación de llave.
+  \item \textbf{Bob}: nodo receptor, contiene el detector \textit{time-bin}, el interferómetro y la instancia BB84 asociada.
+\end{itemize}
+
+Ambos nodos se conectan con un canal cuántico y un canal clásico. El canal cuántico transporta los estados ópticos preparados por Alice hacia Bob. El canal clásico transporta los mensajes de coordinación BB84: inicio de pulso, recepción de qubits, lista de bases y lista de índices con bases coincidentes. El simulador también configura el canal inverso para mantener la estructura de nodos bidireccional de SeQUeNCe, aunque el envío cuántico relevante del experimento se analiza en el sentido Alice--Bob.
+
+\section{Codificación y hardware modelado}
+
+La codificación seleccionada es \texttt{time\_bin}, provista por SeQUeNCe. Alice prepara una secuencia de bits y bases aleatorias, traduce cada bit al estado óptico correspondiente y emite pulsos mediante la fuente. Bob elige bases de medición aleatorias y registra detecciones mediante el detector \textit{time-bin}. Luego, el protocolo conserva posiciones con bases coincidentes para formar la llave.
+
+Los parámetros de hardware usados por el script son deliberadamente simples. Se modela una fuente coherente débil mediante el número medio de fotones por pulso, una fibra con atenuación fija, detectores con eficiencia y conteos oscuros, y una visibilidad interferométrica traducida a error de fase:
+
+\begin{equation}
+  p_\text{fase} = \frac{1 - V}{2}.
+  \label{eq:phase_visibility}
+\end{equation}
+
+Esta relación permite estudiar cómo una degradación de visibilidad impacta sobre el QBER sin modelar todos los detalles físicos de un interferómetro real.
+
+\section{Métricas extraídas}
+
+El script registra cuatro magnitudes principales:
+
+\begin{itemize}
+  \item \textbf{QBER medio}: promedio de tasas de error reportadas por BB84 para las llaves generadas.
+  \item \textbf{Throughput tamizado}: tasa de bits por segundo calculada por la implementación BB84.
+  \item \textbf{SKR modelo}: tasa secreta estimada a partir del throughput tamizado y el QBER.
+  \item \textbf{Probabilidad de detección analítica}: probabilidad aproximada de al menos un click por pulso para fuente coherente débil, canal y detector.
+\end{itemize}
+
+La separación entre métricas simuladas y métricas analíticas es importante. QBER y throughput provienen de eventos discretos del protocolo. La probabilidad de detección y parte del análisis con estados señuelo se calculan con expresiones cerradas para complementar la simulación.
+
+\section{Supuestos y límites del modelo}
+
+El modelo adopta una abstracción de ingeniería inicial. No incluye ataques laterales, calibración automática, postprocesamiento clásico completo, autenticación del canal clásico ni fluctuaciones temporales de todos los componentes. La tasa secreta debe leerse como una estimación de diseño, no como una llave certificada para uso criptográfico real.
+
+Tampoco se implementa un protocolo decoy completo dentro de SeQUeNCe. La comparación con estados señuelo usa QBER simulado para intensidades de señal y señuelo, pero calcula ganancias y cotas mediante fórmulas analíticas asintóticas. Esta decisión mantiene el experimento reproducible y suficiente para comparar tendencias de diseño, aunque deja como trabajo futuro la implementación protocolar completa de intensidades aleatorias, etiquetado, estimación estadística finita y postprocesamiento.

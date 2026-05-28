@@ -1,0 +1,58 @@
+\chapter{Metodología experimental}
+\label{chap:metodologia}
+
+\section{Diseño general}
+
+La metodología consiste en ejecutar barridos paramétricos sobre un enlace QKD de dos nodos y observar cómo cambian QBER, SKR y probabilidad de detección. Cada punto del barrido crea una línea temporal nueva, configura canales y componentes, ejecuta BB84 durante un horizonte de simulación y registra las métricas obtenidas. Los barridos se encuentran en \texttt{experiments/qkd\_2node\_simulation.py}; las figuras resultantes se guardan en \texttt{experiments/results/}.
+
+La tasa de repetición de pulsos se fija en \SI{80}{\mega\hertz}. Este valor no representa el límite tecnológico máximo de un sistema QKD, sino una elección práctica para que la simulación de eventos discretos finalice en tiempos razonables. Las llaves solicitadas tienen longitud de 128 bits, lo cual también es una elección de simulación para obtener muestras rápidas; no debe confundirse con una longitud de llave final de producción.
+
+\section{Parámetros base}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Parámetro & Valor base & Comentario \\
+    \midrule
+    Atenuación de fibra & \SI{0.2}{\decibel\per\kilo\meter} & Valor típico ilustrativo \\
+    Frecuencia de fuente & \SI{80}{\mega\hertz} & Limitada por costo computacional \\
+    Longitud de llave BB84 & 128 bits & Tamaño de muestra de simulación \\
+    Número medio de fotones & 0,1 o valor de barrido & Fuente coherente débil \\
+    Eficiencia de detector & 0,1 o valor de barrido & Parámetro de sensibilidad \\
+    Conteos oscuros & \SI{100}{\hertz} o valor de barrido & Parámetro de sensibilidad \\
+    Visibilidad & 0,98 o valor de barrido & Convertida a error de fase \\
+    Tiempo de resolución & \SI{10}{\pico\second} & Detector \textit{time-bin} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Parámetros base usados por el script de simulación.}
+  \label{tab:parametros_base}
+\end{table}
+
+\section{Experimento 1: distancia}
+
+El primer barrido varía la longitud de fibra entre aproximadamente \SI{1}{\kilo\meter} y \SI{100}{\kilo\meter}. Para cada distancia se calcula la transmitancia del canal, se ejecuta BB84 y se estiman QBER, probabilidad de detección y SKR. Este experimento permite responder una pregunta central para el banco de pruebas: hasta qué rango de distancia el enlace mantiene un QBER compatible con extracción de llave bajo el modelo usado.
+
+\section{Experimento 2: sensibilidad del detector}
+
+El segundo barrido fija la distancia en \SI{50}{\kilo\meter} y explora dos familias de parámetros. Primero varía la eficiencia de detección entre 0,05 y 0,85. Luego varía la tasa de conteos oscuros entre \SI{1}{\hertz} y \SI{10000}{\hertz}. La eficiencia afecta la cantidad de eventos válidos; los conteos oscuros pueden introducir detecciones no correlacionadas con el estado enviado. En un banco experimental, ambos parámetros dependen de la tecnología de detector y de sus condiciones de operación.
+
+\section{Experimento 3: visibilidad interferométrica}
+
+El tercer barrido fija la distancia en \SI{30}{\kilo\meter} y varía la visibilidad del interferómetro entre 0,82 y 0,999. La visibilidad se traduce a error de fase mediante la Ecuación~\ref{eq:phase_visibility}. Este experimento es especialmente relevante para \textit{time-bin}, porque la medición en la base de superposición depende de interferencia estable entre los modos temporales. Una visibilidad baja aumenta la probabilidad de errores aun cuando la atenuación del canal sea moderada.
+
+\section{Experimento 4: impacto de estados señuelo}
+
+El cuarto barrido compara una estimación simple sin estados señuelo contra una cota asintótica decoy para distancias entre \SI{5}{\kilo\meter} y \SI{90}{\kilo\meter}. Se usan intensidades \(\mu=0,6\), \(\nu=0,2\) y un nivel de vacío efectivo pequeño. Para cada distancia se ejecutan simulaciones con intensidad de señal y señuelo para obtener QBER representativo, mientras las ganancias \(Q_\mu\), \(Q_\nu\), el rendimiento \(Y_1\) y el error \(e_1\) se calculan de forma analítica.
+
+La comparación no debe interpretarse como una competencia directa entre dos implementaciones completas. La curva decoy es una cota de tasa secreta con supuestos de seguridad más conservadores frente a pulsos multifotónicos. La curva sin decoy es útil como referencia de desempeño del modelo, pero no captura la misma superficie de seguridad.
+
+\section{Criterios de interpretación}
+
+Los resultados se interpretan con tres criterios:
+
+\begin{itemize}
+  \item Si el QBER supera el umbral de referencia de \(11\,\%\), la SKR simple se anula.
+  \item Si la probabilidad de detección cae fuertemente con distancia, se espera mayor dificultad para acumular llaves en un tiempo fijo.
+  \item Si una variable de hardware modifica mucho la SKR, esa variable se considera crítica para especificar el banco de pruebas.
+\end{itemize}

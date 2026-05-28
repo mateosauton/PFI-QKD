@@ -1,0 +1,36 @@
+\chapter{Análisis y conclusiones}
+\label{chap:conclusiones}
+
+\section{Conclusiones técnicas}
+
+El proyecto confirma que una simulación de eventos discretos puede aportar información útil antes de construir un banco de pruebas QKD. El modelo permite integrar parámetros de fuente, canal, detector e interferómetro, y observar su impacto sobre QBER y SKR. Esa integración es valiosa porque el desempeño de un enlace QKD no depende de un único componente: emerge de pérdidas, ruido, sincronización, bases de medición y postprocesamiento.
+
+El análisis de distancia muestra el límite más directo del enlace. La probabilidad de detección cae con la atenuación de fibra y, cuando los eventos útiles se vuelven escasos, el QBER puede superar el umbral de referencia. Esto define un rango de operación inicial para el banco: conviene comenzar con distancias cortas o moderadas, validar detección y sincronización, y luego aumentar longitud de fibra de manera progresiva.
+
+El barrido de detectores indica que la eficiencia de detección y la acumulación de eventos válidos son variables de diseño prioritarias. Los conteos oscuros no dominaron el error en el rango simulado, pero no deben descartarse: en hardware real su impacto depende de ventanas de detección, temperatura, jitter, tasa de repetición y pérdidas previas. El barrido de visibilidad muestra una conclusión más específica para \textit{time-bin}: la estabilidad interferométrica debe tratarse como requisito central del sistema.
+
+La comparación con estados señuelo muestra la diferencia entre una estimación de desempeño y una cota de tasa segura más conservadora. Las fuentes coherentes débiles simplifican el diseño experimental, pero introducen pulsos multifotónicos. Por eso, una implementación de mayor madurez debería incorporar intensidades señuelo dentro del protocolo y no solo como cálculo posterior.
+
+\section{Limitaciones}
+
+Las limitaciones principales son las siguientes:
+
+\begin{itemize}
+  \item Las llaves simuladas son cortas y el número de repeticiones por punto es bajo, por lo que hay variabilidad estocástica visible.
+  \item La simulación no implementa corrección de errores ni amplificación de privacidad como etapas completas.
+  \item La comparación decoy usa cotas analíticas asintóticas y no una capa de protocolo con intensidades aleatorias y estimación finita.
+  \item No se modelan ataques laterales, autenticación del canal clásico, pérdidas de conectores, fluctuaciones térmicas ni calibraciones dinámicas.
+  \item Las curvas deben leerse como herramientas de diseño, no como certificación de seguridad criptográfica.
+\end{itemize}
+
+\section{Trabajo futuro}
+
+El siguiente paso natural es aumentar la fidelidad del modelo sin perder reproducibilidad. En primer lugar, conviene guardar resultados numéricos en archivos CSV además de figuras, para facilitar análisis estadístico, comparación entre corridas y trazabilidad. En segundo lugar, se debería implementar una capa decoy explícita: selección aleatoria de intensidad, registro de clases de pulso, estimación de \(Q_\mu\), \(Q_\nu\), \(Y_1\) y \(e_1\) desde datos simulados, y análisis con tamaño finito.
+
+También resulta conveniente extender el modelo de hardware. Para \textit{time-bin}, la prioridad es representar con más detalle sincronización, jitter, ventanas de detección y estabilidad de fase. Para el canal, se pueden incorporar pérdidas de acoplamiento y dispersión. Para el receptor, se puede explorar una matriz de tecnologías de detector y condiciones de operación.
+
+Finalmente, una vez construido un banco físico, las curvas simuladas deberían usarse como línea base. La comparación entre mediciones reales y simulación permitiría ajustar parámetros, detectar efectos no modelados y decidir qué nivel de complejidad requiere el simulador para acompañar el desarrollo experimental.
+
+\section{Cierre}
+
+La memoria deja una base técnica coherente para un PFI de Ingeniería en Telecomunicaciones: parte de un problema de distribución segura de claves, incorpora el marco físico y protocolar de BB84, utiliza un simulador de redes cuánticas y evalúa variables de diseño relevantes para fibra óptica. La conclusión principal es que un banco de pruebas QKD BB84 \textit{time-bin} es abordable como proyecto experimental si se controla cuidadosamente la distancia, la eficiencia de detección y la visibilidad interferométrica, y si la etapa de estados señuelo se trata con el rigor estadístico que exige una fuente coherente débil.

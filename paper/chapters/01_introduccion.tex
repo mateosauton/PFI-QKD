@@ -1,0 +1,42 @@
+\chapter{Introducción}
+\label{chap:introduccion}
+
+La seguridad de las comunicaciones modernas depende de la posibilidad de acordar claves criptográficas entre partes remotas. La mayoría de los servicios digitales actuales utiliza criptografía simétrica para proteger datos y criptografía de clave pública para resolver el intercambio inicial de claves. Este esquema es operativo y escalable, pero su seguridad descansa en supuestos computacionales y en la dificultad práctica de ciertos problemas matemáticos \cite{rivest1978rsa}. En un escenario de largo plazo, esos supuestos pueden verse presionados por avances algorítmicos, por mayor capacidad de cómputo o por tecnologías de procesamiento cuántico.
+
+La distribución cuántica de claves (DCC o QKD) aborda el problema desde otra perspectiva. En lugar de transportar una clave secreta mediante un canal protegido, utiliza estados cuánticos y un canal clásico autenticado para generar claves compartidas. La seguridad se apoya en propiedades físicas: una medición incompatible perturba el estado y un estado cuántico desconocido no puede copiarse perfectamente. En un sistema práctico, esas propiedades se traducen en magnitudes medibles, especialmente el QBER. Si el QBER supera el margen admisible, el enlace no puede considerarse apto para extraer una llave secreta bajo el modelo de seguridad adoptado.
+
+Este Proyecto Final Integrador se ubica en el cruce entre telecomunicaciones, óptica cuántica, criptografía aplicada y simulación de redes, en línea con el perfil de integración tecnológica y análisis de sistemas de la carrera de Ingeniería en Telecomunicaciones de la UNSAM \cite{unsamTelecom}. El trabajo no construye todavía el banco físico; diseña y evalúa por simulación un escenario experimental viable para un enlace de dos nodos. El foco está en BB84 con codificación \textit{time-bin}, porque esta codificación es especialmente relevante para fibra óptica: la información se representa en modos temporales discretos y su análisis involucra retardo, interferencia, visibilidad y sincronización. La tesis doctoral de López Grande \cite{lopezGrande2018} se toma como referencia principal para el encuadre experimental local de DCC en fibra, las alternativas de codificación y los desafíos asociados a implementaciones reales.
+
+\section{Hipótesis de trabajo}
+
+La hipótesis del proyecto es que un banco de pruebas de QKD BB84 en \textit{time-bin} con dos nodos puede evaluarse de manera útil mediante simulación de eventos discretos antes de su implementación física. En particular, se espera que un modelo con parámetros realistas de fuente, fibra, detector e interferómetro permita estimar rangos de operación, identificar componentes críticos y comparar configuraciones de diseño a partir de QBER y SKR.
+
+La hipótesis no afirma que la simulación certifique seguridad criptográfica completa. Una certificación exigiría un modelo de implementación cerrado, análisis de ataques laterales, calibraciones de hardware y postprocesamiento clásico completo. El alcance aquí es anterior: producir una base de ingeniería que ayude a decidir si un banco de pruebas es factible y qué variables conviene controlar con mayor prioridad.
+
+\section{Objetivo general}
+
+Diseñar y evaluar, mediante simulación y con parámetros de hardware realistas, la factibilidad y el diseño de un banco de pruebas de QKD BB84 en \textit{time-bin} con estados señuelo para dos nodos, cuantificando QBER y tasa de llave secreta en función de distancia y calidad de componentes.
+
+\section{Objetivos específicos}
+
+\begin{itemize}
+  \item Construir un escenario Alice--Bob en SeQUeNCe usando nodos QKD, canal cuántico, canal clásico, fuente óptica y detección \textit{time-bin}.
+  \item Barrer distancia de fibra y estimar el impacto de la atenuación sobre la probabilidad de detección, QBER y SKR.
+  \item Evaluar sensibilidad frente a eficiencia de detector, conteos oscuros y visibilidad interferométrica.
+  \item Incorporar una comparación de tasa secreta con y sin estados señuelo usando cotas analíticas asintóticas.
+  \item Documentar limitaciones del modelo para evitar interpretar la simulación como validación experimental o prueba formal de seguridad.
+\end{itemize}
+
+\section{Aportes del proyecto}
+
+El primer aporte del proyecto es metodológico. La memoria organiza un flujo reproducible para estudiar un enlace QKD antes de construirlo físicamente: se define un modelo, se fijan parámetros, se ejecutan barridos controlados, se generan figuras y se documentan supuestos. Esto transforma una idea experimental amplia en una secuencia verificable de decisiones de ingeniería.
+
+El segundo aporte es técnico. El proyecto muestra cómo mapear variables de un banco de pruebas óptico a parámetros de simulación: atenuación de fibra, número medio de fotones, frecuencia de emisión, eficiencia de detector, conteos oscuros, resolución temporal y visibilidad interferométrica. Este mapeo permite discutir qué componentes dominan el desempeño y qué especificaciones deberían priorizarse en una futura implementación.
+
+El tercer aporte es conceptual. La comparación entre una estimación simple de SKR y una cota con estados señuelo separa dos planos que suelen confundirse: el desempeño observable de un enlace y la tasa que puede defenderse bajo un modelo de seguridad más conservador para fuentes coherentes débiles. Esta distinción es central para que el proyecto no quede reducido a producir curvas, sino que conecte esas curvas con requisitos reales de QKD.
+
+Finalmente, el trabajo aporta una base para extensiones posteriores. Un banco QKD puede verse como una fuente de material criptográfico para aplicaciones de red que requieran renovación de claves, autenticación fuerte o integración con sistemas distribuidos. Esta memoria no implementa esa capa de aplicación, pero deja especificado el comportamiento de la capa física/protocolar que debería alimentar etapas superiores.
+
+\section{Organización de la memoria}
+
+El Capítulo~\ref{chap:marco} introduce el marco teórico necesario: distribución clásica de claves, fundamentos cuánticos mínimos, BB84, QBER, SKR, fuentes coherentes débiles, estados señuelo, codificación \textit{time-bin}, fibra óptica y detectores. El Capítulo~\ref{chap:modelo} describe SeQUeNCe y el modelo de dos nodos. El Capítulo~\ref{chap:metodologia} formaliza los experimentos, su motivación y sus parámetros. El Capítulo~\ref{chap:resultados} presenta los resultados generados. El Capítulo~\ref{chap:conclusiones} sintetiza conclusiones, limitaciones y trabajo futuro.

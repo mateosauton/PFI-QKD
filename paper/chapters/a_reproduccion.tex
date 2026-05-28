@@ -1,0 +1,64 @@
+\chapter{Reproducción del experimento}
+\label{app:reproduccion}
+
+\section{Archivos relevantes}
+
+\begin{itemize}
+  \item \texttt{experiments/qkd\_2node\_simulation.py}: script principal de barridos.
+  \item \texttt{experiments/README.md}: descripción breve de los experimentos.
+  \item \texttt{experiments/results/}: figuras generadas por el script.
+  \item \texttt{sequence/qkd/BB84.py}: implementación del protocolo BB84 usado por \texttt{QKDNode}.
+  \item \texttt{sequence/topology/node.py}: definición de \texttt{QKDNode} y componentes asociados.
+\end{itemize}
+
+\section{Ejecución}
+
+Desde la raíz del repositorio, con el entorno Python del proyecto instalado:
+
+\begin{verbatim}
+uv run python experiments/qkd_2node_simulation.py
+\end{verbatim}
+
+El script crea o actualiza las siguientes figuras:
+
+\begin{itemize}
+  \item \texttt{experiments/results/exp1\_distance\_sweep.png}
+  \item \texttt{experiments/results/exp1\_skr\_distance.png}
+  \item \texttt{experiments/results/exp2\_detector\_sensitivity.png}
+  \item \texttt{experiments/results/exp3\_visibility.png}
+  \item \texttt{experiments/results/exp4\_decoy\_impact.png}
+\end{itemize}
+
+\section{Fragmento central del modelo}
+
+El experimento crea una línea temporal, dos canales cuánticos, dos canales clásicos y dos nodos QKD. Luego configura parámetros de fuente y detector, vincula las instancias BB84 y agenda la generación de llaves:
+
+\begin{verbatim}
+alice = QKDNode("alice", tl, encoding=time_bin, stack_size=1)
+bob = QKDNode("bob", tl, encoding=time_bin, stack_size=1)
+alice.update_lightsource_params("frequency", p.frequency_hz)
+alice.update_lightsource_params("mean_photon_num", p.mean_photon_num)
+pair_bb84_protocols(alice.protocol_stack[0], bob.protocol_stack[0])
+proc = Process(alice.protocol_stack[0], "push",
+               [p.key_length, p.num_keys, run_time])
+tl.schedule(Event(0, proc))
+\end{verbatim}
+
+\section{Trazabilidad de figuras}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{lll}
+    \toprule
+    Figura & Función generadora & Archivo \\
+    \midrule
+    Distancia/QBER & \texttt{plot\_experiment\_1} & \texttt{exp1\_distance\_sweep.png} \\
+    Distancia/SKR & \texttt{plot\_experiment\_1} & \texttt{exp1\_skr\_distance.png} \\
+    Detector & \texttt{plot\_experiment\_2} & \texttt{exp2\_detector\_sensitivity.png} \\
+    Visibilidad & \texttt{plot\_experiment\_3} & \texttt{exp3\_visibility.png} \\
+    Estados señuelo & \texttt{plot\_experiment\_4} & \texttt{exp4\_decoy\_impact.png} \\
+    \bottomrule
+  \end{tabular}
+  \caption{Correspondencia entre funciones del script y figuras usadas en la memoria.}
+  \label{tab:trazabilidad_figuras}
+\end{table}

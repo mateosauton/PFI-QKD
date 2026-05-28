@@ -1,0 +1,36 @@
+\chapter{Introducción}
+\label{chap:introduccion}
+
+La seguridad de las comunicaciones modernas depende de la posibilidad de acordar claves criptográficas entre partes remotas. Los sistemas de clave pública, como RSA, resolvieron históricamente el problema operativo de distribución de claves, pero su seguridad descansa en supuestos computacionales y en la dificultad práctica de ciertos problemas matemáticos \cite{rivest1978rsa}. Este modelo es suficiente para una gran parte de las redes actuales, aunque no ofrece seguridad incondicional frente a adversarios con capacidad de cómputo arbitraria. El desarrollo de algoritmos cuánticos y de tecnologías de procesamiento cuántico refuerza la necesidad de estudiar mecanismos de distribución de claves que no dependan únicamente de supuestos computacionales.
+
+La distribución cuántica de claves (DCC o QKD) aborda este problema desde otro punto de vista. En lugar de transportar una clave secreta mediante un canal protegido, utiliza estados cuánticos y un canal clásico autenticado para generar claves compartidas. La seguridad se basa en propiedades físicas de los sistemas cuánticos: una medición incompatible perturba el estado y un estado cuántico desconocido no puede copiarse perfectamente. En un sistema práctico, esas propiedades se traducen en una magnitud observable: el QBER. Si el QBER supera el margen admisible, el enlace no puede considerarse apto para extraer una llave secreta con el modelo de seguridad adoptado.
+
+Este Proyecto Final Integrador se ubica en ese cruce entre telecomunicaciones, óptica cuántica y simulación de redes, en línea con el perfil de integración tecnológica y análisis de sistemas de la carrera de Ingeniería en Telecomunicaciones de la UNSAM \cite{unsamTelecom}. El trabajo no construye todavía el banco físico; diseña y evalúa por simulación un escenario experimental viable para un enlace de dos nodos. El foco está en BB84 con codificación \textit{time-bin}, porque esta codificación es especialmente relevante para fibra óptica: la información se representa en modos temporales discretos y su análisis involucra retardo, interferencia, visibilidad y sincronización. La tesis doctoral de López Grande \cite{lopezGrande2018} se toma como referencia principal para el encuadre experimental local de DCC en fibra, las alternativas de codificación y los desafíos asociados a implementaciones reales.
+
+\section{Hipótesis de trabajo}
+
+La hipótesis del proyecto es que un banco de pruebas de QKD BB84 en \textit{time-bin} con dos nodos puede evaluarse de manera útil mediante simulación de eventos discretos antes de su implementación física. En particular, se espera que un modelo con parámetros realistas de fuente, fibra, detector e interferómetro permita estimar rangos de operación, identificar componentes críticos y comparar configuraciones de diseño a partir de QBER y SKR.
+
+La hipótesis no afirma que la simulación certifique seguridad criptográfica completa. Una certificación exigiría un modelo de implementación cerrado, análisis de ataques laterales, calibraciones de hardware y postprocesamiento clásico completo. El alcance aquí es anterior: producir una base de ingeniería que ayude a decidir si un banco de pruebas es factible y qué variables conviene controlar con mayor prioridad.
+
+\section{Objetivo general}
+
+Diseñar y evaluar, mediante simulación y con parámetros de hardware realistas, la factibilidad y el diseño de un banco de pruebas de QKD BB84 en \textit{time-bin} con estados señuelo para dos nodos, cuantificando QBER y tasa de llave secreta en función de distancia y calidad de componentes.
+
+\section{Objetivos específicos}
+
+\begin{itemize}
+  \item Construir un escenario Alice--Bob en SeQUeNCe usando nodos QKD, canal cuántico, canal clásico, fuente óptica y detección \textit{time-bin}.
+  \item Barrer distancia de fibra y estimar el impacto de la atenuación sobre la probabilidad de detección, QBER y SKR.
+  \item Evaluar sensibilidad frente a eficiencia de detector, conteos oscuros y visibilidad interferométrica.
+  \item Incorporar una comparación de tasa secreta con y sin estados señuelo usando cotas analíticas asintóticas.
+  \item Documentar limitaciones del modelo para evitar interpretar la simulación como validación experimental o prueba formal de seguridad.
+\end{itemize}
+
+\section{Aportes del proyecto}
+
+El aporte principal es una memoria reproducible que conecta teoría de DCC, simulación de redes cuánticas y criterios de diseño de un banco de pruebas. La contribución práctica consiste en un script de experimentos parametrizados, figuras de resultados y una discusión técnica sobre qué parámetros dominan el desempeño del enlace. La contribución metodológica consiste en separar con claridad los resultados que provienen de simulación discreta de aquellos que se calculan mediante modelos analíticos, especialmente en la comparación con estados señuelo.
+
+\section{Organización de la memoria}
+
+El Capítulo~\ref{chap:marco} introduce el marco teórico necesario: seguridad criptográfica, BB84, QBER, SKR, fuentes coherentes débiles, estados señuelo y codificación \textit{time-bin}. El Capítulo~\ref{chap:modelo} describe SeQUeNCe y el modelo de dos nodos. El Capítulo~\ref{chap:metodologia} formaliza los experimentos y sus parámetros. El Capítulo~\ref{chap:resultados} presenta los resultados generados. El Capítulo~\ref{chap:conclusiones} sintetiza conclusiones, limitaciones y trabajo futuro.

@@ -65,9 +65,9 @@ Este procedimiento hace que los resultados sean reproducibles desde el repositor
 
 \section{Criterio de no modificación del modelo}
 
-En esta versión de la memoria se decidió no modificar el modelo Python ni agregar nuevas corridas. Esta decisión mantiene trazabilidad con los resultados ya generados y evita mezclar dos objetivos: mejorar el simulador y ampliar la documentación. Por lo tanto, el crecimiento del paper se concentra en explicar mejor el contexto, las hipótesis, los supuestos, la interpretación de resultados y la conexión con una implementación de campus.
+En esta versión del trabajo se decidió no modificar el modelo Python ni agregar nuevas corridas. Esta decisión mantiene trazabilidad con los resultados ya generados y evita mezclar dos objetivos: mejorar el simulador y ampliar la documentación. Por lo tanto, el crecimiento del trabajo se concentra en explicar mejor el contexto, las hipótesis, los supuestos, la interpretación de resultados y la conexión con una implementación de campus.
 
-La consecuencia metodológica es que algunas mejoras se formulan como trabajo futuro, no como resultados nuevos. En particular, barras de error, mapas bidimensionales, exportación CSV e implementación decoy completa quedan identificados, pero no se presentan como evidencia experimental de esta iteración. Esta separación hace que la memoria sea más honesta: documenta lo hecho, justifica por qué sirve y declara qué falta para una siguiente etapa.
+La consecuencia metodológica es que algunas mejoras se formulan como trabajo futuro, no como resultados nuevos. En particular, barras de error, mapas bidimensionales, exportación CSV e implementación decoy completa quedan identificados, pero no se presentan como evidencia experimental de esta iteración. Esta separación hace que el trabajo sea más honesta: documenta lo hecho, justifica por qué sirve y declara qué falta para una siguiente etapa.
 
 \section{Experimento 1: distancia}
 
@@ -135,8 +135,3 @@ Los resultados se interpretan con tres criterios:
   \item Si una variable de hardware modifica mucho la SKR o el QBER, esa variable se considera crítica para especificar el banco de pruebas.
 \end{itemize}
 
-\section{Mejoras metodológicas propuestas}
-
-A partir de las notas de análisis del proyecto, hay cuatro mejoras claras para una segunda versión experimental. Primero, repetir cada punto con al menos 30 semillas y graficar media e intervalo de confianza; esto permitiría separar tendencia física de ruido Monte Carlo. Segundo, guardar resultados crudos en CSV además de figuras PNG; así se podría recalcular tablas, barras de error y comparaciones sin volver a ejecutar todo. Tercero, convertir el barrido de detector en un mapa bidimensional eficiencia--conteos oscuros a distancia fija, porque en hardware ambos parámetros actúan juntos. Cuarto, implementar el protocolo decoy dentro de la simulación, en vez de mantenerlo como postprocesamiento analítico.
-
-Estas mejoras no cambian la estructura de la memoria, pero sí aumentan la fuerza de las conclusiones. La versión actual responde qué variables importan y cómo se comportan en el modelo. La versión siguiente debería cuantificar incertidumbre y acercar el simulador a la secuencia completa de un banco experimental.

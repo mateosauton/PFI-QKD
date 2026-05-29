@@ -1,7 +1,7 @@
 \chapter{Discusión técnica y validez del modelo}
 \label{chap:discusion}
 
-Los resultados del Capítulo~\ref{chap:resultados} muestran tendencias coherentes, pero una memoria de ingeniería debe discutir con precisión qué tan lejos pueden llevarse esas conclusiones. Este capítulo separa tres planos: lo que el simulador representa explícitamente, lo que se calcula de manera analítica y lo que queda fuera del modelo. Esta separación es necesaria para que el trabajo no sobredimensione su alcance ni subestime el valor de la simulación.
+Los resultados del Capítulo~\ref{chap:resultados} muestran tendencias coherentes, pero un trabajo de ingeniería debe discutir con precisión qué tan lejos pueden llevarse esas conclusiones. Este capítulo separa tres planos: lo que el simulador representa explícitamente, lo que se calcula de manera analítica y lo que queda fuera del modelo. Esta separación es necesaria para que el trabajo no sobredimensione su alcance ni subestime el valor de la simulación.
 
 \section{Qué valida la simulación}
 
@@ -13,7 +13,7 @@ Esto es valioso porque transforma una discusión abstracta en un banco numérico
 
 La simulación no certifica seguridad criptográfica. No implementa autenticación del canal clásico, no ejecuta Cascade completo, no aplica amplificación de privacidad como software de postprocesamiento, no considera tamaño finito y no modela ataques laterales. Tampoco modela calibraciones reales, deriva térmica, fluctuaciones de intensidad, dispersión, retroreflexiones, saturación detallada de detectores ni errores de sincronización a nivel de electrónica. La seguridad de QKD práctica requiere tratar explícitamente la diferencia entre prueba ideal e implementación real \cite{scarani2009security}.
 
-Estas limitaciones no invalidan el trabajo, pero fijan el lenguaje correcto. Es válido decir que el modelo permite estudiar sensibilidad y factibilidad preliminar. No es válido afirmar que el enlace simulado produce llaves listas para uso operacional. La memoria debe mantener esa diferencia en todas sus conclusiones.
+Estas limitaciones no invalidan el trabajo, pero fijan el lenguaje correcto. Es válido decir que el modelo permite estudiar sensibilidad y factibilidad preliminar. No es válido afirmar que el enlace simulado produce llaves listas para uso operacional. El trabajo debe mantener esa diferencia en todas sus conclusiones.
 
 \section{Variabilidad estadística}
 
@@ -78,12 +78,3 @@ Aunque el trabajo no construye el banco, puede proponer criterios de aceptación
   \label{tab:criterios_aceptacion}
 \end{table}
 
-\section{Mejoras prioritarias}
-
-La primera mejora es estadística: múltiples semillas y barras de error. La segunda es de datos: exportar CSV con cada punto, cada semilla y cada métrica. La tercera es de protocolo: implementar selección aleatoria de intensidades decoy dentro de la simulación. La cuarta es de hardware: agregar pérdidas fijas de conectores, jitter y ventanas temporales. La quinta es de integración: modelar una capa KMS mínima que consuma tasas generadas por el enlace.
-
-Estas mejoras tienen distinto costo. Exportar CSV es simple y aumenta mucho la trazabilidad. Implementar decoy completo requiere tocar el protocolo y validar supuestos. Modelar jitter exige entender mejor la electrónica. Por eso conviene priorizar mejoras que aumenten confianza en resultados sin destruir la reproducibilidad actual.
-
-\section{Conclusión de validez}
-
-El modelo actual es suficiente para una memoria de factibilidad y diseño preliminar. No es suficiente para certificar seguridad, comprar hardware sin más análisis ni desplegar una red operativa. Esta conclusión no debilita el PFI; lo ubica correctamente. El trabajo aporta una base reproducible para tomar mejores decisiones en una etapa posterior de laboratorio y campus.

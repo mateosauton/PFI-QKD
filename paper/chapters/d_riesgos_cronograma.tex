@@ -35,7 +35,7 @@ La mitigación principal es trabajar por etapas. Primero se valida el modelo en 
 
 Otra mitigación es mantener trazabilidad de parámetros. Cada valor usado en una figura debería tener una fuente: código, medición, hoja de datos o supuesto explícito. Si un valor cambia, se puede regenerar la figura y comparar. Esta práctica es especialmente importante para eficiencia de detector, dark counts, pérdidas de conectores y visibilidad.
 
-La tercera mitigación es separar el lenguaje de desempeño del lenguaje de seguridad. Una curva de SKR modelo puede informar diseño, pero no certifica una llave final. Si la memoria mantiene esa distinción, evita conclusiones excesivas y deja un camino claro para mejoras: postprocesamiento completo, decoy protocolar, tamaño finito y autenticación clásica.
+La tercera mitigación es separar el lenguaje de desempeño del lenguaje de seguridad. Una curva de SKR modelo puede informar diseño, pero no certifica una llave final. Si el trabajo mantiene esa distinción, evita conclusiones excesivas y deja un camino claro para mejoras: postprocesamiento completo, decoy protocolar, tamaño finito y autenticación clásica.
 
 \section{Cronograma técnico sugerido}
 
@@ -57,13 +57,13 @@ La tercera mitigación es separar el lenguaje de desempeño del lenguaje de segu
   5 & Ensayo de laboratorio & Medición corta Alice--Bob, QBER y visibilidad \\
   6 & Selección de hardware & Tabla comparativa de fuente, detectores y control \\
   7 & Diseño de implementación & Topología, KMS conceptual, riesgos y costos \\
-  8 & Redacción final & Memoria, anexos, conclusiones y presentación \\
+  8 & Redacción final & Trabajo, anexos, conclusiones y presentación \\
   \bottomrule
 \end{longtable}
 
 \section{Criterios de avance entre etapas}
 
-Cada etapa debería tener una condición de cierre. La etapa de simulación se cierra cuando el paper compila, las figuras se regeneran y los parámetros están documentados. La etapa de relevamiento se cierra cuando existen fichas de enlaces con distancia, pérdidas y restricciones. La etapa de laboratorio se cierra cuando se mide QBER en un enlace corto y se compara con el modelo. La etapa de diseño final se cierra cuando se puede justificar una topología y una lista de componentes con base en métricas.
+Cada etapa debería tener una condición de cierre. La etapa de simulación se cierra cuando el trabajo compila, las figuras se regeneran y los parámetros están documentados. La etapa de relevamiento se cierra cuando existen fichas de enlaces con distancia, pérdidas y restricciones. La etapa de laboratorio se cierra cuando se mide QBER en un enlace corto y se compara con el modelo. La etapa de diseño final se cierra cuando se puede justificar una topología y una lista de componentes con base en métricas.
 
 Definir criterios de avance evita que el proyecto avance por intuición. Si no se mide visibilidad, no conviene prometer \textit{time-bin} estable en campus. Si no se conoce la pérdida de fibra, no conviene fijar distancia máxima. Si no se implementa postprocesamiento, no conviene afirmar que hay claves finales de producción.
 
@@ -71,4 +71,4 @@ Definir criterios de avance evita que el proyecto avance por intuición. Si no s
 
 El análisis de costos debe separar CAPEX y OPEX. CAPEX incluye fuente, moduladores, detectores, time tagger, FPGA/control, fibra, conectores, racks e instrumentos. OPEX incluye mantenimiento, calibración, soporte, consumo, criogenia si se usan detectores superconductores, reemplazos y tiempo de personal. En Argentina, además, la importación de componentes ópticos especializados puede dominar plazos y costos.
 
-Para una primera memoria, conviene evitar presupuestos falsamente precisos. Es preferible construir una matriz de componentes con rangos y criticidad. Los detectores, moduladores y time taggers son componentes críticos. Conectores, patch cords y elementos pasivos son menos costosos pero pueden afectar pérdida y estabilidad. El objetivo de la tabla de costos no es cerrar una compra, sino identificar qué decisiones tienen mayor impacto técnico y económico.
+Para una primera trabajo, conviene evitar presupuestos falsamente precisos. Es preferible construir una matriz de componentes con rangos y criticidad. Los detectores, moduladores y time taggers son componentes críticos. Conectores, patch cords y elementos pasivos son menos costosos pero pueden afectar pérdida y estabilidad. El objetivo de la tabla de costos no es cerrar una compra, sino identificar qué decisiones tienen mayor impacto técnico y económico.

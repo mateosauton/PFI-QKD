@@ -1,15 +1,15 @@
-# Memoria PFI QKD BB84 Time-Bin
+# Trabajo PFI QKD BB84 Time-Bin
 
-Esta carpeta contiene una memoria técnica en LaTeX para el Proyecto Final Integrador de Ingeniería en Telecomunicaciones UNSAM, desarrollada por Mateo Sauton e Ignacio Polesello.
+Esta carpeta contiene un trabajo técnico en LaTeX para el Proyecto Final Integrador de Ingeniería en Telecomunicaciones UNSAM, desarrollado por Mateo Sauton e Ignacio Polesello.
 
 ## Estructura
 
 - `main.tex`: archivo principal.
 - `references.bib`: bibliografía.
 - `chapters/`: capítulos y apéndices.
-- `assets/`: imágenes conceptuales generadas para la memoria.
+- `assets/`: imágenes conceptuales generadas para el trabajo.
 - Las figuras de resultados se referencian desde `../experiments/results/`.
-- La memoria expandida está organizada como documento técnico largo de PFI, con capítulos de teoría, estado del arte, diseño de campus, hardware, simulación, resultados, discusión, KMS y apéndices.
+- El trabajo expandido está organizado como documento técnico largo de PFI, con capítulos de teoría, estado del arte, diseño de campus, hardware, simulación, resultados, discusión y apéndices.
 
 ## Compilación
 

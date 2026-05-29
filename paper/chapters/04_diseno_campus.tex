@@ -1,7 +1,40 @@
 \chapter{Diseño conceptual de red QKD para Campus Miguelete}
 \label{chap:campus}
 
-El proyecto nace con una motivación aplicada: evaluar la viabilidad de una red QKD en el Campus Miguelete de la UNSAM. La simulación de dos nodos es el primer paso técnico, pero la memoria debe explicar cómo ese enlace se transformaría en una maqueta de investigación con sentido para una universidad. Este capítulo formula esa transición. No fija ubicaciones definitivas, porque eso requiere relevamiento físico, pero establece criterios, topologías candidatas y datos que deben recopilarse para convertir la simulación en un diseño de despliegue.
+El proyecto nace con una motivación aplicada: evaluar la viabilidad de una red QKD en el Campus Miguelete de la UNSAM. La simulación de dos nodos es el primer paso técnico, pero el trabajo debe explicar cómo ese enlace se transformaría en una maqueta de investigación con sentido para una universidad. Este capítulo formula esa transición. No fija ubicaciones definitivas, porque eso requiere relevamiento físico, pero establece criterios, topologías candidatas y datos que deben recopilarse para convertir la simulación en un diseño de despliegue.
+
+\section{Contexto físico del Campus Miguelete}
+
+El Campus Miguelete combina edificios académicos, laboratorios, salas técnicas, espacios de circulación y servicios comunes dentro de un predio compacto. Para QKD, esa compacidad es favorable porque permite comenzar con tramos relativamente cortos, pero no elimina el problema de infraestructura: la distancia relevante es la longitud óptica real de la fibra, no la distancia lineal sobre el plano. Patch panels, ductos, bandejas, conectores y rutas indirectas pueden agregar pérdidas relevantes.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[page=1,width=0.85\textwidth,height=0.55\textheight,keepaspectratio]{unsam-campus-map-2024.pdf}
+  \caption{Plano oficial del Campus Miguelete UNSAM usado como base para identificar rutas candidatas y edificios de interés \cite{unsamCampusMap2024}.}
+  \label{fig:unsam_mapa_campus}
+\end{figure}
+
+El plano permite plantear una primera hipótesis de implementación: ubicar Alice en un espacio controlado de laboratorio o sala técnica, Bob en otro edificio accesible y, en una etapa posterior, un tercer nodo confiable en un punto con mejores condiciones de seguridad física. Esta hipótesis debe validarse con relevamiento de campo. El mapa no reemplaza mediciones de fibra, pero sirve para ordenar preguntas: qué edificios tienen racks, qué ductos conectan sectores, qué recorridos exigen cruces de exterior y dónde hay acceso a energía y red IP.
+
+\section{Edificios candidatos e instalación}
+
+Las imágenes de edificios no definen por sí solas la ruta óptica, pero ayudan a ubicar el problema de ingeniería. Un enlace QKD de campus no se instala en un diagrama abstracto: se instala en salas, racks, bandejas, ductos y recorridos con restricciones de acceso. Los edificios de mayor actividad académica y técnica son candidatos naturales para alojar nodos, siempre que exista control físico y disponibilidad de fibra.
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{unsam-humanidades.jpg}
+  \end{minipage}\hfill
+  \begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{unsam-tornavia.jpg}
+  \end{minipage}
+  \caption{Referencias visuales del Campus Miguelete: Escuela de Humanidades y edificio Corona del Tornavía. Fotografías publicadas en Wikimedia Commons bajo licencias Creative Commons \cite{unsamHumanidadesCommons,unsamTornaviaCommons}.}
+  \label{fig:unsam_edificios}
+\end{figure}
+
+Para una implementación inicial, la decisión más prudente es no distribuir equipos sensibles en espacios abiertos. El emisor, el receptor y cualquier equipo que almacene material de clave deben quedar en salas con acceso controlado. El recorrido de fibra debería minimizar conectores y puntos de manipulación. Si se usa fibra existente, se debe documentar cada patch panel; si se tiende fibra dedicada, se debe definir protección mecánica, identificación, radio de curvatura y procedimiento de intervención.
 
 \section{Objetivo de la maqueta de campus}
 
@@ -79,7 +112,7 @@ Existen tres alternativas de infraestructura. La primera es usar dos fibras: una
 
 \section{Topologías candidatas}
 
-La topología recomendada para la primera entrega es punto a punto. Tiene menor cantidad de variables, permite validar el modelo de simulación y concentra el trabajo en los componentes físicos. Una vez que Alice y Bob generan llaves con QBER bajo, se puede introducir un tercer nodo. Ese tercer nodo puede cumplir dos roles distintos: nodo receptor alternativo para comparar enlaces, o nodo confiable que participe en una arquitectura de distribución de llaves.
+La topología recomendada para la primera entrega es punto a punto. Tiene menor cantidad de variables, permite validar el modelo de simulación y concentral trabajo en los componentes físicos. Una vez que Alice y Bob generan llaves con QBER bajo, se puede introducir un tercer nodo. Ese tercer nodo puede cumplir dos roles distintos: nodo receptor alternativo para comparar enlaces, o nodo confiable que participe en una arquitectura de distribución de llaves.
 
 La topología estrella tiene sentido si existe un sitio central seguro, por ejemplo una sala técnica con rack, energía y acceso controlado. En ese esquema, el nodo central se conecta a otros nodos mediante enlaces QKD independientes. La ventaja es operacional: el KMS puede ubicarse cerca del nodo central. La desventaja es que la confianza se concentra en ese punto.
 
@@ -153,10 +186,56 @@ La salida esperada del relevamiento no es solo descriptiva. Debe traducirse en p
 
 El valor de la simulación es que permite anticipar sensibilidad. Si el barrido de distancia muestra que el enlace pierde margen cerca de cierto rango, el relevamiento debe priorizar rutas con menor pérdida. Si el barrido de detectores indica que la eficiencia tiene fuerte impacto, la selección de hardware debe ponderar detectores mejores aunque sean más costosos. Si la visibilidad domina el QBER, la instalación debe privilegiar estabilidad mecánica y térmica.
 
-Esta relación evita que la memoria sea una colección de capítulos desconectados. La teoría define variables, la simulación las barre, el diseño de campus busca dónde aparecen en la infraestructura real y el hardware ofrece maneras de controlarlas. El entregable final esperado no es una orden de compra cerrada, sino una guía técnica para decidir qué banco construir primero y qué datos faltan para sostener la decisión.
+Esta relación evita que el trabajo sea una colección de capítulos desconectados. La teoría define variables, la simulación las barre, el diseño de campus busca dónde aparecen en la infraestructura real y el hardware ofrece maneras de controlarlas. El entregable final esperado no es una orden de compra cerrada, sino una guía técnica para decidir qué banco construir primero y qué datos faltan para sostener la decisión.
 
 \section{Alcance de la propuesta para UNSAM}
 
 La propuesta más prudente para UNSAM es iniciar con un banco de laboratorio punto a punto usando tramos de fibra controlados. Una vez validado el funcionamiento, el siguiente paso es trasladar el enlace a una ruta corta del campus con buena accesibilidad. Recién después conviene discutir tres nodos, KMS y aplicaciones. Este orden reduce riesgo: si la capa física no entrega QBER bajo, ninguna integración superior resolverá el problema.
 
 El aporte del PFI en este capítulo es ordenar esa ruta. Se definen criterios de nodo, opciones de canal, topologías y datos de relevamiento. La simulación existente no decide por sí sola dónde instalar equipos, pero sí indica qué preguntas de ingeniería deben responderse antes de hacerlo.
+
+\section{Equipos propuestos para una primera etapa}
+
+La primera etapa requiere un conjunto mínimo de equipos que permita preparar pulsos débiles, modular intensidad/fase, transmitir por fibra, medir eventos \textit{time-bin} y registrar tiempos. La selección que se propone es orientativa y sirve para dimensionar el banco: no representa una orden de compra cerrada. En el Capítulo~\ref{chap:hardware} se muestran imágenes y hojas de datos de cada instrumento elegido.
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.22\textwidth}XX}
+    \toprule
+    Bloque & Instrumento propuesto & Razón de inclusión \\
+    \midrule
+    Fuente & Láser de 1550 nm acoplado a fibra & Opera en ventana de telecomunicaciones y alimenta la fuente coherente débil \\
+    Modulación & Modulador de intensidad LiNbO\(_3\) y modulador/fase equivalente & Permite codificar bits, bases e intensidades señuelo \\
+    Atenuación & Atenuadores ópticos variables y fijos & Ajustan \(\mu\) hasta régimen de pocos fotones por pulso \\
+    Canal & Fibra monomodo, patch cords y conectores FC/PC o FC/APC & Representa el enlace de campus y el presupuesto de pérdida \\
+    Receptor & Interferómetro desbalanceado, detector de fotón único y time tagger & Mide bins temporales, fase relativa y eventos con resolución temporal \\
+    Control & PC/FPGA o generador de patrones, software BB84 y registro de datos & Coordina pulsos, bases, semillas, medición y postprocesamiento \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Equipos mínimos propuestos para una primera maqueta QKD en UNSAM.}
+  \label{tab:equipos_unsam}
+\end{table}
+
+\section{Presupuesto preliminar de implementación}
+
+El presupuesto debe leerse como orden de magnitud. Los precios reales dependen de cotizaciones, impuestos, importación, soporte, accesorios, disponibilidad local y decisiones de laboratorio. Aun así, construir una tabla preliminar es útil porque muestra qué componentes dominan el costo y dónde conviene invertir esfuerzo de selección.
+
+\begin{table}[H]
+  \centering
+  \begin{tabularx}{\textwidth}{p{0.30\textwidth}p{0.20\textwidth}X}
+    \toprule
+    Rubro & Rango orientativo & Comentario \\
+    \midrule
+    Fuente láser 1550 nm y driver & USD 4k--12k & Puede crecer si se exige ancho de línea bajo o pulsado integrado \\
+    Moduladores LiNbO\(_3\), drivers y bias control & USD 10k--30k & Bloque crítico para time-bin y decoy; depende de ancho de banda \\
+    Atenuadores, acopladores, aisladores y patch cords & USD 3k--10k & Costo moderado, pero impacto directo en pérdida y estabilidad \\
+    Fibra, bandejas, conectores e instalación en campus & USD 5k--25k & Muy dependiente del relevamiento y de si existe fibra disponible \\
+    Detector de fotón único en telecom & USD 25k--80k & Uno de los rubros dominantes; APD y SNSPD tienen costos muy distintos \\
+    Time tagger / TDC multicanal & USD 8k--35k & Relevante para registrar bins y caracterizar sincronización \\
+    Mesa óptica, racks, energía, PC/FPGA y seguridad física & USD 8k--30k & Necesario para operación estable y repetible \\
+    Contingencia, importación, repuestos y calibración & 15--30\% & Margen necesario para compras científicas importadas \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Presupuesto preliminar para una implementación de banco QKD en Campus Miguelete. Los rangos son orientativos y deben reemplazarse por cotizaciones formales antes de cualquier compra.}
+  \label{tab:presupuesto_unsam}
+\end{table}

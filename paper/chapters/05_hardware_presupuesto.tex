@@ -9,33 +9,8 @@ Un enlace prepare-and-measure de dos nodos puede separarse en cuatro bloques: em
 
 \begin{figure}[H]
   \centering
-  \begin{tikzpicture}[
-    node distance=1.1cm,
-    block/.style={draw, rounded corners, align=center, minimum width=2.8cm, minimum height=1cm, fill=blue!5},
-    sub/.style={draw, rounded corners, align=center, minimum width=2.4cm, minimum height=0.75cm, fill=white},
-    arrow/.style={-{Latex[length=2.8mm]}, thick}
-  ]
-    \node[block] (alice) {Alice\\emisor};
-    \node[sub, below=0.8cm of alice] (laser) {láser DFB\\atenuador};
-    \node[sub, below=0.35cm of laser] (mods) {moduladores\\fase/intensidad};
-
-    \node[block, right=2.3cm of alice] (fibra) {Canal\\fibra óptica};
-    \node[sub, below=0.8cm of fibra] (loss) {pérdida\\conectores};
-
-    \node[block, right=2.3cm of fibra] (bob) {Bob\\receptor};
-    \node[sub, below=0.8cm of bob] (mzi) {switch + MZI};
-    \node[sub, below=0.35cm of mzi] (det) {detectores\\time tagger};
-
-    \node[block, below=3.2cm of fibra] (ctrl) {Control clásico\\BB84/KMS futuro};
-
-    \draw[arrow, blue] (alice) -- node[above] {pulsos} (fibra);
-    \draw[arrow, blue] (fibra) -- node[above] {fotones} (bob);
-    \draw[arrow, dashed] (bob) |- (ctrl);
-    \draw[arrow, dashed] (ctrl) -| (alice);
-    \draw[arrow] (laser) -- (mods);
-    \draw[arrow] (mzi) -- (det);
-  \end{tikzpicture}
-  \caption{Bloques físicos de un enlace QKD \textit{time-bin}.}
+  \includegraphics[width=\textwidth]{qkd-hardware-bench.png}
+  \caption{Imagen conceptual de una implementación de banco QKD \textit{time-bin}: emisor Alice, tramo de fibra, receptor Bob y control temporal/clásico. Imagen generada con \textit{imagegen} para este trabajo.}
   \label{fig:hardware_bloques}
 \end{figure}
 
@@ -124,7 +99,67 @@ Los productos QKD comerciales muestran que BB84 eficiente con estados señuelo y
 
 La utilidad de la referencia comercial es otra: ayuda a identificar variables de especificación. Si un producto diferencia entre sistema multiplexado y sistema de larga distancia, entonces la decisión de usar fibra dedicada o compartida es central. Si publica requerimientos de fibra, entonces el relevamiento físico importa. Si incluye Q-KMS, entonces la administración de llaves no es un agregado opcional sino parte de la solución. Estas observaciones alimentan el diseño de capítulos posteriores.
 
-\section{Criterios de selección de componentes}
+\section{Instrumental elegido y hojas de datos}
+
+Para dimensionar una primera implementación se seleccionan instrumentos representativos, no una compra cerrada. El criterio es cubrir la cadena completa: fuente de telecomunicaciones, modulación rápida, detección de fotón único y registro temporal. Las hojas de datos se usan como referencia de especificaciones que luego se traducen a parámetros del simulador.
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{thorlabs-kls1550-page.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{thorlabs-lna6213-page.png}
+  \end{minipage}
+  \caption{Fuente láser Thorlabs KLS1550 y moduladores LiNbO\(_3\) de la familia LNA/LNP como referencias para fuente y modulación en 1550 nm \cite{thorlabsKLS1550,thorlabsLNA6213}.}
+  \label{fig:instrumentos_fuente_modulador}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=0.78\textwidth]{id230-detector.png}
+  \end{minipage}\hfill
+  \begin{minipage}{0.45\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{time-tagger-ultra.png}
+  \end{minipage}
+  \caption{Detector de fotón único ID Quantique ID230 y time tagger Swabian Instruments Time Tagger Ultra, usados como referencias para eficiencia, conteos oscuros, jitter, resolución temporal y registro de eventos \cite{idqID230,swabianTimeTagger}.}
+  \label{fig:instrumentos_detector_tagger}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.82\textwidth]{toshiba-qkd-product.png}
+  \caption{Referencia de sistema QKD comercial Toshiba. La imagen se usa para ilustrar formato de producto integrado y no como especificación directa del banco UNSAM \cite{toshibaQKDProducts}.}
+  \label{fig:toshiba_qkd_ref}
+\end{figure}
+
+\begin{longtable}{@{}p{0.15\textwidth}p{0.22\textwidth}p{0.31\textwidth}p{0.20\textwidth}@{}}
+  \caption{Instrumental de referencia y parámetros que aporta al diseño.}
+  \label{tab:instrumental_datasheets}\\
+  \toprule
+  Bloque & Instrumento de referencia & Especificación relevante & Parámetro del modelo \\
+  \midrule
+  \endfirsthead
+  \toprule
+  Bloque & Instrumento de referencia & Especificación relevante & Parámetro del modelo \\
+  \midrule
+  \endhead
+  Fuente & Thorlabs KLS1550 & Fuente acoplada a fibra en 1550 nm, con salida FC/PC y potencia máxima de referencia & \(\mu\), tasa de pulsos, estabilidad \\
+  Modulación & Thorlabs LNA6213 / familia LiNbO\(_3\) & Rango 1260--1625 nm y modulación de alta velocidad para intensidad/fase & Codificación, decoy, visibilidad \\
+  Detector & ID Quantique ID230 & InGaAs/InP en telecom, eficiencia ajustable hasta \SI{25}{\percent}, conteos oscuros bajos y resolución temporal sub-ns & Eficiencia, conteos oscuros, resolución temporal \\
+  Time tagger & Swabian Time Tagger Ultra & Resolución digital de \SI{1}{\pico\second}, jitter de pocos ps según configuración y múltiples canales & Ventanas \textit{time-bin}, sincronización \\
+  Sistema integrado & Toshiba QKD & Referencia comercial para BB84 eficiente con estados señuelo y operación en fibra & Alcance de comparación, no parámetro directo \\
+  \bottomrule
+\end{longtable}
+
+El valor de esta tabla es conectar hojas de datos con decisiones de simulación. Si se elige otro detector, cambian eficiencia, dark counts, tiempo muerto y jitter. Si se elige otro modulador, cambian pérdida de inserción, ancho de banda y estabilidad de fase. Si se elige una fuente con menor control de potencia, el ajuste de \(\mu\) se vuelve más incierto. Por lo tanto, el presupuesto no debe evaluarse solo por costo unitario: debe evaluarse por el impacto de cada instrumento sobre QBER, SKR y repetibilidad del banco.
+
+\subsection{Criterios de selección de componentes}
 
 Para seleccionar hardware, el proyecto debería evitar dos extremos. El primero es elegir componentes por disponibilidad sin evaluar si permiten QBER bajo. El segundo es diseñar directamente un sistema de prestaciones comerciales inalcanzable para un banco universitario. El criterio correcto es escalonado: componentes suficientes para validar transmisión y detección, luego mejoras orientadas por las métricas.
 
@@ -149,7 +184,3 @@ Para seleccionar hardware, el proyecto debería evitar dos extremos. El primero 
   Control & FPGA/PC, sincronización, software & Operación del protocolo \\
   \bottomrule
 \end{longtable}
-
-\section{Conclusión de hardware}
-
-El hardware no es un anexo accidental de la teoría; define los parámetros que la simulación barre. La distancia se traduce en pérdida, la fuente en \(\mu\), el detector en eficiencia y ruido, el interferómetro en visibilidad y el control en estabilidad temporal. Por eso un PFI de telecomunicaciones debe mantener juntas las tres capas: física, simulación y decisión de diseño. La memoria actual no compra ni instala componentes, pero deja claro qué debe medirse y cómo esas mediciones afectarían QBER y SKR.

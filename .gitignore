@@ -149,5 +149,8 @@ utils/json_config_generators/*.json
 
 .virtual_documents/
 
+# Local visual brainstorming sessions
+.superpowers/
+
 # docstring files
 *.rst

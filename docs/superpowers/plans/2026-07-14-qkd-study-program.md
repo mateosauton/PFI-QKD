@@ -513,7 +513,7 @@ In `01_recorrido_codigo.md`, guide the learner through these functions in depend
 
 1. `channel_transmittance`
 2. `SimulationParams`
-3. `run_once`
+3. `run_single_simulation`
 4. `binary_entropy`
 5. `secret_key_rate_simple`
 6. `decoy_yield_y1_lower`

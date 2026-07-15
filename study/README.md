@@ -61,7 +61,7 @@ analizada vale más que una correcta memorizada.
 - [Semana 3: seguridad, QBER y tasa de llave secreta](capitulos/03_seguridad_qber_y_skr.md)
 - [Semana 4: óptica, fibra y codificación time-bin](capitulos/04_optica_fibra_y_time_bin.md)
 - [Semana 5: fuentes coherentes débiles, PNS y estados señuelo](capitulos/05_wcs_pns_y_estados_senuelo.md)
-- Semana 6: SeQUeNCe, metodología y resultados
+- [Semana 6: SeQUeNCe, metodología y resultados](capitulos/06_sequence_y_resultados.md)
 - Semana 7: red, hardware y validez
 - Frontera 2018-actualidad: TF-QKD, fibra y satélite
 
@@ -72,8 +72,9 @@ analizada vale más que una correcta memorizada.
 - [Ejercicios de la semana 3](ejercicios/semana_03.md)
 - [Ejercicios de la semana 4](ejercicios/semana_04.md)
 - [Ejercicios de la semana 5](ejercicios/semana_05.md)
-- Ejercicios de las semanas 6 y 7
-- Laboratorios de simulación
+- [Ejercicios de la semana 6](ejercicios/semana_06.md)
+- Ejercicios de la semana 7
+- [Laboratorios de simulación](laboratorio/README.md)
 - Guion de 30 minutos
 - Banco acumulativo de preguntas
 - Rúbrica de simulacro 30 + 15

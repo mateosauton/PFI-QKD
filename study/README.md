@@ -62,7 +62,7 @@ analizada vale más que una correcta memorizada.
 - [Semana 4: óptica, fibra y codificación time-bin](capitulos/04_optica_fibra_y_time_bin.md)
 - [Semana 5: fuentes coherentes débiles, PNS y estados señuelo](capitulos/05_wcs_pns_y_estados_senuelo.md)
 - [Semana 6: SeQUeNCe, metodología y resultados](capitulos/06_sequence_y_resultados.md)
-- Semana 7: red, hardware y validez
+- [Semana 7: red, hardware y validez](capitulos/07_red_hardware_y_validez.md)
 - Frontera 2018-actualidad: TF-QKD, fibra y satélite
 
 ### Práctica y defensa
@@ -73,7 +73,7 @@ analizada vale más que una correcta memorizada.
 - [Ejercicios de la semana 4](ejercicios/semana_04.md)
 - [Ejercicios de la semana 5](ejercicios/semana_05.md)
 - [Ejercicios de la semana 6](ejercicios/semana_06.md)
-- Ejercicios de la semana 7
+- [Ejercicios de la semana 7](ejercicios/semana_07.md)
 - [Laboratorios de simulación](laboratorio/README.md)
 - Guion de 30 minutos
 - Banco acumulativo de preguntas

@@ -12,8 +12,7 @@ preguntas.
 2. Leé el [plan maestro](plan_maestro.md) y elegí tres sesiones posibles para esta
    semana.
 3. Registrá el resultado por categoría en [progreso](progreso.md).
-4. Empezá la Semana 1: criptografía y distribución de claves cuando aparezca como
-   enlace activo en la navegación.
+4. Empezá la [Semana 1: criptografía y distribución de claves](capitulos/01_criptografia_y_claves.md).
 
 El diagnóstico no decide si "servís" para este tema. Solo evita que estudiemos algo
 que ya dominás o construyamos sobre una base que todavía no existe.
@@ -57,7 +56,7 @@ analizada vale más que una correcta memorizada.
 
 ### Capítulos
 
-- Semana 1: criptografía y distribución de claves
+- [Semana 1: criptografía y distribución de claves](capitulos/01_criptografia_y_claves.md)
 - Semana 2: fundamentos cuánticos y BB84
 - Semana 3: seguridad, QBER y tasa de llave secreta
 - Semana 4: óptica, fibra y codificación time-bin
@@ -68,7 +67,8 @@ analizada vale más que una correcta memorizada.
 
 ### Práctica y defensa
 
-- Ejercicios de las semanas 1 a 7
+- [Ejercicios de la semana 1](ejercicios/semana_01.md)
+- Ejercicios de las semanas 2 a 7
 - Laboratorios de simulación
 - Guion de 30 minutos
 - Banco acumulativo de preguntas

@@ -4,7 +4,7 @@ import argparse
 import re
 from pathlib import Path
 
-MARKER_RE = re.compile(r"\b(?:TODO|TBD|FIXME|PLACEHOLDER)\b", re.IGNORECASE)
+MARKER_RE = re.compile(r"\b(?:TODO|TBD|FIXME|PLACEHOLDER)\b")
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 

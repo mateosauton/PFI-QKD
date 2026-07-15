@@ -57,7 +57,7 @@ analizada vale más que una correcta memorizada.
 ### Capítulos
 
 - [Semana 1: criptografía y distribución de claves](capitulos/01_criptografia_y_claves.md)
-- Semana 2: fundamentos cuánticos y BB84
+- [Semana 2: fundamentos cuánticos y BB84](capitulos/02_fundamentos_cuanticos_y_bb84.md)
 - Semana 3: seguridad, QBER y tasa de llave secreta
 - Semana 4: óptica, fibra y codificación time-bin
 - Semana 5: fuentes coherentes débiles, PNS y estados señuelo
@@ -68,7 +68,8 @@ analizada vale más que una correcta memorizada.
 ### Práctica y defensa
 
 - [Ejercicios de la semana 1](ejercicios/semana_01.md)
-- Ejercicios de las semanas 2 a 7
+- [Ejercicios de la semana 2](ejercicios/semana_02.md)
+- Ejercicios de las semanas 3 a 7
 - Laboratorios de simulación
 - Guion de 30 minutos
 - Banco acumulativo de preguntas

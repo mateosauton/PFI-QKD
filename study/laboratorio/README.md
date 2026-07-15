@@ -9,6 +9,9 @@ uv sync
 uv run python experiments/qkd_2node_simulation.py
 ```
 
+Los barridos usan semillas fijas para que las curvas y las conclusiones sean
+reproducibles entre ejecuciones con la misma versión del código.
+
 La ejecución genera cinco PNG en `experiments/results/`. No edites parámetros antes
 de completar una predicción escrita.
 

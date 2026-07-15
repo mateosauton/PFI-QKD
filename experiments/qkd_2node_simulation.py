@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 import os
+import random
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -80,6 +81,15 @@ class SimParams:
     time_resolution_ps: int = 10
 
 
+def _seed_simulation(alice_seed: int, bob_seed: int) -> int:
+    """Seed the global generators still used by SeQUeNCe's BB84 implementation."""
+    simulation_seed = ((alice_seed * 1_000_003) ^ bob_seed) & 0xFFFFFFFF
+    np.random.seed(simulation_seed)
+    random.seed(simulation_seed)
+    Timeline.seed(simulation_seed)
+    return simulation_seed
+
+
 def run_single_simulation(p: SimParams) -> dict[str, Any]:
     """
     Run one Alice–Bob time-bin BB84 simulation.
@@ -87,6 +97,7 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
     Returns mean QBER, mean sifted throughput (bits/s from BB84), lists, and
     analytic detection probability for the current channel + detector model.
     """
+    _seed_simulation(p.alice_seed, p.bob_seed)
     distance_m = p.distance_km * 1000.0
     attenuation_db_m = p.attenuation_db_km / 1000.0
     eta_ch = channel_transmittance(distance_m, attenuation_db_m)

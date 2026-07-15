@@ -160,6 +160,8 @@ sequenceDiagram
 El canal clásico es público pero autenticado. Los bits de la clave no se publican en
 su totalidad; una muestra puede revelarse para estimar errores y se descarta.
 
+![Familias de protocolos QKD y sus supuestos principales](../assets/qkd_protocol_map.svg)
+
 ## 6. Ejemplo completo con 12 posiciones
 
 Supongamos canal ideal y ausencia de Eve. `R` marca un resultado aleatorio porque Bob

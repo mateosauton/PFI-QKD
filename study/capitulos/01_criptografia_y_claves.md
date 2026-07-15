@@ -179,6 +179,8 @@ productiva.
 Podés contrastar esta explicación con la [introducción de la tesis](../../paper/chapters/01_introduccion.tex)
 y el [marco teórico](../../paper/chapters/02_marco_teorico.tex).
 
+![Mapa general desde el problema de claves hasta la aplicación](../assets/qkd_big_picture.svg)
+
 ## 8. Ejemplo numérico
 
 Alice debe transferir un archivo de `1 GiB`:

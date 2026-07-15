@@ -63,7 +63,7 @@ analizada vale más que una correcta memorizada.
 - [Semana 5: fuentes coherentes débiles, PNS y estados señuelo](capitulos/05_wcs_pns_y_estados_senuelo.md)
 - [Semana 6: SeQUeNCe, metodología y resultados](capitulos/06_sequence_y_resultados.md)
 - [Semana 7: red, hardware y validez](capitulos/07_red_hardware_y_validez.md)
-- Frontera 2018-actualidad: TF-QKD, fibra y satélite
+- [Frontera 2018-actualidad: TF-QKD, fibra y satélite](capitulos/08_frontera_qkd_2018_actualidad.md)
 
 ### Práctica y defensa
 
@@ -75,6 +75,7 @@ analizada vale más que una correcta memorizada.
 - [Ejercicios de la semana 6](ejercicios/semana_06.md)
 - [Ejercicios de la semana 7](ejercicios/semana_07.md)
 - [Laboratorios de simulación](laboratorio/README.md)
+- [Biblioteca visual](assets/README.md)
 - Guion de 30 minutos
 - Banco acumulativo de preguntas
 - Rúbrica de simulacro 30 + 15

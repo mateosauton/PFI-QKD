@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">Perdida en fibra y ventaja de Twin-field QKD</title>
+  <desc id="desc">Conceptual graph comparing direct QKD rate scaling with eta against Twin-field QKD scaling with square root of eta.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111827"/>
+    </marker>
+    <style>
+      .bg { fill: #fffdf7; }
+      .title { font: 700 30px Arial, sans-serif; fill: #111827; }
+      .sub { font: 400 15px Arial, sans-serif; fill: #475467; }
+      .axis { stroke: #111827; stroke-width: 2.4; marker-end: url(#arrow); }
+      .grid { stroke: #d0d5dd; stroke-width: 1; }
+      .direct { stroke: #b42318; stroke-width: 5; fill: none; }
+      .tf { stroke: #05603a; stroke-width: 5; fill: none; }
+      .plob { stroke: #475467; stroke-width: 3; fill: none; stroke-dasharray: 9 7; }
+      .label { font: 700 16px Arial, sans-serif; fill: #111827; }
+      .small { font: 400 13px Arial, sans-serif; fill: #344054; }
+      .note { fill: #ffffff; stroke: #98a2b3; stroke-width: 1.5; rx: 10; }
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="680"/>
+  <text x="60" y="54" class="title">Por que la distancia es dificil en fibra</text>
+  <text x="60" y="84" class="sub">La perdida crece en dB de forma lineal con la distancia; la transmitancia fisica cae exponencialmente.</text>
+
+  <line x1="125" y1="550" x2="1080" y2="550" class="axis"/>
+  <line x1="125" y1="550" x2="125" y2="130" class="axis"/>
+  <text x="580" y="610" text-anchor="middle" class="label">Distancia de fibra</text>
+  <text x="38" y="340" transform="rotate(-90 38 340)" text-anchor="middle" class="label">Tasa de clave relativa (escala log conceptual)</text>
+
+  <g>
+    <line x1="125" y1="470" x2="1080" y2="470" class="grid"/>
+    <line x1="125" y1="390" x2="1080" y2="390" class="grid"/>
+    <line x1="125" y1="310" x2="1080" y2="310" class="grid"/>
+    <line x1="125" y1="230" x2="1080" y2="230" class="grid"/>
+    <line x1="300" y1="130" x2="300" y2="550" class="grid"/>
+    <line x1="480" y1="130" x2="480" y2="550" class="grid"/>
+    <line x1="660" y1="130" x2="660" y2="550" class="grid"/>
+    <line x1="840" y1="130" x2="840" y2="550" class="grid"/>
+    <line x1="1020" y1="130" x2="1020" y2="550" class="grid"/>
+  </g>
+
+  <path d="M 145 170 C 250 250, 360 330, 480 390 C 650 470, 810 525, 1040 545" class="direct"/>
+  <path d="M 145 170 C 280 205, 440 250, 600 310 C 760 370, 900 430, 1040 485" class="tf"/>
+  <path d="M 145 188 C 250 266, 360 344, 480 403 C 650 480, 810 532, 1040 550" class="plob"/>
+
+  <rect x="690" y="155" width="385" height="140" class="note"/>
+  <text x="715" y="190" class="label">Idea central</text>
+  <text x="715" y="220" class="small">QKD directa: tasa ~ eta</text>
+  <text x="715" y="245" class="small">TF-QKD: tasa ~ sqrt(eta)</text>
+  <text x="715" y="270" class="small">Eso cambia la pendiente efectiva sin repetidor cuantico.</text>
+
+  <rect x="185" y="385" width="300" height="120" class="note"/>
+  <text x="210" y="420" class="label">Ejemplo rapido</text>
+  <text x="210" y="450" class="small">Fibra telecom: ~0.2 dB/km</text>
+  <text x="210" y="475" class="small">100 km: ~20 dB, pasa ~1%</text>
+  <text x="210" y="500" class="small">500 km: ~100 dB, pasa casi nada</text>
+
+  <text x="810" y="420" class="label" fill="#05603a">TF-QKD</text>
+  <text x="780" y="520" class="label" fill="#b42318">QKD directa / PLOB</text>
+</svg>

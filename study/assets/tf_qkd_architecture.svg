@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Arquitectura Twin-field QKD</title>
+  <desc id="desc">Twin-field QKD sends weak coherent pulses from Alice and Bob to an untrusted middle node Charlie, where they interfere at a beamsplitter and are detected.</desc>
+  <defs>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#155eef"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#079455"/>
+    </marker>
+    <style>
+      .bg { fill: #f9fafb; }
+      .title { font: 700 30px Arial, sans-serif; fill: #111827; }
+      .sub { font: 400 15px Arial, sans-serif; fill: #4b5563; }
+      .box { fill: #ffffff; stroke: #344054; stroke-width: 2; rx: 12; }
+      .alice { fill: #e7f1ff; stroke: #155eef; }
+      .bob { fill: #ecfdf3; stroke: #079455; }
+      .charlie { fill: #fff7ed; stroke: #c2410c; }
+      .label { font: 700 18px Arial, sans-serif; fill: #111827; }
+      .small { font: 400 14px Arial, sans-serif; fill: #344054; }
+      .tiny { font: 400 12px Arial, sans-serif; fill: #475467; }
+      .blue { stroke: #155eef; stroke-width: 5; fill: none; marker-end: url(#arrowBlue); }
+      .green { stroke: #079455; stroke-width: 5; fill: none; marker-end: url(#arrowGreen); }
+      .ctrl { stroke: #667085; stroke-width: 2.4; fill: none; stroke-dasharray: 8 8; }
+      .note { fill: #ffffff; stroke: #98a2b3; stroke-width: 1.5; rx: 10; }
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text x="60" y="54" class="title">Twin-field QKD: no se envia de Alice a Bob</text>
+  <text x="60" y="84" class="sub">Alice y Bob envian campos coherentes debiles hacia un nodo central no confiable, Charlie.</text>
+
+  <rect x="65" y="165" width="250" height="190" class="box alice"/>
+  <text x="190" y="205" text-anchor="middle" class="label">Alice</text>
+  <text x="190" y="238" text-anchor="middle" class="small">laser / referencia local</text>
+  <text x="190" y="263" text-anchor="middle" class="small">modulador de fase</text>
+  <text x="190" y="288" text-anchor="middle" class="small">decoy intensities</text>
+  <text x="190" y="316" text-anchor="middle" class="tiny">prepara pulso coherente debil</text>
+
+  <rect x="885" y="165" width="250" height="190" class="box bob"/>
+  <text x="1010" y="205" text-anchor="middle" class="label">Bob</text>
+  <text x="1010" y="238" text-anchor="middle" class="small">laser / referencia local</text>
+  <text x="1010" y="263" text-anchor="middle" class="small">modulador de fase</text>
+  <text x="1010" y="288" text-anchor="middle" class="small">decoy intensities</text>
+  <text x="1010" y="316" text-anchor="middle" class="tiny">prepara pulso coherente debil</text>
+
+  <rect x="465" y="150" width="270" height="220" class="box charlie"/>
+  <text x="600" y="190" text-anchor="middle" class="label">Charlie</text>
+  <text x="600" y="216" text-anchor="middle" class="small">nodo central no confiable</text>
+  <circle cx="560" cy="268" r="33" fill="#ffffff" stroke="#c2410c" stroke-width="3"/>
+  <path d="M 536 244 L 584 292 M 584 244 L 536 292" stroke="#c2410c" stroke-width="4"/>
+  <text x="560" y="326" text-anchor="middle" class="tiny">beam splitter</text>
+  <rect x="632" y="238" width="52" height="44" fill="#111827" rx="6"/>
+  <rect x="632" y="294" width="52" height="44" fill="#111827" rx="6"/>
+  <text x="720" y="266" class="tiny">D0</text>
+  <text x="720" y="322" class="tiny">D1</text>
+
+  <path d="M 315 255 C 390 230, 425 230, 465 255" class="blue"/>
+  <path d="M 885 255 C 810 230, 775 230, 735 255" class="green"/>
+  <text x="395" y="218" text-anchor="middle" class="small">L/2</text>
+  <text x="805" y="218" text-anchor="middle" class="small">L/2</text>
+
+  <path d="M 190 385 C 390 470, 800 470, 1010 385" class="ctrl"/>
+  <text x="600" y="492" text-anchor="middle" class="small">canal clasico: anuncios, bases, fases, decoys, reconciliacion</text>
+
+  <rect x="120" y="550" width="960" height="105" class="note"/>
+  <text x="150" y="585" class="label">La dificultad real</text>
+  <text x="150" y="616" class="small">Los pulsos de Alice y Bob deben interferir despues de cientos de km independientes: frecuencia, fase, tiempo y polarizacion deben quedar alineados.</text>
+  <text x="150" y="642" class="small">Por eso los avances recientes se centran en stabilization, frequency reference, injection locking, microcombs, WDM y chips fotonicos.</text>
+</svg>

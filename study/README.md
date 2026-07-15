@@ -76,10 +76,10 @@ analizada vale más que una correcta memorizada.
 - [Ejercicios de la semana 7](ejercicios/semana_07.md)
 - [Laboratorios de simulación](laboratorio/README.md)
 - [Biblioteca visual](assets/README.md)
-- Guion de 30 minutos
-- Banco acumulativo de preguntas
-- Rúbrica de simulacro 30 + 15
-- Respuestas difíciles y manejo de límites
+- [Guion de 30 minutos](defensa/guion_30_minutos.md)
+- [Banco acumulativo de preguntas](defensa/banco_preguntas.md)
+- [Rúbrica de simulacro 30 + 15](defensa/rubrica_simulacro.md)
+- [Respuestas difíciles y manejo de límites](defensa/respuestas_dificiles.md)
 
 ## Fuentes principales
 

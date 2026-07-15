@@ -28,3 +28,11 @@ indica que todavía no existe evidencia.
 Después de pasar un tema a verde, recuperalo al día siguiente, a los tres días, a la
 semana y a las dos semanas. Si falla, no borres el verde: registrá qué dimensión
 falló y devolvé solo esa dimensión a amarillo.
+
+## Simulacros completos
+
+| Intento | Fecha | Exposición | Preguntas | Errores graves | Puntaje / 21 | Próxima corrección |
+|---:|---|---:|---:|---:|---:|---|
+| 1 | Sin realizar | Sin medir | Sin medir | Sin evaluar | Sin evaluar | Completar semanas 1-7 |
+| 2 | Sin realizar | Sin medir | Sin medir | Sin evaluar | Sin evaluar | Después del intento 1 |
+| 3 | Sin realizar | Sin medir | Sin medir | Sin evaluar | Sin evaluar | Solo si hace falta |

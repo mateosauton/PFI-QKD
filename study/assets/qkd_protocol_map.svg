@@ -71,7 +71,10 @@
   <path d="M 600 206 C 600 300, 600 405, 600 475" class="line"/>
   <path d="M 850 385 C 900 420, 930 440, 945 475" class="line"/>
 
-  <text x="205" y="626" text-anchor="middle" class="small">Ejemplos: BB84, B92, E91, decoy-state</text>
-  <text x="600" y="626" text-anchor="middle" class="small">Ejemplos: China 4.600 km, carrier-grade 10.000 km, campus/metro QKD</text>
-  <text x="950" y="626" text-anchor="middle" class="small">Frontera: fuerte seguridad, alta complejidad experimental</text>
+  <text x="250" y="626" text-anchor="middle" class="label">Protocolos base</text>
+  <text x="250" y="650" text-anchor="middle" class="small">BB84, B92, E91 y decoy-state</text>
+  <text x="600" y="626" text-anchor="middle" class="label">Escala de red</text>
+  <text x="600" y="650" text-anchor="middle" class="small">fibra, satelites y nodos confiables</text>
+  <text x="950" y="626" text-anchor="middle" class="label">Frontera experimental</text>
+  <text x="950" y="650" text-anchor="middle" class="small">TF-QKD y DI-QKD</text>
 </svg>

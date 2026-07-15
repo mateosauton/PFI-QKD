@@ -97,3 +97,26 @@ Protegé las tres sesiones esenciales. Si solo completás dos, la semana siguien
 empieza con la tercera antes de abrir contenido opcional. No intentes pagar una deuda
 de estudio acumulando seis horas de lectura pasiva: recuperá el mecanismo que falta y
 volvé al ritmo normal.
+
+## Cobertura del diseño
+
+| Requisito aprobado | Implementación |
+|---|---|
+| Ocho semanas y ritmo flexible | [Plan maestro](plan_maestro.md) |
+| Diagnóstico por áreas | [Orientación](capitulos/00_orientacion_y_diagnostico.md) |
+| Criptografía desde cero | [Semana 1](capitulos/01_criptografia_y_claves.md) |
+| Matemática cuántica y BB84 | [Semana 2](capitulos/02_fundamentos_cuanticos_y_bb84.md) |
+| QBER, reconciliación, privacidad y SKR | [Semana 3](capitulos/03_seguridad_qber_y_skr.md) |
+| Fibra, óptica, time-bin y detectores | [Semana 4](capitulos/04_optica_fibra_y_time_bin.md) |
+| WCS, PNS y estados señuelo | [Semana 5](capitulos/05_wcs_pns_y_estados_senuelo.md) |
+| Código, cuatro experimentos y figuras | [Semana 6](capitulos/06_sequence_y_resultados.md) y [laboratorios](laboratorio/README.md) |
+| Campus, hardware, KMS y validez | [Semana 7](capitulos/07_red_hardware_y_validez.md) |
+| Avances 2018-2026, TF-QKD y satélite | [Frontera](capitulos/08_frontera_qkd_2018_actualidad.md) |
+| Explicar, calcular, conectar y defender | [Progreso](progreso.md) y ejercicios semanales |
+| Registro adaptativo de errores | [Errores y dudas](errores_y_dudas.md) |
+| Diagramas estables | [Biblioteca visual](assets/README.md) |
+| Exposición 30 minutos | [Guion](defensa/guion_30_minutos.md) |
+| Quince minutos de preguntas | [Banco de 80 preguntas](defensa/banco_preguntas.md) |
+| Dos simulacros y criterios de salida | [Rúbrica](defensa/rubrica_simulacro.md) |
+| Manejo honesto de límites | [Respuestas difíciles](defensa/respuestas_dificiles.md) |
+| Validación automática | [`validate_study.py`](tools/validate_study.py) y pruebas |

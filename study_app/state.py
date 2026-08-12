@@ -26,7 +26,7 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
 
 
 class StateStore:
@@ -43,6 +43,8 @@ class StateStore:
             self._write_json(self.root / "progress.json", self._default_progress())
         if not (self.root / "errors.json").exists():
             self._write_json(self.root / "errors.json", {"schema_version": SCHEMA_VERSION, "items": []})
+        if not (self.root / "defense.json").exists():
+            self._write_json(self.root / "defense.json", {"schema_version": SCHEMA_VERSION, "items": []})
 
     @staticmethod
     def _default_progress() -> dict[str, Any]:
@@ -199,6 +201,38 @@ class StateStore:
         errors["updated_at"] = now
         self._write_json(self.root / "errors.json", errors)
         return errors
+
+    def load_defense(self) -> dict[str, Any]:
+        return self._read_json(self.root / "defense.json", {"schema_version": SCHEMA_VERSION, "items": []})
+
+    def save_defense_record(self, record: dict[str, Any]) -> dict[str, Any]:
+        if not record.get("kind") or record["kind"] not in ("presentation", "questions", "full_rehearsal"):
+            raise ValueError("kind must be presentation, questions or full_rehearsal")
+        defense = self.load_defense()
+        value = {"schema_version": SCHEMA_VERSION, "recorded_at": _now(), **record}
+        defense["items"].append(value)
+        defense["updated_at"] = value["recorded_at"]
+        self._write_json(self.root / "defense.json", defense)
+        return value
+
+    def create_backup(self) -> dict[str, Any]:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "progress": self.load_progress(),
+            "draft": self.load_draft(),
+            "errors": self.load_errors(),
+            "defense": self.load_defense(),
+            "attempts": self.list_attempts(),
+            "feedback": [self._read_json(path) for path in sorted(self.feedback_dir.glob("*.json"))],
+        }
+
+    def import_draft(self, backup: dict[str, Any]) -> dict[str, Any]:
+        if backup.get("schema_version") != SCHEMA_VERSION:
+            raise ValueError("unsupported backup schema")
+        draft = backup.get("draft")
+        if not isinstance(draft, dict) or not draft.get("module_id"):
+            raise ValueError("backup does not contain a valid draft")
+        return self.save_draft({key: value for key, value in draft.items() if key not in ("schema_version", "updated_at")})
 
     def export_summary(self) -> str:
         progress = self.load_progress()

@@ -184,11 +184,40 @@ async function renderFeedback(attemptId) {
 async function renderHistory() {
   try { state.history = (await api("/api/history")).attempts; } catch { state.history = []; }
   const content = state.history.length ? state.history.slice().reverse().map((attempt) => `<article class="history-item"><header><h3>${escapeHtml(attempt.module_id)}</h3><time>${escapeHtml(formatDate(attempt.submitted_at))}</time></header><p>${escapeHtml(attempt.body)}</p><p class="mono muted" style="margin-top: 12px">ayuda: ${escapeHtml(attempt.help_level)} · ${escapeHtml(attempt.attempt_id)}</p></article>`).join("") : '<div class="empty-state">Todavía no hay respuestas enviadas. La primera sesión activa te espera en Inicio.</div>';
-  app.innerHTML = `<div class="eyebrow">Registro de aprendizaje</div><h1>Tu razonamiento, en evolución.</h1><p class="lede">Cada intento queda como evidencia. Volver a leer una respuesta anterior permite ver qué cambió y qué todavía necesita práctica.</p><div class="history-list">${content}</div>`;
+  app.innerHTML = `<div class="eyebrow">Registro de aprendizaje</div><h1>Tu razonamiento, en evolución.</h1><p class="lede">Cada intento queda como evidencia. Volver a leer una respuesta anterior permite ver qué cambió y qué todavía necesita práctica.</p><div class="action-row" style="margin-top: 22px"><button class="button secondary" id="download-backup" type="button">Descargar respaldo</button><label class="button secondary" for="import-backup">Importar borrador<input id="import-backup" type="file" accept="application/json" hidden></label></div><div class="history-list">${content}</div>`;
+  document.querySelector("#download-backup").addEventListener("click", downloadBackup);
+  document.querySelector("#import-backup").addEventListener("change", importBackup);
 }
 
 function renderDefense() {
-  app.innerHTML = `<div class="eyebrow">Modo defensa</div><h1>Treinta minutos para explicar. Quince para sostenerlo.</h1><p class="lede">La defensa se entrena después de construir el mecanismo. Esta vista reúne el guion, el banco de preguntas y los simulacros cuando estén habilitados.</p><div class="defense-list"><article class="defense-item"><header><h3>Exposición principal</h3><time>30 minutos</time></header><p>Problema → BB84 → implementación time-bin → estados señuelo → simulación → límites → frontera.</p></article><article class="defense-item"><header><h3>Preguntas del jurado</h3><time>15 minutos</time></header><p>Responder con una estructura fija: respuesta directa, mecanismo, evidencia y límite.</p></article></div><div class="action-row" style="margin-top: 24px"><a class="button" href="/study/defensa/guion_30_minutos.md" target="_blank" rel="noreferrer">Abrir guion</a><a class="button secondary" href="/study/defensa/banco_preguntas.md" target="_blank" rel="noreferrer">Abrir banco</a></div>`;
+  app.innerHTML = `<div class="eyebrow">Modo defensa</div><h1>Treinta minutos para explicar. Quince para sostenerlo.</h1><p class="lede">La defensa se entrena después de construir el mecanismo. Esta vista reúne el guion, el banco de preguntas y los simulacros.</p><div class="defense-list"><article class="defense-item"><header><h3>Exposición principal</h3><time>30 minutos</time></header><p>Problema → BB84 → implementación time-bin → estados señuelo → simulación → límites → frontera.</p></article><article class="defense-item"><header><h3>Preguntas del jurado</h3><time>15 minutos</time></header><p>Responder con una estructura fija: respuesta directa, mecanismo, evidencia y límite.</p></article></div><div class="action-row" style="margin-top: 24px"><a class="button" href="/study/defensa/guion_30_minutos.md" target="_blank" rel="noreferrer">Abrir guion</a><a class="button secondary" href="/study/defensa/banco_preguntas.md" target="_blank" rel="noreferrer">Abrir banco</a><button class="button secondary" id="record-rehearsal" type="button">Registrar simulacro</button></div>`;
+  document.querySelector("#record-rehearsal").addEventListener("click", async () => {
+    try { await api("/api/defense", { method: "POST", body: JSON.stringify({ kind: "full_rehearsal", duration_minutes: 45, note: "Simulacro registrado desde la ruta guiada." }) }); showToast("Simulacro registrado."); }
+    catch (error) { showToast(error.message); }
+  });
+}
+
+async function downloadBackup() {
+  try {
+    const backup = await api("/api/backup");
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "qkd-study-backup.json";
+    link.click();
+    URL.revokeObjectURL(link.href);
+    showToast("Respaldo descargado.");
+  } catch (error) { showToast(error.message); }
+}
+
+async function importBackup(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    const backup = JSON.parse(await file.text());
+    await api("/api/import", { method: "POST", body: JSON.stringify(backup) });
+    showToast("Borrador importado. Volvé a Inicio para continuar.");
+  } catch (error) { showToast(`No se pudo importar: ${error.message}`); }
 }
 
 window.addEventListener("hashchange", renderRoute);

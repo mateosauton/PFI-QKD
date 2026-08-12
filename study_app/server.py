@@ -115,6 +115,12 @@ class StudyRequestHandler(BaseHTTPRequestHandler):
         if path == "/api/errors":
             self._json(200, self.server.state_store.load_errors())
             return
+        if path == "/api/defense":
+            self._json(200, self.server.state_store.load_defense())
+            return
+        if path == "/api/backup":
+            self._json(200, self.server.state_store.create_backup())
+            return
         self._error(404, "not found")
 
     def _handle_api_post(self, path: str, payload: dict[str, Any]) -> None:
@@ -160,6 +166,12 @@ class StudyRequestHandler(BaseHTTPRequestHandler):
                 if missing:
                     raise RequestError(422, f"missing required fields: {', '.join(missing)}")
                 self._json(200, self.server.state_store.record_error(payload["module_id"], payload["concept"], payload["status"]))
+                return
+            if path == "/api/defense":
+                self._json(201, self.server.state_store.save_defense_record(payload))
+                return
+            if path == "/api/import":
+                self._json(200, self.server.state_store.import_draft(payload))
                 return
             if path == "/api/export":
                 summary = self.server.state_store.export_summary()

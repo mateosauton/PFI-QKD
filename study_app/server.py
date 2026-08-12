@@ -10,6 +10,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from .catalog import MODULES, get_module
+from .feedback_schema import validate_feedback
 from .state import StateStore
 
 
@@ -99,6 +100,14 @@ class StudyRequestHandler(BaseHTTPRequestHandler):
                 return
             self._json(200, attempt)
             return
+        if path.startswith("/api/feedback/"):
+            attempt_id = path.rsplit("/", 1)[-1]
+            feedback = self.server.state_store.get_feedback(attempt_id)
+            if feedback is None:
+                self._error(404, "feedback not found")
+                return
+            self._json(200, feedback)
+            return
         if path == "/api/history":
             module_id = query.get("module_id", [None])[0]
             self._json(200, {"attempts": self.server.state_store.list_attempts(module_id)})
@@ -130,6 +139,13 @@ class StudyRequestHandler(BaseHTTPRequestHandler):
                 self._json(201, attempt)
                 return
             if path == "/api/feedback":
+                errors = validate_feedback(payload)
+                if errors:
+                    raise RequestError(422, "; ".join(errors))
+                if payload["next_action"] == "advance":
+                    statuses = [payload["criteria"][capability]["status"] for capability in ("explain", "calculate", "connect", "defend")]
+                    if not all(status in ("green", "blue") for status in statuses):
+                        raise RequestError(422, "advance requires all four criteria to be green or blue")
                 feedback = self.server.state_store.save_feedback(payload)
                 self._json(201, feedback)
                 return

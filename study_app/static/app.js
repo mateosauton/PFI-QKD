@@ -89,6 +89,7 @@ function renderRoute() {
   const route = window.location.hash || "#/";
   document.querySelectorAll(".primary-nav a").forEach((link) => link.classList.toggle("active", link.getAttribute("href") === route.split("/").slice(0, 2).join("/") || (route === "#/" && link.getAttribute("href") === "#/")));
   if (route.startsWith("#/lesson/")) return renderLesson(state, route.split("/")[2]);
+  if (route.startsWith("#/feedback/")) return renderFeedback(route.split("/")[2]);
   if (route === "#/history") return renderHistory(state);
   if (route === "#/defense") return renderDefense(state);
   renderDashboard(state);
@@ -161,8 +162,23 @@ async function submitAttempt(moduleId, promptId, body, helpLevel) {
     state.lastSubmitted = attempt;
     localStorage.removeItem(`study-draft:${moduleId}`);
     showToast("Respuesta enviada para revisión.");
-    app.innerHTML = `<section class="panel panel-pad"><div class="eyebrow">Intento registrado</div><h2>Tu respuesta quedó guardada.</h2><p class="lede">El siguiente paso es revisar el mecanismo, no perseguir una nota. El intento conserva exactamente lo que escribiste.</p><div class="context-note" style="margin: 24px 0"><strong>ID:</strong> <code>${escapeHtml(attempt.attempt_id)}</code><br><strong>Estado:</strong> pendiente de revisión</div><div class="action-row"><a class="button" href="#/history">Ver historial</a><a class="button secondary" href="#/">Volver al mapa</a></div></section>`;
+    app.innerHTML = `<section class="panel panel-pad"><div class="eyebrow">Intento registrado</div><h2>Tu respuesta quedó guardada.</h2><p class="lede">El siguiente paso es revisar el mecanismo, no perseguir una nota. El intento conserva exactamente lo que escribiste.</p><div class="context-note" style="margin: 24px 0"><strong>ID:</strong> <code>${escapeHtml(attempt.attempt_id)}</code><br><strong>Estado:</strong> pendiente de revisión</div><div class="action-row"><a class="button" href="#/feedback/${encodeURIComponent(attempt.attempt_id)}">Ver estado</a><a class="button secondary" href="#/history">Ver historial</a></div></section>`;
   } catch (error) { button.disabled = false; showToast(error.message); }
+}
+
+async function renderFeedback(attemptId) {
+  try {
+    const [attempt, feedback] = await Promise.all([api(`/api/attempts/${encodeURIComponent(attemptId)}`), api(`/api/feedback/${encodeURIComponent(attemptId)}`).catch(() => null)]);
+    if (!feedback) {
+      app.innerHTML = `<section class="panel panel-pad"><div class="eyebrow">Revisión pendiente</div><h2>Tu respuesta está en espera.</h2><p class="lede">El intento fue guardado, pero todavía no tiene feedback. Cuando lo revisemos, vas a ver acá cada criterio y la próxima acción.</p><div class="context-note" style="margin: 24px 0"><strong>Respuesta enviada:</strong><br>${escapeHtml(attempt.body)}</div><div class="action-row"><a class="button" href="#/history">Volver al historial</a><a class="button secondary" href="#/">Volver al mapa</a></div></section>`;
+      return;
+    }
+    const criteria = Object.entries(feedback.criteria || {}).map(([key, value]) => `<div class="feedback-criterion"><span class="criterion-status status-${escapeHtml(value.status)}">${escapeHtml(value.status)}</span><div><strong>${escapeHtml(capabilityLabel(key))}</strong><p>${escapeHtml(value.note)}</p></div></div>`).join("");
+    const nextAction = { advance: "avanzar", recovery: "hacer recuperación", review: "repasar más adelante" }[feedback.next_action] || feedback.next_action;
+    app.innerHTML = `<div class="eyebrow">Feedback · ${escapeHtml(attempt.module_id)}</div><div class="lesson-layout"><section class="panel panel-pad"><div class="lesson-meta"><span>respuesta original</span><span>${escapeHtml(formatDate(attempt.submitted_at))}</span></div><h1 class="prompt-copy">Qué mostró tu respuesta</h1><div class="submitted-answer">${escapeHtml(attempt.body)}</div><div class="feedback-grid">${criteria}</div><div class="feedback-columns"><div><h3>Fortalezas</h3><ul>${(feedback.strengths || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("") || "<li>todavía no registradas</li>"}</ul></div><div><h3>Errores a trabajar</h3><ul>${(feedback.errors || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("") || "<li>ninguno registrado</li>"}</ul></div></div></section><aside class="side-stack"><section class="side-card context-note"><strong>Próxima acción: ${escapeHtml(nextAction)}</strong><br>${escapeHtml(feedback.hint?.text || "Revisá el criterio marcado y volvé a intentarlo.")}</section><section class="side-card"><h3>Ayuda usada</h3><p class="muted">${escapeHtml(attempt.help_level)}</p><a class="button secondary" href="#/lesson/${encodeURIComponent(attempt.module_id)}">Volver a practicar</a></section></aside></div>`;
+  } catch (error) {
+    app.innerHTML = `<section class="error-box"><strong>No pude cargar este feedback.</strong><p>${escapeHtml(error.message)}</p></section>`;
+  }
 }
 
 async function renderHistory() {

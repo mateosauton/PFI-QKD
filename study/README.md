@@ -120,3 +120,15 @@ volvé al ritmo normal.
 | Dos simulacros y criterios de salida | [Rúbrica](defensa/rubrica_simulacro.md) |
 | Manejo honesto de límites | [Respuestas difíciles](defensa/respuestas_dificiles.md) |
 | Validación automática | [`validate_study.py`](tools/validate_study.py) y pruebas |
+
+## Aplicación interactiva
+
+La ruta guiada se ejecuta localmente con:
+
+```bash
+uv run python scripts/run_study_app.py
+```
+
+Abrí la URL que imprime el servidor. Los capítulos y ejercicios continúan
+siendo Markdown versionado; las respuestas personales, borradores, feedback y
+progreso se guardan localmente en `.study_state/`, que está excluido de Git.

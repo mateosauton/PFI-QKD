@@ -152,5 +152,8 @@ utils/json_config_generators/*.json
 # Local visual brainstorming sessions
 .superpowers/
 
+# Private guided study responses and progress
+.study_state/
+
 # docstring files
 *.rst

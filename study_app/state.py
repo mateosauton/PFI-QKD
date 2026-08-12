@@ -166,7 +166,6 @@ class StateStore:
         progress["modules"][module_id]["status"] = status
         progress["updated_at"] = _now()
         if status == "available" and progress.get("current_module") == "crypto-keys":
-            ordered = sorted(MODULES, key=lambda module: module.order)
             current_order = get_module(progress["current_module"]).order if get_module(progress["current_module"]) else 0
             if get_module(module_id).order > current_order:
                 progress["current_module"] = module_id

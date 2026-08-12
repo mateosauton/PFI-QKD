@@ -132,3 +132,16 @@ uv run python scripts/run_study_app.py
 Abrí la URL que imprime el servidor. Los capítulos y ejercicios continúan
 siendo Markdown versionado; las respuestas personales, borradores, feedback y
 progreso se guardan localmente en `.study_state/`, que está excluido de Git.
+
+Flujo de cada sesión:
+
+1. Ejecutá `uv run python scripts/run_study_app.py`.
+2. Abrí la URL local que imprime el servidor.
+3. Respondé solamente la sesión activa.
+4. Enviá el intento y esperá la revisión del asistente.
+5. Revisá el feedback y la próxima acción.
+6. Respaldá `.study_state/` antes de cambiar de máquina.
+
+Las respuestas se escriben en la aplicación, no editando los capítulos de
+aprendizaje. El formato de los archivos privados está documentado en
+[`STATE_SCHEMA.md`](../study_app/STATE_SCHEMA.md).

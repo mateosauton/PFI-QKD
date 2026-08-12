@@ -191,7 +191,7 @@ class StudyRequestHandler(BaseHTTPRequestHandler):
             relative = path.removeprefix("/")
         else:
             root = STATIC_ROOT
-            relative = "index.html" if path in ("", "/") else path.removeprefix("/")
+            relative = "index.html" if path in ("", "/") else path.removeprefix("/static/")
         candidate = (root / relative).resolve()
         if root not in candidate.parents and candidate != root:
             self._error(404, "not found")

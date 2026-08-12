@@ -15,6 +15,7 @@ from .state import StateStore
 
 MAX_BODY_BYTES = 1024 * 1024
 STATIC_ROOT = Path(__file__).resolve().parent / "static"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class StudyRequestHandler(BaseHTTPRequestHandler):
@@ -157,9 +158,14 @@ class StudyRequestHandler(BaseHTTPRequestHandler):
             self._error(422, str(error))
 
     def _serve_static(self, path: str) -> None:
-        relative = "index.html" if path in ("", "/") else path.removeprefix("/")
-        candidate = (STATIC_ROOT / relative).resolve()
-        if STATIC_ROOT not in candidate.parents and candidate != STATIC_ROOT:
+        if path.startswith("/study/"):
+            root = PROJECT_ROOT
+            relative = path.removeprefix("/")
+        else:
+            root = STATIC_ROOT
+            relative = "index.html" if path in ("", "/") else path.removeprefix("/")
+        candidate = (root / relative).resolve()
+        if root not in candidate.parents and candidate != root:
             self._error(404, "not found")
             return
         if not candidate.is_file():

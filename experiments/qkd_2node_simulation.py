@@ -649,6 +649,8 @@ def decoy_e1_upper(
     if y1 <= 0 or nu <= 0:
         return 0.5
     numerator = e_nu * q_nu * math.exp(nu) - e0 * y0
+    if numerator <= 0:
+        return 0.5
     e1 = numerator / (y1 * nu)
     return float(min(0.5, max(0.0, e1)))
 
@@ -745,6 +747,20 @@ def decoy_comparison_rates(
         "y1_lower": y1_lower,
         "e1_upper": e1_upper,
         "q1_lower": mu_signal * math.exp(-mu_signal) * y1_lower,
+    }
+
+
+def decoy_estimator_manifest_entry() -> dict[str, Any]:
+    """Describe the current decoy estimator used by a fresh simulation run."""
+    return {
+        "scope": "asymptotic hybrid estimator; not a composable finite-key bound",
+        "phase_error_assumption": "basis-symmetric error, e_phase approximated from aggregate QBER",
+        "nonpositive_e1_numerator": {
+            "condition": "numerator <= 0",
+            "assigned_e1": 0.5,
+            "interpretation": "conservative fallback",
+        },
+        "vacuum_yield_model": "three detectors times accepted detection window and dark-count rate",
     }
 
 
@@ -2512,12 +2528,7 @@ def main() -> None:
         "fiber_attenuation_db_km": DEFAULT_ALPHA_DB_KM,
         "proxy_asintotico_monofotonico_f_ec": 1.16,
         "proxy_asintotico_monofotonico_corte_qber": simple_rate_qber_cutoff(),
-        "decoy_estimator": {
-            "scope": "asymptotic hybrid estimator; not a composable finite-key bound",
-            "phase_error_assumption": "basis-symmetric error, e_phase approximated from aggregate QBER",
-            "nonpositive_e1_numerator": "clamp al límite físico e1=0.5",
-            "vacuum_yield_model": "three detectors times accepted detection window and dark-count rate",
-        },
+        "decoy_estimator": decoy_estimator_manifest_entry(),
         "seed_policy": "deterministic non-overlapping pairs documented in qkd_2node_simulation.py",
         "statistical_methods": {
             "qber": "pooled Wilson score interval, 95%",

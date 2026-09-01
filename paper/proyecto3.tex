@@ -113,9 +113,12 @@ invariante auditada es
 \end{equation}
 
 La fracción de tamizado observada es
-\(N_{\mathrm{coinc}}/N_{\mathrm{res}}\). La tasa tamizada usa los
-\(3\times2048=6144\) bits completados y el tiempo hasta la tercera clave. La
-ganancia observada es \(N_{\mathrm{slot\ clic}}/N_{\mathrm{pulso}}\).
+\(N_{\mathrm{coinc}}/N_{\mathrm{res}}\). La tasa tamizada de cada corrida es
+el cociente entre los bits completados y el tiempo hasta la última clave. Las
+corridas con longitud 2048 bit completan \(3\times2048=6144\) bits; las dos
+celdas de longitud 128 bit del control temporal completan \(3\times128=384\)
+bits. La ganancia observada es
+\(N_{\mathrm{slot\ clic}}/N_{\mathrm{pulso}}\).
 
 \subsection*{Referencia analítica y proxy}
 
@@ -195,10 +198,14 @@ Para Vacío+Débil se aplican las cotas de Ma et al. \cite{maQiZhaoLo2005}:
   Q_1^L&=\mu e^{-\mu}Y_1^L.
 \end{align}
 
-La implementación limita \(Y_1^L\) a \([0,1]\), \(e_1^U\) a
-\([0,1/2]\) y la salida a valores no negativos. El manifiesto prescribe
-\(e_1^U=1/2\) como salida conservadora si el numerador de la
-Ecuación~\ref{eq:ma37} no es positivo. La tasa asintótica usa
+La implementación actual limita \(Y_1^L\) a \([0,1]\), \(e_1^U\) a
+\([0,1/2]\) y la salida a valores no negativos. Si el numerador de la
+Ecuación~\ref{eq:ma37} es menor o igual que cero, asigna el valor conservador
+\(e_1^U=1/2\). La corrida final se produjo con el commit \texttt{40a848b}, que
+truncaba ese caso a cero. Ninguna de las 300 corridas de señal activó la rama y
+el numerador mínimo fue \(9{,}3148\times10^{-7}\), por lo que la corrección no
+cambia los datos publicados. El manifiesto separa ambas políticas. La tasa
+asintótica usa
 
 \begin{equation}
   R\geq\frac{f_{\mathrm{rep}}}{2}
@@ -210,15 +217,19 @@ Ecuación~\ref{eq:ma37} no es positivo. La tasa asintótica usa
 Las ganancias \(Q_{\mathrm{ref}}\), \(Q_\mu\) y \(Q_\nu\) son analíticas y
 los errores \(E_{\mathrm{ref}}\), \(E_\mu\) y \(E_\nu\) provienen de
 SeQUeNCe. Por eso las tres curvas del experimento 4 son estimaciones híbridas y
-asintóticas. Sus intervalos no constituyen un análisis de clave finita.
+asintóticas. Para estimar el error de fase, la QBER agregada sustituye ese error
+bajo una hipótesis de simetría entre bases. Esta hipótesis pertenece al
+estimador decoy y es distinta del uso diagnóstico del proxy en los experimentos
+1 a 3. Sus intervalos no constituyen un análisis de clave finita.
 
 \subsection*{Diseño estadístico y trazabilidad}
 
 Cada punto tiene \PThreeRepetitions{} repeticiones independientes. Las corridas
 principales solicitan tres claves de \PThreeKeyBits{} bits. El control temporal
-añade una celda con longitud \(128\)~bit para medir el efecto de agrupamiento.
-Los pares de semillas de Alice y Bob son deterministas, no se superponen y se
-guardan por corrida.
+añade dos celdas con longitud \(128\)~bit, una sin retardo extra y otra con
+\SI{1}{\milli\second}, para medir el efecto de agrupamiento. Los pares de
+semillas de Alice y Bob son deterministas, no se superponen y se guardan por
+corrida.
 
 El archivo canónico \path{experiments/results/experiment_runs.csv} contiene
 2520 filas, 84 grupos de 30 repeticiones. Los CSV resumidos contienen las medias,
@@ -227,11 +238,14 @@ comando, versiones, política de semillas, fórmulas y hashes. En el caso decoy,
 el nivel por corrida incluye los tres errores, las tres ganancias,
 \(Y_1^L\), \(e_1^U\), \(Q_1^L\) y las tres tasas.
 
-La QBER agrupada usa un intervalo de Wilson del 95\,\% \cite{wilson1927}. Las
-tasas usan un intervalo t bilateral entre repeticiones. Las diferencias de
-extremos usan Welch y las tendencias de visibilidad, regresión lineal
-\cite{welch1947}. Todos estos intervalos miden variabilidad Monte Carlo entre
-corridas. No son intervalos de seguridad de clave finita.
+La QBER agrupa los errores y bits de las 30 repeticiones de cada punto y usa un
+intervalo binomial de Wilson del 95\,\% \cite{wilson1927}. Las tasas usan un
+intervalo t bilateral sobre los valores por corrida. Welch cuantifica las
+diferencias entre extremos y la regresión lineal estima las pendientes sobre
+las corridas de los puntos \cite{welch1947}. Wilson deriva de los conteos
+simulados; t, Welch y la regresión describen variabilidad entre corridas y
+puntos. Todos son resultados Monte Carlo. Ninguno es un intervalo de seguridad
+de clave finita.
 
 \begin{table}[htbp]
   \centering
@@ -400,8 +414,9 @@ La simulación impone \(p_{\mathrm{fase}}=(1-V)/2\). Entre \(V=0{,}82\) y
 \num{\PThreeVisibilityFirstProxyKbps} a
 \SI{\PThreeVisibilityLastProxyKbps}{\kilo bit\per\second}.
 
-La pendiente de QBER es \num{\PThreeVisibilityQberSlope} por unidad de
-visibilidad, con IC del 95\,\%
+La pendiente de QBER es \num{\PThreeVisibilityQberSlope} de fracción QBER por
+unidad de visibilidad, equivalente a \(-10{,}1285\) puntos porcentuales por
+unidad, con IC del 95\,\%
 \([\num{\PThreeVisibilityQberSlopeLow};
 \num{\PThreeVisibilityQberSlopeHigh}]\) y
 \(r=\num{\PThreeVisibilityCorrelation}\). Para el proxy, la pendiente es

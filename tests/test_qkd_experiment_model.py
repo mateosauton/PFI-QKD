@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from experiments import qkd_2node_simulation as qkd_model
 from experiments.qkd_2node_simulation import (
     DEFAULT_KEY_LENGTH,
     DEFAULT_NUM_KEYS,
@@ -77,15 +78,33 @@ def test_decoy_y1_lower_is_clamped_to_a_physical_yield():
     assert 0.0 <= result <= 1.0
 
 
-def test_decoy_e1_upper_is_clamped_to_physical_error_bounds():
+def test_decoy_e1_upper_uses_conservative_fallback_for_nonpositive_numerator():
+    q_nu = 0.0014
+    e0 = 0.5
+    y0 = 1e-6
+    nu = 0.2
     negative_numerator = decoy_e1_upper(
         e_nu=0.0,
-        q_nu=0.0014,
-        e0=0.5,
-        y0=1e-6,
+        q_nu=q_nu,
+        e0=e0,
+        y0=y0,
         y1=0.0064,
-        nu=0.2,
+        nu=nu,
     )
+    zero_numerator = decoy_e1_upper(
+        e_nu=e0 * y0 / (q_nu * math.exp(nu)),
+        q_nu=q_nu,
+        e0=e0,
+        y0=y0,
+        y1=0.0064,
+        nu=nu,
+    )
+
+    assert negative_numerator == pytest.approx(0.5)
+    assert zero_numerator == pytest.approx(0.5)
+
+
+def test_decoy_e1_upper_is_capped_at_half():
     above_half = decoy_e1_upper(
         e_nu=1.0,
         q_nu=0.0014,
@@ -95,8 +114,17 @@ def test_decoy_e1_upper_is_clamped_to_physical_error_bounds():
         nu=0.2,
     )
 
-    assert negative_numerator == pytest.approx(0.0)
     assert above_half == pytest.approx(0.5)
+
+
+def test_fresh_run_manifest_states_current_nonpositive_e1_policy():
+    entry = qkd_model.decoy_estimator_manifest_entry()
+
+    assert entry["nonpositive_e1_numerator"] == {
+        "condition": "numerator <= 0",
+        "assigned_e1": 0.5,
+        "interpretation": "conservative fallback",
+    }
 
 
 def test_click_slot_indices_maps_time_bin_detectors_to_pulse_slots():

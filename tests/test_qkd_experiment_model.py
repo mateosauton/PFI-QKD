@@ -21,6 +21,7 @@ from experiments.qkd_2node_simulation import (
     experiment_2_detector_sweep,
     experiment_2_timing_control,
     experiment_3_visibility_sweep,
+    experiment_1_distance_sweep,
     experiment_4_decoy_distance,
     replicate_seed_pairs,
     run_experiment_suite,
@@ -170,6 +171,74 @@ def test_rigorous_defaults_use_long_keys_and_thirty_repetitions():
     assert DEFAULT_KEY_LENGTH == 2048
     assert DEFAULT_NUM_KEYS == 3
     assert DEFAULT_REPETITIONS == 30
+
+
+def test_distance_summary_exports_monophoton_proxy_and_accounting_observables(
+    monkeypatch, tmp_path
+):
+    def fake_run_replicates(base, repetitions, seed_base, executor):
+        del executor
+        return [
+            {
+                "mean_qber": 0.01,
+                "aggregate_sifted_rate_bps": 100.0,
+                "n_keys": base.num_keys,
+                "completed_requested_keys": True,
+                "total_sifted_bits": base.num_keys * base.key_length,
+                "total_errors": 1,
+                "elapsed_key_s": 1.0,
+                "pulses_sent": 10_000,
+                "click_events": 100,
+                "click_slots": 100,
+                "valid_detection_slots": 100,
+                "basis_compared_valid_slots": 100,
+                "observed_basis_matched_bits": 100,
+                "sifting_fraction": 1.0,
+                "observed_click_gain": 0.01,
+                "click_rate_bps": 100.0,
+                "accounting_consistent": True,
+                "params": SimParams(
+                    **{
+                        **base.__dict__,
+                        "alice_seed": seed_base,
+                        "bob_seed": seed_base + 1,
+                    }
+                ),
+                "detector_clicks": [1, 2, 3],
+                "total_detector_clicks": 6,
+                "background_yield_per_pulse": 1e-6,
+                "sifted_rate_reference_bps": 50.0,
+                "p_detection_model": 0.01,
+            }
+            for _ in range(repetitions)
+        ]
+
+    monkeypatch.setattr(
+        "experiments.qkd_2node_simulation._run_replicates", fake_run_replicates
+    )
+
+    experiment = experiment_1_distance_sweep(tmp_path, repetitions=1)
+    summary = experiment["records"][0]
+    raw = experiment["raw_records"][0]
+
+    assert {
+        "proxy_asintotico_monofotonico_media_bps",
+        "proxy_asintotico_monofotonico_ic95_bajo_bps",
+        "proxy_asintotico_monofotonico_ic95_alto_bps",
+        "ganancia_clic_observada_media",
+        "ganancia_clic_observada_ic95_bajo",
+        "ganancia_clic_observada_ic95_alto",
+        "fraccion_tamizado_resuelta_media",
+        "fraccion_tamizado_resuelta_ic95_bajo",
+        "fraccion_tamizado_resuelta_ic95_alto",
+        "corridas_contabilidad_consistente",
+        "corridas_punto_diagnostico",
+    } <= summary.keys()
+    assert summary["corridas_contabilidad_consistente"] == 1
+    assert summary["corridas_punto_diagnostico"] == 0
+    assert math.isnan(experiment["valid_max_distance"])
+    assert "proxy_asintotico_monofotonico_bps" in raw
+    assert "indicador_ideal_bps" not in raw
 
 
 def test_timing_control_crosses_key_length_and_delay():

@@ -2,8 +2,9 @@
 """
 2-node time-bin BB84 QKD simulation for SeQUeNCe.
 
-Runs four parameter sweeps (distance, detector sensitivity, interferometer visibility,
-decoy-state impact) and writes matplotlib figures to experiments/results/.
+Runs five parameter sweeps (distance, detector sensitivity, timing control,
+interferometer visibility, decoy-state impact) and writes figures and audit data
+to experiments/results/.
 """
 
 from __future__ import annotations
@@ -601,7 +602,7 @@ def build_run_record(
 def ideal_postprocessing_rate(
     qber: float, r_sifted_bps: float, f_ec: float = 1.16
 ) -> float:
-    """Ideal single-photon post-processing indicator; not a WCS secret-key bound."""
+    """Asymptotic single-photon proxy; not a WCS security bound."""
     if not math.isfinite(qber) or qber < 0 or qber >= 0.5:
         return 0.0
     h = _binary_entropy(qber)
@@ -778,7 +779,7 @@ def _raw_run_record(
     record.update(
         {
             variable_name: variable_value,
-            "indicador_ideal_bps": ideal_postprocessing_rate(
+            "proxy_asintotico_monofotonico_bps": ideal_postprocessing_rate(
                 run["mean_qber"], run["aggregate_sifted_rate_bps"]
             ),
             "clics_detector_0": run["detector_clicks"][0],
@@ -848,13 +849,14 @@ def plot_experiment_1(
     ax1.set_ylabel("QBER (%)", color=c1)
     ax1.tick_params(axis="y", labelcolor=c1)
     ax1.set_title("QBER según distancia")
-    ax1.axvline(
-        reference_margin_max_distance,
-        color="black",
-        ls=":",
-        lw=1,
-        label="Último punto con holgura confirmada",
-    )
+    if math.isfinite(reference_margin_max_distance):
+        ax1.axvline(
+            reference_margin_max_distance,
+            color="black",
+            ls=":",
+            lw=1,
+            label="Punto diagnóstico: IC 95 % no supera referencia analítica",
+        )
     ax1.axvspan(
         reference_overlap_start_distance, distances_km[-1], color="red", alpha=0.06
     )
@@ -866,7 +868,8 @@ def plot_experiment_1(
     ax1b.set_xlabel("Distancia (km)")
     ax1b.set_ylabel("Ganancia total analítica por pulso")
     ax1b.set_title("Señal y fondo en la ventana aceptada")
-    ax1b.axvline(reference_margin_max_distance, color="black", ls=":", lw=1)
+    if math.isfinite(reference_margin_max_distance):
+        ax1b.axvline(reference_margin_max_distance, color="black", ls=":", lw=1)
     ax1b.axvspan(
         reference_overlap_start_distance, distances_km[-1], color="red", alpha=0.06
     )
@@ -890,32 +893,33 @@ def plot_experiment_1(
         marker="s",
         lw=1.5,
         ms=4,
-        label="Indicador medio e IC t 95 %",
+        label="Proxy asintótico monofotónico medio e IC t 95 %",
     )
     ax2.set_yscale("symlog", linthresh=1.0)
     _style_axes(
         ax2,
         "Distancia (km)",
-        "Indicador ideal de posprocesamiento (bit/s)",
-        "Experimento 1: indicador ideal, no tasa secreta",
+        "Proxy asintótico monofotónico (bit/s)",
+        "Experimento 1: proxy asintótico monofotónico",
     )
-    ax2.axvline(
-        reference_margin_max_distance,
-        color="black",
-        ls=":",
-        lw=1,
-        label="Último punto con holgura confirmada",
-    )
+    if math.isfinite(reference_margin_max_distance):
+        ax2.axvline(
+            reference_margin_max_distance,
+            color="black",
+            ls=":",
+            lw=1,
+            label="Punto diagnóstico: IC 95 % no supera referencia analítica",
+        )
     ax2.axvspan(
         reference_overlap_start_distance,
         distances_km[-1],
         color="red",
         alpha=0.06,
-        label="IC 95 % alcanza la referencia analítica",
+        label="Punto diagnóstico: IC 95 % alcanza la referencia analítica",
     )
     ax2.legend()
     fig2.tight_layout()
-    fig2.savefig(out_dir / "exp1_skr_distance.png", dpi=150)
+    fig2.savefig(out_dir / "exp1_proxy_distance.png", dpi=150)
     plt.close(fig2)
 
 
@@ -958,7 +962,7 @@ def plot_experiment_2(
         marker="x",
         s=70,
         zorder=5,
-        label="Sin holgura frente a la referencia",
+        label="Punto diagnóstico: IC 95 % supera referencia analítica",
     )
     _style_axes(
         axes[0, 0], "Eficiencia del detector", "QBER (%)", "QBER según eficiencia"
@@ -972,7 +976,7 @@ def plot_experiment_2(
         skr_eff_high,
         color="tab:green",
         marker="s",
-        label="Media e IC t 95 %",
+        label="Proxy asintótico monofotónico medio e IC t 95 %",
     )
     axes[1, 0].scatter(
         efficiencies[~valid_eff],
@@ -986,8 +990,8 @@ def plot_experiment_2(
     _style_axes(
         axes[1, 0],
         "Eficiencia del detector",
-        "Indicador ideal (bit/s)",
-        "Indicador según eficiencia",
+        "Proxy asintótico monofotónico (bit/s)",
+        "Proxy asintótico monofotónico según eficiencia",
     )
     axes[1, 0].legend(fontsize=8)
 
@@ -1008,7 +1012,7 @@ def plot_experiment_2(
         marker="x",
         s=70,
         zorder=5,
-        label="Sin holgura frente a la referencia",
+        label="Punto diagnóstico: IC 95 % supera referencia analítica",
     )
     axes[0, 1].set_xscale("log")
     _style_axes(
@@ -1023,7 +1027,7 @@ def plot_experiment_2(
         skr_dark_high,
         color="tab:olive",
         marker="s",
-        label="Media e IC t 95 %",
+        label="Proxy asintótico monofotónico medio e IC t 95 %",
     )
     axes[1, 1].scatter(
         darks[~valid_dark],
@@ -1038,8 +1042,8 @@ def plot_experiment_2(
     _style_axes(
         axes[1, 1],
         "Conteos oscuros (Hz)",
-        "Indicador ideal (bit/s)",
-        "Indicador según conteos oscuros",
+        "Proxy asintótico monofotónico (bit/s)",
+        "Proxy asintótico monofotónico según conteos oscuros",
     )
     axes[1, 1].legend(fontsize=8)
 
@@ -1080,7 +1084,7 @@ def plot_experiment_3(
         marker="x",
         s=70,
         zorder=5,
-        label="Sin holgura frente a la referencia",
+        label="Punto diagnóstico: IC 95 % supera referencia analítica",
     )
     _style_axes(
         axes[0], "Visibilidad interferométrica", "QBER (%)", "QBER según visibilidad"
@@ -1094,7 +1098,7 @@ def plot_experiment_3(
         skr_high,
         color="tab:cyan",
         marker="s",
-        label="Media e IC t 95 %",
+        label="Proxy asintótico monofotónico medio e IC t 95 %",
     )
     axes[1].scatter(
         vis[~reference_margin],
@@ -1103,13 +1107,13 @@ def plot_experiment_3(
         marker="x",
         s=70,
         zorder=5,
-        label="Sin holgura frente a la referencia",
+        label="Punto diagnóstico: IC 95 % supera referencia analítica",
     )
     _style_axes(
         axes[1],
         "Visibilidad interferométrica",
-        "Indicador ideal (bit/s)",
-        "Indicador según visibilidad",
+        "Proxy asintótico monofotónico (bit/s)",
+        "Proxy asintótico monofotónico según visibilidad",
     )
     axes[1].legend(fontsize=8)
     fig.suptitle("Experimento 3: visibilidad interferométrica a 30 km")
@@ -1223,8 +1227,8 @@ def plot_experiment_4(
     _style_axes(
         ax,
         "Distancia (km)",
-        "Tasa secreta estimada (bit/s)",
-        "Experimento 4: comparación de modelos",
+        "Estimador híbrido asintótico de tasa secreta (bit/s)",
+        "Experimento 4: estimadores de seguridad híbridos asintóticos",
     )
     ax.legend()
     fig.tight_layout()
@@ -1305,9 +1309,9 @@ def experiment_2_timing_control(
                 "tasa_tamizada_media_bps": rate_mean,
                 "tasa_tamizada_ic95_bajo_bps": rate_low,
                 "tasa_tamizada_ic95_alto_bps": rate_high,
-                "indicador_ideal_media_bps": ideal_mean,
-                "indicador_ideal_ic95_bajo_bps": ideal_low,
-                "indicador_ideal_ic95_alto_bps": ideal_high,
+                "proxy_asintotico_monofotonico_media_bps": ideal_mean,
+                "proxy_asintotico_monofotonico_ic95_bajo_bps": ideal_low,
+                "proxy_asintotico_monofotonico_ic95_alto_bps": ideal_high,
                 "repeticiones": repetitions,
                 "corridas_completas": sum(
                     run["completed_requested_keys"] for run in runs
@@ -1361,6 +1365,12 @@ def experiment_1_distance_sweep(
         s_mean, s_low, s_high = _ideal_rate_stats_from_runs(
             runs, seed=12_000 + i, completed_only=True
         )
+        gain_mean, gain_low, gain_high = _stats_from_runs(
+            runs, "observed_click_gain", seed=12_500 + i
+        )
+        sifting_mean, sifting_low, sifting_high = _stats_from_runs(
+            runs, "sifting_fraction", seed=13_000 + i
+        )
         qbers.append(q_mean)
         qber_low.append(q_low)
         qber_high.append(q_high)
@@ -1387,19 +1397,31 @@ def experiment_1_distance_sweep(
                 "tasa_tamizada_media_bps": r_mean,
                 "tasa_tamizada_ic95_bajo_bps": r_low,
                 "tasa_tamizada_ic95_alto_bps": r_high,
-                "indicador_ideal_media_bps": s_mean,
-                "indicador_ideal_ic95_bajo_bps": s_low,
-                "indicador_ideal_ic95_alto_bps": s_high,
+                "proxy_asintotico_monofotonico_media_bps": s_mean,
+                "proxy_asintotico_monofotonico_ic95_bajo_bps": s_low,
+                "proxy_asintotico_monofotonico_ic95_alto_bps": s_high,
+                "ganancia_clic_observada_media": gain_mean,
+                "ganancia_clic_observada_ic95_bajo": gain_low,
+                "ganancia_clic_observada_ic95_alto": gain_high,
+                "fraccion_tamizado_resuelta_media": sifting_mean,
+                "fraccion_tamizado_resuelta_ic95_bajo": sifting_low,
+                "fraccion_tamizado_resuelta_ic95_alto": sifting_high,
                 "p_deteccion_analitica": runs[0]["p_detection_model"],
                 "rendimiento_fondo_pulso": runs[0]["background_yield_per_pulse"],
                 "referencia_tasa_tamizada_bps": runs[0]["sifted_rate_reference_bps"],
-                "margen_referencia_confirmado": reference_margin_confirmed,
+                "ic95_tasa_tamizada_no_supera_referencia_analitica": reference_margin_confirmed,
                 "repeticiones": repetitions,
                 "corridas_completas": sum(
                     run["completed_requested_keys"] for run in runs
                 ),
                 "corridas_incompletas": sum(
                     not run["completed_requested_keys"] for run in runs
+                ),
+                "corridas_contabilidad_consistente": sum(
+                    run["accounting_consistent"] for run in runs
+                ),
+                "corridas_punto_diagnostico": sum(
+                    not run["accounting_consistent"] for run in runs
                 ),
                 "claves_por_repeticion": base.num_keys,
                 "horizonte_s": base.runtime_ps * 1e-12,
@@ -1410,7 +1432,12 @@ def experiment_1_distance_sweep(
             }
         )
     valid_mask = np.asarray(sifted_rate_high) <= np.asarray(sifted_rate_bounds)
-    valid_max_distance = float(distances_km[np.where(valid_mask)[0][-1]])
+    diagnostic_indices = np.where(valid_mask)[0]
+    valid_max_distance = (
+        float(distances_km[diagnostic_indices[-1]])
+        if diagnostic_indices.size
+        else float("nan")
+    )
     first_invalid = np.where(~valid_mask)[0]
     invalid_start_distance = (
         float(distances_km[first_invalid[0]])
@@ -1510,11 +1537,11 @@ def experiment_2_detector_sweep(
                 "tasa_tamizada_media_bps": r_mean,
                 "tasa_tamizada_ic95_bajo_bps": r_low,
                 "tasa_tamizada_ic95_alto_bps": r_high,
-                "indicador_ideal_media_bps": s_mean,
-                "indicador_ideal_ic95_bajo_bps": s_low,
-                "indicador_ideal_ic95_alto_bps": s_high,
+                "proxy_asintotico_monofotonico_media_bps": s_mean,
+                "proxy_asintotico_monofotonico_ic95_bajo_bps": s_low,
+                "proxy_asintotico_monofotonico_ic95_alto_bps": s_high,
                 "referencia_tasa_tamizada_bps": runs[0]["sifted_rate_reference_bps"],
-                "margen_referencia_confirmado": reference_margin_confirmed,
+                "ic95_tasa_tamizada_no_supera_referencia_analitica": reference_margin_confirmed,
                 "repeticiones": repetitions,
                 "corridas_completas": sum(
                     run["completed_requested_keys"] for run in runs
@@ -1584,11 +1611,11 @@ def experiment_2_detector_sweep(
                 "tasa_tamizada_media_bps": r_mean,
                 "tasa_tamizada_ic95_bajo_bps": r_low,
                 "tasa_tamizada_ic95_alto_bps": r_high,
-                "indicador_ideal_media_bps": s_mean,
-                "indicador_ideal_ic95_bajo_bps": s_low,
-                "indicador_ideal_ic95_alto_bps": s_high,
+                "proxy_asintotico_monofotonico_media_bps": s_mean,
+                "proxy_asintotico_monofotonico_ic95_bajo_bps": s_low,
+                "proxy_asintotico_monofotonico_ic95_alto_bps": s_high,
                 "referencia_tasa_tamizada_bps": runs[0]["sifted_rate_reference_bps"],
-                "margen_referencia_confirmado": dark_reference_margin,
+                "ic95_tasa_tamizada_no_supera_referencia_analitica": dark_reference_margin,
                 "repeticiones": repetitions,
                 "corridas_completas": sum(
                     run["completed_requested_keys"] for run in runs
@@ -1605,7 +1632,10 @@ def experiment_2_detector_sweep(
     valid_eff = np.asarray(eff_sifted_high) <= np.asarray(eff_raw_bounds)
     valid_dark = np.asarray(dark_sifted_high) <= np.asarray(dark_rate_bounds)
     valid_indices = np.where(valid_eff)[0]
-    first_valid, last_valid = int(valid_indices[0]), int(valid_indices[-1])
+    if valid_indices.size:
+        first_valid, last_valid = int(valid_indices[0]), int(valid_indices[-1])
+    else:
+        first_valid, last_valid = 0, len(efficiencies) - 1
     efficiency_effect = _difference_t_ci(
         [
             ideal_postprocessing_rate(
@@ -1734,11 +1764,11 @@ def experiment_3_visibility_sweep(
                 "tasa_tamizada_media_bps": r_mean,
                 "tasa_tamizada_ic95_bajo_bps": r_low,
                 "tasa_tamizada_ic95_alto_bps": r_high,
-                "indicador_ideal_media_bps": s_mean,
-                "indicador_ideal_ic95_bajo_bps": s_low,
-                "indicador_ideal_ic95_alto_bps": s_high,
+                "proxy_asintotico_monofotonico_media_bps": s_mean,
+                "proxy_asintotico_monofotonico_ic95_bajo_bps": s_low,
+                "proxy_asintotico_monofotonico_ic95_alto_bps": s_high,
                 "referencia_tasa_tamizada_bps": runs[0]["sifted_rate_reference_bps"],
-                "margen_referencia_confirmado": reference_margin_confirmed,
+                "ic95_tasa_tamizada_no_supera_referencia_analitica": reference_margin_confirmed,
                 "repeticiones": repetitions,
                 "corridas_completas": sum(
                     run["completed_requested_keys"] for run in runs
@@ -1761,7 +1791,10 @@ def experiment_3_visibility_sweep(
     )
     ideal_rate_trend = _linear_effect_ci(
         [float(record["visibilidad_barrida"]) for record in completed_raw_records],
-        [float(record["indicador_ideal_bps"]) for record in completed_raw_records],
+        [
+            float(record["proxy_asintotico_monofotonico_bps"])
+            for record in completed_raw_records
+        ],
     )
     reference_margin = np.asarray(sifted_rate_high) <= np.asarray(
         sifted_rate_references
@@ -1853,7 +1886,7 @@ def experiment_4_decoy_distance(
         e_signal_values = []
         e_weak_values = []
         e1_values = []
-        e1_fallbacks = []
+        e1_physical_limit_clamps = []
         runs_reference = _run_replicates(
             base_reference,
             repetitions,
@@ -1903,7 +1936,7 @@ def experiment_4_decoy_distance(
                 mu_signal=mu_signal,
                 nu=nu,
             )
-            e1_fallback = comparison["e1_upper"] >= 0.5
+            e1_physical_limit_clamp = comparison["e1_upper"] >= 0.5
             completed_triplet = all(
                 run["completed_requested_keys"]
                 for run in (run_reference, run_signal, run_weak)
@@ -1916,7 +1949,7 @@ def experiment_4_decoy_distance(
                 e_signal_values.append(e_signal)
                 e_weak_values.append(e_weak)
                 e1_values.append(comparison["e1_upper"])
-                e1_fallbacks.append(e1_fallback)
+                e1_physical_limit_clamps.append(e1_physical_limit_clamp)
             for experiment_name, intensity_name, intensity, run in (
                 (
                     "decoy_reference_mu",
@@ -1957,7 +1990,7 @@ def experiment_4_decoy_distance(
                             "y1_cota_inferior": comparison["y1_lower"],
                             "e1_cota_superior": comparison["e1_upper"],
                             "q1_cota_inferior": comparison["q1_lower"],
-                            "e1_fallback_conservador": e1_fallback,
+                            "e1_clamp_limite_fisico": e1_physical_limit_clamp,
                             "tasa_sin_senuelos_referencia_bps": comparison[
                                 "no_decoy_reference_bps"
                             ],
@@ -2027,7 +2060,7 @@ def experiment_4_decoy_distance(
                 * math.exp(-mu_signal)
                 * point_signal_records[0]["y1_cota_inferior"],
                 "e1_media": float(np.mean(e1_values)) if e1_values else float("nan"),
-                "corridas_e1_fallback_conservador": int(sum(e1_fallbacks)),
+                "corridas_e1_clamp_limite_fisico": int(sum(e1_physical_limit_clamps)),
                 "y0": vacuum_yield,
                 "mu": mu_reference,
                 "mu_senal": mu_signal,
@@ -2127,9 +2160,9 @@ def _validate_outputs(
             assert float(record["qber_ic95_bajo"]) <= qber + 1e-12
             assert qber <= float(record["qber_ic95_alto"]) + 1e-12
             sifted = float(record["tasa_tamizada_media_bps"])
-            ideal = float(record["indicador_ideal_media_bps"])
-            assert 0.0 <= ideal <= sifted + 1e-9
-            if record.get("margen_referencia_confirmado"):
+            proxy = float(record["proxy_asintotico_monofotonico_media_bps"])
+            assert 0.0 <= proxy <= sifted + 1e-9
+            if record.get("ic95_tasa_tamizada_no_supera_referencia_analitica"):
                 assert (
                     float(record["tasa_tamizada_ic95_alto_bps"])
                     <= float(record["referencia_tasa_tamizada_bps"]) + 1e-9
@@ -2138,7 +2171,7 @@ def _validate_outputs(
             assert int(run["bits_tamizados"]) >= int(run["errores"]) >= 0
             assert (
                 0.0
-                <= float(run["indicador_ideal_bps"])
+                <= float(run["proxy_asintotico_monofotonico_bps"])
                 <= float(run["tasa_tamizada_bps"]) + 1e-9
             )
             assert int(run["clics_detector_total"]) >= 0
@@ -2181,15 +2214,23 @@ def _write_latex_results(
     e4: dict[str, Any],
 ) -> None:
     """Write the numerical values cited by Proyecto 3 from the same run."""
-    valid_index = int(np.where(e1["distances_km"] == e1["valid_max_distance"])[0][0])
+    valid_index = (
+        int(np.where(e1["distances_km"] == e1["valid_max_distance"])[0][0])
+        if math.isfinite(e1["valid_max_distance"])
+        else 0
+    )
     invalid_index = int(
         np.where(e1["distances_km"] == e1["invalid_start_distance"])[0][0]
     )
     distance_valid = e1["records"][valid_index]
     distance_invalid = e1["records"][invalid_index]
     valid_efficiency_indices = np.where(e2["valid_eff"])[0]
-    efficiency_first = e2["records"][int(valid_efficiency_indices[0])]
-    efficiency_last = e2["records"][int(valid_efficiency_indices[-1])]
+    if valid_efficiency_indices.size:
+        efficiency_first = e2["records"][int(valid_efficiency_indices[0])]
+        efficiency_last = e2["records"][int(valid_efficiency_indices[-1])]
+    else:
+        efficiency_first = e2["records"][0]
+        efficiency_last = e2["records"][-1]
     dark_records = [
         record for record in e2["records"] if record["experimento"] == "conteos_oscuros"
     ]
@@ -2214,15 +2255,24 @@ def _write_latex_results(
         / 1e3,
         "PThreeDistanceReferenceKbps": distance_valid["referencia_tasa_tamizada_bps"]
         / 1e3,
-        "PThreeDistanceIdealKbps": distance_valid["indicador_ideal_media_bps"] / 1e3,
+        "PThreeDistanceProxyKbps": distance_valid[
+            "proxy_asintotico_monofotonico_media_bps"
+        ]
+        / 1e3,
         "PThreeOverlapSiftHighKbps": distance_invalid["tasa_tamizada_ic95_alto_bps"]
         / 1e3,
         "PThreeOverlapReferenceKbps": distance_invalid["referencia_tasa_tamizada_bps"]
         / 1e3,
         "PThreeEffFirst": efficiency_first["variable"],
         "PThreeEffLast": efficiency_last["variable"],
-        "PThreeEffFirstKbps": efficiency_first["indicador_ideal_media_bps"] / 1e3,
-        "PThreeEffLastKbps": efficiency_last["indicador_ideal_media_bps"] / 1e3,
+        "PThreeEffFirstKbps": efficiency_first[
+            "proxy_asintotico_monofotonico_media_bps"
+        ]
+        / 1e3,
+        "PThreeEffLastKbps": efficiency_last[
+            "proxy_asintotico_monofotonico_media_bps"
+        ]
+        / 1e3,
         "PThreeEffDifferenceKbps": e2["efficiency_effect"][0] / 1e3,
         "PThreeEffDifferenceLowKbps": e2["efficiency_effect"][1] / 1e3,
         "PThreeEffDifferenceHighKbps": e2["efficiency_effect"][2] / 1e3,
@@ -2235,9 +2285,13 @@ def _write_latex_results(
         "PThreeDarkPValue": e2["dark_effect"][3],
         "PThreeVisibilityFirstQberPct": 100.0 * visibility_first["qber_media"],
         "PThreeVisibilityLastQberPct": 100.0 * visibility_last["qber_media"],
-        "PThreeVisibilityFirstIdealKbps": visibility_first["indicador_ideal_media_bps"]
+        "PThreeVisibilityFirstProxyKbps": visibility_first[
+            "proxy_asintotico_monofotonico_media_bps"
+        ]
         / 1e3,
-        "PThreeVisibilityLastIdealKbps": visibility_last["indicador_ideal_media_bps"]
+        "PThreeVisibilityLastProxyKbps": visibility_last[
+            "proxy_asintotico_monofotonico_media_bps"
+        ]
         / 1e3,
         "PThreeVisibilityQberSlope": e3["qber_trend"]["pendiente"],
         "PThreeVisibilityQberSlopeLow": e3["qber_trend"]["pendiente_ic95_bajo"],
@@ -2253,7 +2307,9 @@ def _write_latex_results(
         "PThreeNoDecoyTwentyFourKbps": decoy_third["tasa_sin_senuelos_media_bps"] / 1e3,
         "PThreeDecoyTwentyFourKbps": decoy_third["tasa_con_senuelos_media_bps"] / 1e3,
         "PThreeDecoyNinetyKbps": decoy_last["tasa_con_senuelos_media_bps"] / 1e3,
-        "PThreeDecoyNinetyFallbacks": decoy_last["corridas_e1_fallback_conservador"],
+        "PThreeDecoyNinetyPhysicalLimitClamps": decoy_last[
+            "corridas_e1_clamp_limite_fisico"
+        ],
     }
     lines = ["% Generated by qkd_2node_simulation.py; do not edit manually."]
     for name, value in values.items():
@@ -2390,17 +2446,25 @@ def main() -> None:
         "formula_model": {
             "wcs_gain": "1-(1-Y0)*exp(-mu*eta)",
             "decoy_e1": "(E_nu*Q_nu*exp(nu)-e0*Y0)/(Y1L*nu)",
-            "experiments_1_to_3": "asymptotic single-photon proxy",
+            "experiments_1_to_3": "proxy asintótico monofotónico; no es una cota de seguridad de fuente WCS",
+        },
+        "accounting_control": {
+            "run_field": "contabilidad_consistente",
+            "point_fields": [
+                "corridas_contabilidad_consistente",
+                "corridas_punto_diagnostico",
+            ],
+            "reference_overlap": "diagnóstico analítico; no determina el control de contabilidad",
         },
         "detection_window_ps": DEFAULT_DETECTION_WINDOW_PS,
         "bb84_sift_factor": BB84_SIFT_FACTOR,
         "fiber_attenuation_db_km": DEFAULT_ALPHA_DB_KM,
-        "ideal_indicator_f_ec": 1.16,
-        "ideal_indicator_qber_cutoff": simple_rate_qber_cutoff(),
+        "proxy_asintotico_monofotonico_f_ec": 1.16,
+        "proxy_asintotico_monofotonico_corte_qber": simple_rate_qber_cutoff(),
         "decoy_estimator": {
             "scope": "asymptotic hybrid estimator; not a composable finite-key bound",
             "phase_error_assumption": "basis-symmetric error, e_phase approximated from aggregate QBER",
-            "nonpositive_e1_numerator": "conservative fallback e1=0.5",
+            "nonpositive_e1_numerator": "clamp al límite físico e1=0.5",
             "vacuum_yield_model": "three detectors times accepted detection window and dark-count rate",
         },
         "seed_policy": "deterministic non-overlapping pairs documented in qkd_2node_simulation.py",
@@ -2413,7 +2477,7 @@ def main() -> None:
             "detector_efficiency": e2["efficiency_effect"],
             "dark_counts": e2["dark_effect"],
             "visibility_qber": e3["qber_trend"],
-            "visibility_ideal_rate": e3["ideal_rate_trend"],
+            "visibility_monophoton_proxy": e3["ideal_rate_trend"],
         },
         "source_sha256": {
             "qkd_2node_simulation.py": _sha256(Path(__file__).resolve()),
@@ -2440,10 +2504,17 @@ def main() -> None:
     q = e1["qbers"]
     print("\n--- Summary ---")
     print(summarize_max_distance(d, q, threshold=simple_rate_qber_cutoff()))
-    print(
-        f"Analytical-reference overlap transition: {e1['valid_max_distance']:.1f} to "
-        f"{e1['invalid_start_distance']:.1f} km."
-    )
+    if math.isfinite(e1["valid_max_distance"]):
+        print(
+            f"Transición diagnóstica de solapamiento con la referencia analítica: "
+            f"{e1['valid_max_distance']:.1f} a "
+            f"{e1['invalid_start_distance']:.1f} km."
+        )
+    else:
+        print(
+            "Punto diagnóstico: el IC 95 % de la tasa tamizada supera la "
+            "referencia analítica en todas las distancias del barrido."
+        )
     valid_indices = np.where(e2["valid_eff"])[0]
     if valid_indices.size >= 2:
         i0, i1 = int(valid_indices[0]), int(valid_indices[-1])
@@ -2452,12 +2523,13 @@ def main() -> None:
         if sk0 > 1e-20:
             pct = (sk1 / sk0 - 1) * 100
             print(
-                f"Among points with confirmed reference margin, detector efficiency from "
-                f"{eff0:.2f} to {eff1:.2f} "
-                f"changes the ideal indicator by ~{pct:.1f}% (endpoint comparison)."
+                "Entre puntos diagnósticos cuyo IC 95 % no supera la referencia "
+                f"analítica, la eficiencia del detector de {eff0:.2f} a {eff1:.2f} "
+                f"cambia el proxy asintótico monofotónico en ~{pct:.1f}% "
+                "(comparación de extremos)."
             )
     print(
-        "Figures saved: exp1_distance_sweep.png, exp1_skr_distance.png, "
+        "Figures saved: exp1_distance_sweep.png, exp1_proxy_distance.png, "
         "exp2_detector_sensitivity.png, exp2_timing_control.png, "
         "exp3_visibility.png, exp4_decoy_impact.png"
     )

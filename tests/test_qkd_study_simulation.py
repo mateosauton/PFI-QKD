@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 
-from experiments.qkd_2node_simulation import _seed_simulation
+from experiments.proyecto3_simulation import _seed_simulation
 
 
 def test_seed_simulation_repeats_numpy_and_python_random_streams():

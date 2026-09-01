@@ -124,6 +124,8 @@ La utilidad de la referencia comercial es otra: ayuda a identificar variables de
 
 Para dimensionar una primera implementación se seleccionan instrumentos representativos, no una compra cerrada. El criterio es cubrir la cadena completa: fuente de telecomunicaciones, modulación rápida, detección de fotón único y registro temporal. Las hojas de datos se usan como referencia de especificaciones que luego se traducen a parámetros del simulador.
 
+La modulación requiere dos funciones distintas. El LNA6213 es un modulador de intensidad y puede controlar señal y señuelo; no se lo usa como modulador de fase. Para imponer la fase relativa \(0/\pi\) se necesita un componente separado, por ejemplo un modulador de fase LN53S-FC o un equivalente vigente para 1550 nm \cite{thorlabsLNA6213,thorlabsLN53SFC}.
+
 \begin{figure}[p]
   \centering
   \includegraphics[width=0.92\textwidth,height=0.72\textheight,keepaspectratio]{thorlabs-kls1550-page.png}
@@ -134,7 +136,7 @@ Para dimensionar una primera implementación se seleccionan instrumentos represe
 \begin{figure}[p]
   \centering
   \includegraphics[width=0.92\textwidth,height=0.72\textheight,keepaspectratio]{thorlabs-lna6213-page.png}
-  \caption{Modulador LiNbO\(_3\) Thorlabs LNA6213 como referencia para codificación de intensidad y fase. Su hoja técnica informa banda óptica, ancho de banda y pérdida de inserción \cite{thorlabsLNA6213}.}
+  \caption{Modulador de intensidad LiNbO\(_3\) Thorlabs LNA6213 como referencia para controlar señal y señuelo. La fase requiere un modulador separado \cite{thorlabsLNA6213,thorlabsLN53SFC}.}
   \label{fig:instrumento_modulador}
 \end{figure}
 
@@ -165,7 +167,8 @@ Para dimensionar una primera implementación se seleccionan instrumentos represe
   \midrule
   \endhead
   Fuente & Thorlabs KLS1550 & Fuente acoplada a fibra en 1550 nm, con salida FC/PC y potencia máxima de referencia & \(\mu\), tasa de pulsos, estabilidad \\
-  Modulación & Thorlabs LNA6213 / familia LiNbO\(_3\) & Rango 1260--1625 nm y modulación de alta velocidad para intensidad/fase & Codificación, decoy, visibilidad \\
+  Intensidad & Thorlabs LNA6213 & Modulador LiNbO\(_3\) para controlar la potencia óptica & Señal, señuelo y vacío \\
+  Fase & Thorlabs LN53S-FC o equivalente & Modulador LiNbO\(_3\) de fase para la ventana de 1550 nm & Fase relativa \(0/\pi\) y base X \\
   Detector & ID Quantique ID230 & InGaAs/InP en telecom, eficiencia ajustable hasta \SI{25}{\percent}, resolución temporal típica de \SI{150}{\pico\second} y tiempo muerto desde \SI{2}{\micro\second} & Eficiencia, fondo, resolución y límite de conteo \\
   Registrador temporal & Swabian Time Tagger Ultra & Resolución digital de \SI{1}{\pico\second}, fluctuación temporal de pocos ps según configuración y múltiples canales & Ventanas \textit{time-bin}, sincronización \\
   Sistema integrado & Toshiba QKD & Referencia comercial para BB84 eficiente con estados señuelo y operación en fibra & Alcance de comparación, no parámetro directo \\

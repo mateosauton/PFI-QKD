@@ -1,7 +1,7 @@
 \chapter{Fragmentos de código relevantes}
 \label{app:codigo}
 
-Este apéndice selecciona fragmentos de \path{experiments/proyecto3_simulation.py}. El objetivo es mostrar cómo las decisiones metodológicas se traducen a código. Los recortes no reemplazan el archivo ejecutable ni sus validaciones.
+Este apéndice selecciona principalmente fragmentos de \path{experiments/proyecto3_simulation.py}. El ejemplo de bootstrap reproduce un control post hoc aplicado a los CSV y se identifica como tal; no pertenece al generador autoritativo. El objetivo es mostrar cómo las decisiones metodológicas se traducen a código. Los recortes no reemplazan los archivos ejecutables ni sus validaciones.
 
 \section{Parámetros y semillas}
 
@@ -158,7 +158,7 @@ ci_bootstrap = np.quantile(
 )
 \end{lstlisting}
 
-Este cálculo usa las 30 tasas ya exportadas y no vuelve a ejecutar SeQUeNCe. El remuestreo conserva como unidad la repetición completa, por lo que tolera asimetría y valores nulos mejor que una justificación puramente normal. Para visibilidad se usa además HC3, que pondera cada residuo por \((1-h_{ii})^{-2}\) y reduce la dependencia del intervalo respecto de homoscedasticidad. Ninguno de estos controles convierte los resultados en cotas de clave finita.
+Este cálculo usa las 30 tasas ya exportadas y no vuelve a ejecutar SeQUeNCe. El remuestreo conserva como unidad la repetición completa, por lo que tolera asimetría y valores nulos mejor que una justificación puramente normal \cite{efron1979bootstrap}. Para visibilidad se usa además HC3, que pondera cada residuo por \((1-h_{ii})^{-2}\) y reduce la dependencia del intervalo respecto de homoscedasticidad \cite{mackinnonWhite1985}. Ninguno de estos controles convierte los resultados en cotas de clave finita.
 
 \section{Cota señuelo y caso conservador}
 
@@ -182,6 +182,10 @@ assert qber_low <= qber <= qber_high
 assert 0.0 <= ideal_rate <= sifted_rate
 assert 0.0 <= q_nu <= q_mu <= 1.0
 assert detector_sum == total_detector_clicks
+for detector in qsd.detectors:
+    for name, expected in effective_detector_params.items():
+        if getattr(detector, name) != expected:
+            raise RuntimeError(f"{name} was not applied")
 \end{lstlisting}
 
 Las aserciones detienen la generación si una salida viola las definiciones implementadas. No comprueban todavía que cada ejecución complete exactamente el número de claves solicitado. Después, el script calcula SHA-256 del flujo, el parche, las dependencias, cada CSV y las macros numéricas. Los hashes no prueban corrección científica ni cubren las fuentes LaTeX, las figuras o el PDF; prueban identidad de la evidencia computacional registrada.

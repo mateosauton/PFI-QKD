@@ -21,7 +21,7 @@ La evaluación de la hipótesis usa cuatro criterios observables:
   \item \textbf{Trazabilidad:} cada punto debe conservar parámetros, semillas, bits, errores, tiempos y conteos, además de hashes de los datos agregados y por repetición.
   \item \textbf{Repetibilidad:} cada configuración debe ejecutarse con \PThreeRepetitions{} repeticiones y presentar intervalos adecuados a la naturaleza de la métrica.
   \item \textbf{Coherencia interna:} ganancias, errores y tasas deben respetar invariantes del flujo; la respuesta a la visibilidad impuesta debe conservar el signo esperado.
-  \item \textbf{Control externo:} la tasa tamizada debe compararse con una referencia analítica de detecciones. La pérdida de holgura se interpreta como diagnóstico del modelo, no como prestación del enlace.
+  \item \textbf{Control externo:} la tasa tamizada debe compararse con una referencia analítica de detecciones. Tanto la conservación como la pérdida de holgura se informan como controles del modelo, no como prestaciones del enlace.
 \end{enumerate}
 
 \section{Objetivo general}
@@ -58,7 +58,7 @@ La Figura~\ref{fig:campus_architecture} sintetiza esa visión. No representa una
 
 El primer aporte es metodológico. El flujo autoritativo conserva \PThreeRepetitions{} repeticiones por punto, semillas, bits, errores, tiempos y clics por detector. También exporta CSV agregados y por repetición, intervalos, pruebas estadísticas, figuras, macros LaTeX y un manifiesto con hashes. Los números del documento se insertan desde esa salida, por lo que una nueva ejecución no depende de transcripción manual.
 
-El segundo aporte es técnico. El proyecto separa tres clases de resultado que no deben confundirse: QBER y tasa tamizada producidos por eventos de SeQUeNCe, un indicador ideal de posprocesamiento y estimadores asintóticos para una fuente coherente débil. Además, contrasta la tasa simulada con una referencia de detecciones. Esta separación permite detectar una inconsistencia de temporización en parte del barrido en vez de presentarla como una tasa física alcanzable.
+El segundo aporte es técnico. El proyecto separa tres clases de resultado que no deben confundirse: QBER y tasa tamizada producidos por eventos de SeQUeNCe, un indicador ideal de posprocesamiento y estimadores asintóticos para una fuente coherente débil. Además, contrasta la tasa simulada con una referencia de detecciones. La corrida corregida conserva holgura de tasa en toda la grilla, pero presenta un aumento abrupto de QBER entre 69,54 y \SI{77.15}{\kilo\meter}. Separar ambos diagnósticos evita convertir una salida internamente consistente en alcance físico o tasa secreta certificada.
 
 El tercer aporte es de arquitectura. El trabajo conecta el enlace físico punto a punto con una visión de red de campus. Para una implementación real no alcanza con que Alice y Bob intercambien bits: hay que decidir dónde se ubican los nodos, cómo se separan canal cuántico y canal clásico, qué fibra se usa, cómo se protegen físicamente los equipos, qué aplicación consume la clave y qué rol cumple un KMS. El trabajo introduce esa discusión sin sobredimensionarla: el experimento sigue siendo de dos nodos, pero sus resultados se escriben en términos útiles para una red futura.
 

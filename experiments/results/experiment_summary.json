@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-09-01T00:42:03.936770+00:00",
+  "generated_at_utc": "2026-09-01T21:13:21.819601+00:00",
   "sequence_version": "0.8.5",
-  "sequence_local_patch": "sequence/components/interferometer.py phase_error correction for FreeQuantumState",
+  "sequence_local_patch": "sequence/components/interferometer.py phase_error correction and QKDNode detector subclass parameter propagation",
   "repetitions_per_point": 30,
   "parallel_workers": 8,
   "pulse_rate_hz": 80000000.0,
@@ -25,74 +25,77 @@
   },
   "effects": {
     "detector_efficiency": [
-      8633.866554226726,
-      -12024.48749536975,
-      29292.220603823203,
-      0.40575044969261365
+      1088496.8513892565,
+      1076444.0037440534,
+      1100549.6990344597,
+      9.190638523803158e-48
     ],
     "dark_counts": [
-      -6231.473580441205,
-      -31954.596133202744,
-      19491.648972320334,
-      0.6295374094243837
+      -26979.166982924566,
+      -54558.56771151122,
+      600.2337456620844,
+      0.05502566055102468
     ],
     "visibility_qber": {
-      "pendiente": -0.1019788085517834,
-      "pendiente_ic95_bajo": -0.10738046831933694,
-      "pendiente_ic95_alto": -0.09657714878422986,
-      "r_pearson": -0.8909751762924398,
-      "p_valor": 8.285628292012174e-125
+      "pendiente": -0.10051697240724822,
+      "pendiente_ic95_bajo": -0.10606105034628978,
+      "pendiente_ic95_alto": -0.09497289446820666,
+      "r_pearson": -0.8833332128168117,
+      "p_valor": 7.47738765781377e-120
     },
     "visibility_ideal_rate": {
-      "pendiente": 236718.26601323707,
-      "pendiente_ic95_bajo": 224835.00924145564,
-      "pendiente_ic95_alto": 248601.5227850185,
-      "r_pearson": 0.9004746428385532,
-      "p_valor": 1.6458693374401158e-131
+      "pendiente": 100516.31407007386,
+      "pendiente_ic95_bajo": 94870.36795616416,
+      "pendiente_ic95_alto": 106162.26018398356,
+      "r_pearson": 0.8797547737260267,
+      "p_valor": 1.191901192370999e-117
     }
   },
   "source_sha256": {
-    "proyecto3_simulation.py": "c70a8381e7def0913db84503f46ae247593f1ba6377e4a9f1591e54714051124",
+    "proyecto3_simulation.py": "ae511bfb6c65ab7837d5d94544d8fd8a013bb1d68878a9be494516d73275b2c0",
     "sequence/components/interferometer.py": "fde06363e9b9b160ccec156fdb21770fdcfa7a974896ec5d5e3480b4cad3bd93",
+    "sequence/topology/node.py": "e8bf0e8a0742ac1040ec198373e2e56fb1366d23413423d727562e9f41ba96a8",
+    "sequence/components/detector.py": "4c3dcd14cd70c9d11df0d5fae37ad310ba578946d08cf7873832aea67b306472",
+    "sequence/qkd/BB84.py": "474a2077c748998582451d90b7164364a8eafbc42b2b1648883034f7d62f565d",
     "pyproject.toml": "7cc4527a078b1aa764b56a88350bfb019d80d344495eb2439cb20ac6ad0bf9b3",
     "uv.lock": "d97d446352e746bcd8174abcf636605dea9981eacac13047ebc7078576f4c1d4"
   },
   "datasets": {
     "exp1_distance_data.csv": {
       "rows": 14,
-      "sha256": "96b24e5cbea1afb256fa4cd9cd02f4809868cd30fcdafd36900269b198b34be9"
+      "sha256": "7f30b7fa648651e84a5f2451c627a1217acf652c3bc6093413038dc28b240cf1"
     },
     "exp2_detector_data.csv": {
       "rows": 24,
-      "sha256": "3365bb0ed883e3bac8f19735d8545d4c0792cda704c3c1d0ee2ad1b5aea62e67"
+      "sha256": "191b18353e92def46ed0a64f2d90dc00b824a96d1d268d38c97c2fde9330b491"
     },
     "exp3_visibility_data.csv": {
       "rows": 12,
-      "sha256": "8347498af8a49ce453d0fe157dc38065cd0dce812da2277165e994c67f735c7c"
+      "sha256": "4d6ce83f8be1809af50c70ac1758885608577d34542b199776eb28996e923699"
     },
     "exp4_decoy_data.csv": {
       "rows": 10,
-      "sha256": "2dba34db415445caabeefe90b0ad4d25ed8499086c69e2e557b089cea7a44aa1"
+      "sha256": "90d24c1dedda106eb96a99bfccf760b7358087a944e29bcb16113eefd5bcef7e"
     },
     "exp1_distance_runs.csv": {
       "rows": 420,
-      "sha256": "5fe15b6184fd482b43b364be745d09ff6ecdf1cf9e06eebac0505f27863d30df"
+      "sha256": "afaad1d23a5077e71014365df12864a9ce3284707bceee3518571e109a9714f7"
     },
     "exp2_detector_runs.csv": {
       "rows": 720,
-      "sha256": "8ab5dfe5f66b1628880beaaafdac1509ff42e7aad0e326e97900c7155cf588d1"
+      "sha256": "75f0de3b81b3f6201aabe250b3b5e6da54252342592336e1dfe1bacf16c0bde9"
     },
     "exp3_visibility_runs.csv": {
       "rows": 360,
-      "sha256": "3004f61570957cc338d3d5d49c3701d53892925fa0b5f28aeae8ae4aa3e9fecc"
+      "sha256": "55f6ba58a56cd6e50b83a810ee9d967c0cd7590a524fda6f33e42c319b480d98"
     },
     "exp4_decoy_runs.csv": {
       "rows": 300,
-      "sha256": "2aae90f6215a3feec789cd131bbd4d520d7c84848ef76edab660589701ea67f2"
+      "sha256": "311819907303ffeba9d96523a82e655edbc644c345816adeee3af590f3e5b668"
     }
   },
   "latex_results": {
     "filename": "proyecto3_results.tex",
-    "sha256": "002b3c02be03881e217606831f0fef8a810b1b77370cbec474a0b699f7817141"
+    "sha256": "b90d823d129ea955942f39b1ae43a09cf8a77f64930aaf863d074ceeffb92e16"
   }
 }

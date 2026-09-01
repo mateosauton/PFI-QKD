@@ -1,6 +1,27 @@
 from sequence.components.optical_channel import ClassicalChannel, QuantumChannel
 from sequence.kernel.timeline import Timeline
-from sequence.topology.node import Node, ClassicalNode
+from sequence.topology.node import ClassicalNode, Node, QKDNode
+from sequence.utils.encoding import time_bin
+
+
+def test_QKDNode_updates_time_bin_detector_params():
+    node = QKDNode("bob", Timeline(), encoding=time_bin, stack_size=1)
+    qsd = node.components["bob.qsdetector"]
+    expected = {
+        "efficiency": 0.17,
+        "dark_count": 321.0,
+        "count_rate": 40e6,
+        "time_resolution": 25,
+    }
+
+    for detector_id in range(3):
+        for name, value in expected.items():
+            node.update_detector_params(detector_id, name, value)
+
+    for detector in qsd.detectors:
+        assert {
+            name: getattr(detector, name) for name in expected
+        } == expected
 
 
 def test_Node_assign_cchannel():

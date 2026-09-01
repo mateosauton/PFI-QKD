@@ -256,7 +256,7 @@ En este experimento, \(Y_0=\num{\PThreeDecoyVacuumYield}\) se deriva analíticam
 
 \subsection*{Diseño estadístico y reproducibilidad}
 
-Cada punto se ejecuta con \PThreeRepetitions{} pares de semillas independientes y deterministas. Cada repetición genera claves de \PThreeKeyBits{} bits. Esto reúne 23.040 bits tamizados por punto en los barridos de tres claves y 30.720 bits en los de cuatro claves. Para QBER se usa un intervalo de Wilson del 95\,\% sobre errores y bits agrupados \cite{wilson1927}. Para tasas e indicadores se usa la media y un intervalo t de Student del 95\,\% entre repeticiones. Los efectos entre extremos se evalúan con diferencia de Welch; la tendencia de visibilidad, mediante regresión lineal con intervalo y valor \(p\) \cite{welch1947}. Estos intervalos cuantifican incertidumbre Monte Carlo, no seguridad de clave finita.
+Cada punto se ejecuta con \PThreeRepetitions{} pares de semillas independientes y deterministas. Cada repetición genera claves de \PThreeKeyBits{} bits. Los barridos de distancia y señuelos usan una clave por ejecución y reúnen 7.680 bits por intensidad y punto; detector y visibilidad usan cuatro claves y reúnen 30.720 bits. Para QBER se usa un intervalo de Wilson del 95\,\% sobre errores y bits agrupados \cite{wilson1927}. Para tasas e indicadores se usa la media y un intervalo t de Student del 95\,\% entre repeticiones. Los efectos entre extremos se evalúan con diferencia de Welch; la tendencia de visibilidad, mediante regresión lineal con intervalo y valor \(p\) \cite{welch1947}. Estos intervalos cuantifican incertidumbre Monte Carlo, no seguridad de clave finita.
 
 Se exportan agregados por punto y una fila por repetición con semillas, claves, bits, errores, tiempo, tasa y clics por detector. En el caso señuelo esos campos se conservan por separado para \(\mu\) y \(\nu\). El resumen JSON registra fecha UTC, métodos, versión y hashes SHA-256 del script, el parche del interferómetro, la configuración del proyecto, las dependencias y cada conjunto de datos. Las cifras del documento provienen de \texttt{proyecto3\_results.tex}, generado en la misma corrida.
 
@@ -315,7 +315,7 @@ sifted_rate_reference = 0.5 * min(
 
 \subsection*{Procedimiento y expectativa}
 
-\textbf{Experimento 1: distancia.} Se modifica únicamente la longitud de fibra. Se espera que transmitancia y ganancia caigan exponencialmente. El propósito es localizar el intervalo de la grilla donde el IC del 95\,\% de la tasa tamizada comienza a alcanzar o exceder la Ecuación~\ref{eq:analytical-reference}. La transición se informa entre el último punto con holgura confirmada y el primero sin ella; no se interpreta como una frontera física.
+\textbf{Experimento 1: distancia.} Se modifica únicamente la longitud de fibra. Se espera que transmitancia y ganancia caigan exponencialmente. El propósito es determinar si el IC del 95\,\% de la tasa tamizada conserva holgura frente a la Ecuación~\ref{eq:analytical-reference} y localizar cambios de régimen en QBER. Cualquier transición se informa con la resolución de la grilla y no se interpreta como frontera física.
 
 \textbf{Experimento 2: detector.} Se fija la distancia en \SI{5}{\kilo\meter} y se elimina el retardo clásico adicional para reducir su influencia. Primero se barre eficiencia y luego tasa de conteos oscuros. Para el segundo barrido se fija \(\eta_d=0{,}85\), lo que conserva holgura frente a la referencia analítica en todo el rango de fondo. Se espera mayor disponibilidad de clics al aumentar eficiencia y mayor error al aumentar fondo. Las conclusiones se basan en intervalos para diferencias, no en superposición visual de bandas.
 
@@ -327,16 +327,16 @@ sifted_rate_reference = 0.5 * min(
 
 \subsection*{Distancia y referencia analítica}
 
-La Figura~\ref{fig:p3_exp1_distance} muestra la caída de ganancia y la QBER agrupada. El IC del 95\,\% deja de quedar completamente por debajo de la referencia entre \num{\PThreeTransitionLowKm} y \SI{\PThreeTransitionHighKm}{\kilo\meter}; en el segundo punto, el intervalo completo ya está por encima. Es una resolución de grilla y un diagnóstico del modelo, no una distancia límite del sistema.
+La Figura~\ref{fig:p3_exp1_distance} muestra la caída de ganancia y la QBER agrupada. El IC del 95\,\% de la tasa tamizada permanece por debajo de la referencia en los 14 puntos. QBER es 8,750\,\% a \SI{69.54}{\kilo\meter} y aumenta a 30,273\,\% en \SI{77.15}{\kilo\meter}. La transición caracteriza al modelo y no define una distancia límite del sistema.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.96\textwidth]{exp1_distance_sweep.png}
-  \caption{QBER agrupada con intervalo de Wilson del 95\,\% y ganancia total analítica. La zona roja comienza donde el IC de la tasa tamizada alcanza la referencia analítica.}
+  \caption{QBER agrupada con intervalo de Wilson del 95\,\% y ganancia total analítica. La tasa tamizada conserva holgura en toda la grilla.}
   \label{fig:p3_exp1_distance}
 \end{figure}
 
-En \SI{\PThreeTransitionLowKm}{\kilo\meter}, último punto con holgura confirmada, la QBER es \num{\PThreeDistanceQberPct}\,\% (IC 95\,\%: \num{\PThreeDistanceQberLowPct}--\num{\PThreeDistanceQberHighPct}\,\%). La tasa tamizada es \SI[round-mode=places,round-precision=1]{\PThreeDistanceSiftKbps}{\kilo bit\per\second} (IC 95\,\%: \num[round-mode=places,round-precision=1]{\PThreeDistanceSiftLowKbps}--\num[round-mode=places,round-precision=1]{\PThreeDistanceSiftHighKbps}\,kbit/s), frente a una referencia de \SI[round-mode=places,round-precision=1]{\PThreeDistanceReferenceKbps}{\kilo bit\per\second}. En el punto siguiente, el extremo superior de tasa es \SI[round-mode=places,round-precision=1]{\PThreeOverlapSiftHighKbps}{\kilo bit\per\second} y la referencia es \SI[round-mode=places,round-precision=1]{\PThreeOverlapReferenceKbps}{\kilo bit\per\second}; también el extremo inferior queda por encima. Esto no viola una cota física: señala una diferencia sistemática entre la referencia media y la temporización contabilizada que debe auditarse antes de extrapolar.
+En \SI{100}{\kilo\meter}, la QBER es \num{\PThreeDistanceQberPct}\,\% (IC 95\,\%: \num{\PThreeDistanceQberLowPct}--\num{\PThreeDistanceQberHighPct}\,\%). La tasa tamizada es \SI[round-mode=places,round-precision=3]{\PThreeDistanceSiftKbps}{\kilo bit\per\second} (IC 95\,\%: \num[round-mode=places,round-precision=3]{\PThreeDistanceSiftLowKbps}--\num[round-mode=places,round-precision=3]{\PThreeDistanceSiftHighKbps}\,kbit/s), frente a una referencia de \SI[round-mode=places,round-precision=3]{\PThreeDistanceReferenceKbps}{\kilo bit\per\second}. La tasa conserva holgura, pero QBER próxima a 0,5 indica ausencia de correlación útil.
 
 \begin{figure}[htbp]
   \centering
@@ -345,7 +345,7 @@ En \SI{\PThreeTransitionLowKm}{\kilo\meter}, último punto con holgura confirmad
   \label{fig:p3_exp1_indicator}
 \end{figure}
 
-El valor de \(I_{\mathrm{ideal}}\) en el último punto con holgura confirmada es \SI{\PThreeDistanceIdealKbps}{\kilo bit\per\second}. No se usa como evidencia de seguridad: la contribución multifotónica debe tratarse mediante un estimador específico.
+El valor de \(I_{\mathrm{ideal}}\) a \SI{100}{\kilo\meter} es \SI{\PThreeDistanceIdealKbps}{\kilo bit\per\second}. No se usa como evidencia de seguridad: la contribución multifotónica debe tratarse mediante un estimador específico.
 
 \subsection*{Sensibilidad del detector}
 
@@ -358,12 +358,12 @@ El subconjunto con holgura confirmada abarca eficiencias desde \num{\PThreeEffFi
     p&=\num{\PThreeEffPValue}.
   \end{aligned}
 \]
-El intervalo incluye cero y el valor \(p\) es mayor que 0,05. Por lo tanto, dentro del subconjunto con holgura frente a la referencia no se resuelve una diferencia entre los extremos de eficiencia.
+El intervalo queda completamente por encima de cero y el valor \(p\) es muy inferior a 0,001. Por lo tanto, el diseño resuelve un aumento del indicador entre los extremos de eficiencia y verifica que el parámetro se propaga al detector \textit{time-bin}.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.96\textwidth]{exp2_detector_sensitivity.png}
-  \caption{QBER e indicador ideal frente a eficiencia y conteos oscuros a \SI{5}{\kilo\meter}. Las cruces identifican puntos sin holgura confirmada frente a la referencia analítica. Los ejes de QBER se ajustan al rango observado.}
+  \caption{QBER e indicador ideal frente a eficiencia y conteos oscuros a \SI{5}{\kilo\meter}. Todos los puntos conservan holgura frente a la referencia analítica.}
   \label{fig:p3_exp2_detector}
 \end{figure}
 
@@ -395,15 +395,15 @@ La regresión sobre corridas queda resumida por
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.96\textwidth]{exp3_visibility.png}
-  \caption{Respuesta del modelo a la visibilidad a \SI{30}{\kilo\meter}. QBER usa intervalo de Wilson; el indicador usa intervalo t entre repeticiones. Las cruces señalan ausencia de holgura frente a la referencia analítica.}
+  \caption{Respuesta del modelo a la visibilidad a \SI{30}{\kilo\meter}. QBER usa intervalo de Wilson; el indicador usa intervalo t entre repeticiones. Los doce puntos conservan holgura.}
   \label{fig:p3_exp3_visibility}
 \end{figure}
 
-La tendencia es coherente con la relación impuesta \(p_{\mathrm{fase}}=(1-V)/2\). Verifica la propagación lógica del parámetro, pero no demuestra estabilidad térmica, balance de caminos ni visibilidad alcanzable en hardware. En los \PThreeVisibilityNoMarginPoints{} niveles ensayados, el IC de tasa no queda por debajo de la referencia. Por eso se conserva la pendiente de QBER como prueba interna, mientras el indicador de tasa se presenta sólo como diagnóstico y no como evidencia cuantitativa de factibilidad.
+La tendencia es coherente con la relación impuesta \(p_{\mathrm{fase}}=(1-V)/2\). Verifica la propagación lógica del parámetro, pero no demuestra estabilidad térmica, balance de caminos ni visibilidad alcanzable en hardware. Los \PThreeVisibilityNoMarginPoints{} niveles sin holgura indican que los doce puntos satisfacen el control de tasa. El indicador sigue siendo una salida del modelo y no evidencia cuantitativa de factibilidad física.
 
 \subsection*{Comparación con estados señuelo}
 
-A \SI{5}{\kilo\meter}, la estimación sin señuelos es \SI{\PThreeNoDecoyFiveKbps}{\kilo bit\per\second} y la estimación con señuelos es \SI{\PThreeDecoyFiveKbps}{\kilo bit\per\second}. Cerca de \SI{24}{\kilo\meter}, la primera vale \SI{\PThreeNoDecoyTwentyFourKbps}{\kilo bit\per\second}, mientras la estimación decoy conserva \SI{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second}. A \SI{90}{\kilo\meter}, esta última es \SI{\PThreeDecoyNinetyKbps}{\kilo bit\per\second} bajo el modelo asintótico; \PThreeDecoyNinetyFallbacks{} de \PThreeRepetitions{} repeticiones activan el reemplazo conservador \(e_1^U=1/2\). En el barrido completo, el fallback aparece en \PThreeDecoyFallbackTotal{} de 300 corridas, distribuidas en \PThreeDecoyFallbackDistances{} de las 10 distancias. Esta frecuencia explica parte de la dispersión y limita la lectura de la media.
+A \SI{5}{\kilo\meter}, la estimación sin señuelos es \SI{\PThreeNoDecoyFiveKbps}{\kilo bit\per\second} y la estimación con señuelos es \SI{\PThreeDecoyFiveKbps}{\kilo bit\per\second}. Cerca de \SI{24}{\kilo\meter}, la primera vale \SI{\PThreeNoDecoyTwentyFourKbps}{\kilo bit\per\second}, mientras la estimación decoy conserva \SI{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second}. La estimación señuelo permanece positiva hasta \SI{71.11}{\kilo\meter} y se anula en 80,56 y \SI{90}{\kilo\meter}. En el barrido completo, el fallback aparece en \PThreeDecoyFallbackTotal{} de 300 corridas, distribuidas en \PThreeDecoyFallbackDistances{} de las 10 distancias. Esta frecuencia explica parte de la dispersión y limita la lectura de la media.
 
 \begin{figure}[htbp]
   \centering
@@ -423,7 +423,7 @@ La diferencia proviene de estimar \(Y_1\) y \(e_1\), no de aumentar la intensida
     \toprule
     Experimento & Resultado & Interpretación defendible \\
     \midrule
-    Distancia & Transición entre \num{\PThreeTransitionLowKm} y \SI{\PThreeTransitionHighKm}{\kilo\meter} & Cambio de holgura estadística; no fija alcance QKD. \\
+    Distancia & QBER 8,750\,\% a 69,54 km y 30,273\,\% a 77,15 km & Transición del modelo; no fija alcance QKD. \\
     Eficiencia & Diferencia \SI{\PThreeEffDifferenceKbps}{\kilo bit\per\second}, con IC y \(p\) & El efecto se juzga por contraste y referencia. \\
     Fondo & QBER \num{\PThreeDarkFirstQberPct}--\num{\PThreeDarkLastQberPct}\,\% & Ventanas y clics permiten auditar su observabilidad. \\
     Visibilidad & Pendiente QBER \num{\PThreeVisibilityQberSlope} & Sensibilidad al error impuesto, no desempeño físico. \\
@@ -440,11 +440,11 @@ Los cuatro CSV agregados, cuatro CSV de corridas, el resumen JSON, las cinco fig
 
 La hipótesis se sostiene con alcance preciso: la simulación de eventos discretos es útil para convertir el diseño de un banco QKD en preguntas medibles y detectar cuándo una salida exige revisar los supuestos. No se obtuvo una certificación criptográfica ni una distancia máxima. Se obtuvo un procedimiento reproducible para distinguir comportamiento interno, referencias analíticas de diseño y estimadores asintóticos bajo modelos específicos.
 
-El barrido de distancia identifica entre \num{\PThreeTransitionLowKm} y \SI{\PThreeTransitionHighKm}{\kilo\meter} el paso desde un IC completamente por debajo de la referencia hasta otro completamente por encima. Los puntos posteriores se conservan para estudiar temporización, detección y contabilización. La transición no es una violación física ni una frontera de factibilidad; informar el intervalo evita atribuir precisión continua a una grilla discreta.
+El barrido de distancia conserva holgura de tasa en los 14 puntos y localiza un aumento de QBER entre 69,54 y \SI{77.15}{\kilo\meter}. Desde el segundo punto, el indicador ideal es nulo. La transición no es una frontera de factibilidad: exige estudiar errores por base, fondo y alineación de rondas antes de extrapolar.
 
-El experimento de detector fue reformulado para reducir el retardo adicional, registrar clics y evaluar diferencias directamente. Los dos intervalos entre extremos incluyen cero, de modo que esta configuración no resuelve los efectos de eficiencia ni fondo; ello no vuelve irrelevantes a los componentes. Una caracterización de hardware deberá separar clics de señal y fondo, incorporar ventanas medidas, tiempo muerto, \textit{jitter} y pérdidas internas.
+El experimento de detector fue reformulado para reducir el retardo adicional, registrar clics y evaluar diferencias directamente. El efecto de eficiencia queda resuelto entre extremos; el intervalo de fondo incluye cero y produce \(p=\num{\PThreeDarkPValue}\). Una caracterización de hardware deberá restringir el barrido a un equipo real, separar clics de señal y fondo e incorporar ventanas medidas, tiempo muerto, \textit{jitter} y pérdidas internas.
 
-El barrido de visibilidad muestra una pendiente negativa de QBER cuantificada. Era esperable porque el error de fase se deriva de \(V\); el aporte es verificar que la dependencia se propaga correctamente por el modelo. Los doce niveles carecen de holgura confirmada frente a la referencia de tasa, por lo que el resultado cuantitativo defendible es la sensibilidad de QBER y no el valor absoluto del indicador. El laboratorio deberá sustituir la relación impuesta por mediciones de deriva térmica, desbalance óptico y estabilidad temporal.
+El barrido de visibilidad muestra una pendiente negativa de QBER cuantificada. Era esperable porque el error de fase se deriva de \(V\); el aporte es verificar que la dependencia se propaga correctamente por el modelo. Los doce niveles conservan holgura frente a la referencia de tasa. El laboratorio deberá sustituir la relación impuesta por mediciones de deriva térmica, desbalance óptico y estabilidad temporal.
 
 La comparación de señuelos corrige tres ambigüedades. Las ganancias analíticas usan un único fondo derivado de conteos oscuros y una ventana supuesta; el caso sin señuelos descuenta también la contribución de vacío; y un numerador no positivo en \(e_1^U\) activa el valor conservador \(1/2\). Además, ambas configuraciones comparten \(\mu=0{,}1\), por lo que la diferencia no se atribuye a potencia distinta. El resultado explica la utilidad de estimar la contribución monofotónica, aunque sigue limitado por su carácter asintótico, híbrido y no componible.
 

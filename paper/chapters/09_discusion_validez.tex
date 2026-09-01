@@ -1,7 +1,7 @@
 \chapter{Discusión técnica y validez del modelo}
 \label{chap:discusion}
 
-Los resultados permiten evaluar el modelo con más precisión que una lectura visual de las curvas. La ejecución verifica dependencias internas, cuantifica incertidumbre y conserva evidencia por repetición. También detecta una región donde la tasa simulada pierde holgura frente a una referencia analítica. Ese hallazgo impide usar todos los valores absolutos como prestaciones, pero fortalece la utilidad del trabajo como auditoría previa al laboratorio.
+Los resultados permiten evaluar el modelo con más precisión que una lectura visual de las curvas. La ejecución verifica dependencias internas, cuantifica incertidumbre y conserva evidencia por repetición. La tasa simulada conserva holgura frente a la referencia analítica en toda la grilla, mientras QBER cambia de régimen a larga distancia. La combinación de ambos controles impide atribuir el aumento de error a una tasa físicamente imposible y orienta la auditoría previa al laboratorio.
 
 \section{Qué valida la simulación}
 
@@ -9,7 +9,7 @@ La evidencia confirma el funcionamiento lógico del escenario implementado. Los 
 
 El barrido de visibilidad aporta una prueba adicional. La corrección local del interferómetro hace que \texttt{phase\_error} afecte estados \texttt{FreeQuantumState}; la pendiente negativa de QBER confirma que esa perturbación alcanza la salida protocolar. Es una validación interna del código y no una validación experimental del interferómetro.
 
-La simulación tampoco valida por sí sola una distancia de operación. El cambio de holgura entre \num[round-mode=places,round-precision=2]{\PThreeTransitionLowKm} y \SI[round-mode=places,round-precision=2]{\PThreeTransitionHighKm}{\kilo\meter} identifica el punto donde la tasa contabilizada y la referencia dejan de ser compatibles bajo el criterio adoptado. Antes de extrapolar, deben revisarse el retardo clásico, la política de emisión, las detecciones aceptadas y el instante usado como denominador.
+La simulación tampoco valida por sí sola una distancia de operación. QBER permanece por debajo del umbral del indicador ideal en \SI{69.54}{\kilo\meter} y lo supera ampliamente en \SI{77.15}{\kilo\meter}, aunque la tasa mantiene holgura en ambos casos. Antes de extrapolar, deben revisarse errores por base, retardo clásico, alineación de rondas, detecciones aceptadas y composición señal--fondo.
 
 \section{Validez de construcción de las métricas}
 
@@ -39,21 +39,21 @@ Esta separación corrige una ambigüedad frecuente. El hecho de que \(I_\mathrm{
 
 Las \PThreeRepetitions{} corridas por punto permiten estimar dispersión y comparar efectos. QBER usa un intervalo binomial de Wilson sobre conteos agrupados; las tasas conservan la variación entre corridas. Wilson supone intercambiabilidad de los bits y no captura sobredispersión entre semillas. Por eso sus bandas describen la proporción agrupada, mientras los intervalos t, Welch y de regresión describen variación Monte Carlo entre corridas. Una extensión debería informar ambos niveles mediante un modelo binomial jerárquico, un intervalo por conglomerados o un resumen de las QBER por repetición.
 
-El control por repetición muestra el alcance de esa limitación. A \SI{16.23}{\kilo\meter}, el intervalo t de las 30 QBER es \([0{,}152;0{,}317]\)\%, frente al Wilson agrupado \([0{,}180;0{,}306]\)\%; la diferencia es moderada. A \SI{92.38}{\kilo\meter}, el intervalo por repetición es \([4{,}963;6{,}964]\)\%, mientras Wilson da \([5{,}665;6{,}277]\)\%. La banda agrupada es allí mucho más estrecha y no debe interpretarse como variabilidad entre semillas.
+El control por repetición muestra el alcance de esa limitación. A \SI{16.23}{\kilo\meter}, el intervalo t de las 30 QBER es \([0{,}115;0{,}328]\)\%, frente al Wilson agrupado \([0{,}138;0{,}354]\)\%; ambos describen una región similar. A \SI{92.38}{\kilo\meter}, el intervalo por repetición es \([44{,}139;46{,}929]\)\%, mientras Wilson da \([44{,}423;46{,}650]\)\%. La concordancia sostiene la presencia del régimen de error alto, aunque cada intervalo responde a una fuente de variación distinta.
 
-Los dos contrastes del experimento de detector incluyen cero. La conclusión estadística es que el estudio no resuelve el efecto entre los extremos comparados. No corresponde afirmar que la eficiencia o el fondo carecen de influencia física. Tampoco corresponde seleccionar hardware a partir de diferencias puntuales dentro de las bandas. Una etapa posterior debe definir un efecto mínimo relevante y calcular cuántas repeticiones o cuántos bits hacen falta para detectarlo.
+El contraste de eficiencia queda completamente por encima de cero y resuelve el efecto entre 0,05 y 0,85. El contraste de fondo incluye cero y produce \(p=\num[round-mode=places,round-precision=3]{\PThreeDarkPValue}\), apenas por encima del umbral convencional. La primera conclusión verifica sensibilidad del modelo; la segunda no demuestra ausencia de influencia física. Ninguna de las dos habilita seleccionar hardware sin restringir resolución, tiempo muerto, ventana y pérdidas a un equipo real.
 
 La regresión de visibilidad sí resuelve una pendiente negativa. Sin embargo, su potencia proviene en parte de imponer \(p_\mathrm{fase}=(1-V)/2\). La prueba confirma la respuesta del modelo a su entrada. Para evaluar hardware, la variable independiente debe provenir de mediciones de visibilidad y deriva, no de una relación fijada por software.
 
-La sensibilidad robusta no cambia ese resultado: con covarianza HC3, la pendiente es \(-0{,}102\) y su IC del 95\% es \([-0{,}1075;-0{,}0965]\), prácticamente igual al intervalo OLS informado. Para las tasas señuelo, el bootstrap percentil produce IC de \([249{,}3;316{,}8]\), \([111{,}4;134{,}5]\) y \([4{,}19;5{,}45]\)\,kbit/s a 5, 23,89 y \SI{90}{\kilo\meter}. Los intervalos t correspondientes son \([249{,}1;321{,}7]\), \([112{,}2;137{,}8]\) y \([4{,}21;5{,}55]\)\,kbit/s. La cercanía sostiene las conclusiones descriptivas, aunque la mezcla inducida por valores nulos y reemplazos conservadores sigue impidiendo atribuirles cobertura de seguridad.
+La sensibilidad robusta no cambia ese resultado: con covarianza HC3, la pendiente es \(-0{,}1005\) y su IC del 95\% es \([-0{,}1061;-0{,}0949]\), prácticamente igual al intervalo OLS informado. Para las tasas señuelo, el bootstrap percentil produce IC de \([92{,}6;200{,}3]\), \([26{,}0;70{,}3]\) y \([0;0]\)\,kbit/s a 5, 23,89 y \SI{90}{\kilo\meter}. Los intervalos t correspondientes son \([86{,}6;205{,}4]\), \([24{,}0;71{,}9]\) y \([0;0]\)\,kbit/s. La cercanía sostiene las conclusiones descriptivas; la amplitud de los dos primeros intervalos y la mezcla de ceros conservadores impiden atribuirles cobertura de seguridad.
 
 \section{Validez del control analítico}
 
 La referencia de la Ecuación~\ref{eq:referencia_tasa} combina ganancia media, tamizado y límite agregado de conteo. Sirve como control independiente, pero no reproduce toda la temporización de SeQUeNCe. Una corrida finita puede superar su valor medio. Por eso el criterio usa el IC del 95\% y no clasifica un punto aislado.
 
-Cuando el intervalo completo queda por encima, la diferencia deja de ser una fluctuación puntual bajo ese resumen estadístico. La interpretación prudente es auditar el modelo. Puede existir una diferencia entre el tiempo efectivo de emisión y el denominador de tasa, una simplificación del factor de tamizado, o una contabilidad de clics distinta de la referencia. La tesis conserva esos puntos porque ayudan a localizar el problema, pero no usa sus tasas absolutas como evidencia de factibilidad.
+En esta ejecución, el extremo superior del intervalo queda por debajo de la referencia en todos los puntos de distancia, detector y visibilidad. El resultado elimina la discrepancia de tasa observada antes de corregir la propagación de parámetros al detector \textit{time-bin}. Aun así, la referencia es un control necesario pero no suficiente: no reproduce rondas, mensajes, bases ni alineación temporal y, por eso, no explica el salto de QBER a larga distancia.
 
-Los doce puntos de visibilidad aparecen sin holgura. Esto no invalida la pendiente de QBER, que depende de errores y bits. Sí impide afirmar que los valores absolutos de \(I_\mathrm{ideal}\) representan una tasa físicamente alcanzable a \SI{30}{\kilo\meter}.
+Los doce puntos de visibilidad conservan holgura. La pendiente de QBER y las tasas son internamente compatibles con el control adoptado, pero siguen sin representar una prestación físicamente alcanzable a \SI{30}{\kilo\meter}: la visibilidad se impone por software y faltan pérdidas internas, deriva y tiempo muerto medidos.
 
 \section{Validez del estimador señuelo}
 
@@ -61,7 +61,7 @@ La comparación del cuarto experimento corrige el sesgo que produciría usar int
 
 El estimador conserva cuatro limitaciones. Primero, \(Q_\mu\) y \(Q_\nu\) son ganancias analíticas, no frecuencias medidas en clases de pulsos elegidas al azar. Segundo, el rendimiento de fondo usa una ventana supuesta de \SI{1}{\nano\second} que no existe como compuerta calibrada dentro del receptor. Tercero, el error de fase se aproxima con QBER agregada. Cuarto, el tratamiento es asintótico.
 
-El reemplazo \(e_1^U=1/2\) aparece en \PThreeDecoyFallbackTotal{} de 300 repeticiones pareadas y en \PThreeDecoyFallbackDistances{} distancias. Es una decisión conservadora ante un numerador no positivo, pero su frecuencia muestra que la media de tasa depende de casos con poca información. Informar ese conteo es necesario para que el valor positivo a \SI{90}{\kilo\meter} no se lea como alcance validado.
+El reemplazo \(e_1^U=1/2\) aparece en \PThreeDecoyFallbackTotal{} de 300 repeticiones pareadas y en \PThreeDecoyFallbackDistances{} distancias. Es una decisión conservadora ante un numerador no positivo, pero su frecuencia muestra que las medias de corto y medio alcance mezclan corridas informativas con contribuciones nulas. La estimación permanece positiva hasta \SI{71.11}{\kilo\meter} y se anula desde \SI{80.56}{\kilo\meter}; aun ese último punto positivo no constituye alcance validado.
 
 \section{Validez externa y Campus Miguelete}
 
@@ -90,7 +90,7 @@ El paso al laboratorio requiere criterios medibles:
     Ruta óptica & Longitud, pérdida, conectores y OTDR & Parametrizar canal real \\
     Receptor coherente & Eficiencia, fondo, fluctuación temporal, tiempo muerto y ventana del mismo equipo & Restringir barridos a hardware alcanzable \\
     Interferómetro & Visibilidad y deriva durante un intervalo definido & Sustituir la relación impuesta por datos \\
-    Temporización & Conteos y tasas compatibles con una referencia calibrada & Resolver la pérdida de holgura observada \\
+    Temporización & Conteos y tasas compatibles con una referencia calibrada & Explicar la transición de QBER y verificar alineación de rondas \\
     Repetibilidad & Corridas o mediciones con intervalos predefinidos & Separar tendencia de variación aleatoria \\
     Posprocesamiento & Reconciliación, privacidad y autenticación documentadas & Avanzar de indicador a clave utilizable \\
     \bottomrule

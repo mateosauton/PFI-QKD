@@ -33,15 +33,15 @@ uv run python experiments/exp2_detector_sensitivity.py --step all
 | 3 | + 5 repeats/point, error bars | `exp2_detector_sensitivity_step3.png` |
 | 4 | + common seeds across sweep (run with `--step 4`) | `exp2_detector_sensitivity_step4.png` |
 
-## Run all (exp 1–4)
+## Legacy combined runner
 
 ```bash
 uv run python experiments/qkd_2node_simulation.py
 ```
 
-Note: the combined runner uses experiment 2 **step 1 only** for speed. Use `exp2_detector_sensitivity.py --step all` for steps 1–3; add `--step 4` separately if needed.
+This legacy runner does not generate the evidence used by either LaTeX document. It uses experiment 2 **step 1 only** for speed. Use it only to reproduce the earlier exploratory workflow.
 
-## Reproduce Proyecto 3
+## Reproduce the documented study
 
 The shortened Proyecto 3 document uses a frozen, auditable four-sweep pipeline
 with 30 deterministic repetitions per point, statistical intervals, per-run
@@ -51,9 +51,10 @@ CSV exports, figures, LaTeX macros, and SHA-256 metadata:
 uv run python experiments/proyecto3_simulation.py --repetitions 30 --workers 8
 ```
 
-This pipeline treats the 1 ns gate as an analytical assumption; the SeQUeNCe
+This is the authoritative pipeline for both `paper/proyecto3.tex` and
+`paper/main.tex`. It treats the 1 ns gate as an analytical assumption; the SeQUeNCe
 receiver does not implement that electronic gate. Its outputs are written to
-`experiments/results/` and consumed by `paper/proyecto3.tex`.
+`experiments/results/` and consumed by both documents.
 
 ## Figures
 

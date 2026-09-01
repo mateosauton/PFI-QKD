@@ -5,7 +5,7 @@
 
 La hipótesis se sostiene dentro del alcance definido: una simulación de eventos discretos permite convertir el diseño de un banco QKD en preguntas medibles, cuantificar la variación entre corridas y detectar cuándo una salida exige revisar sus supuestos. El trabajo no confirma la factibilidad física del Campus Miguelete ni certifica seguridad criptográfica.
 
-Los cuatro criterios de verificación se cumplen. La evidencia conserva parámetros, semillas, bits, errores, tiempos y clics; cada punto contiene \PThreeRepetitions{} repeticiones; el flujo comprueba invariantes numéricos; y la referencia analítica detecta una pérdida de holgura que la lectura aislada de QBER no habría mostrado. Este último resultado es importante: la utilidad de la simulación no consiste sólo en producir curvas plausibles, sino también en impedir que una tasa incoherente se transforme en especificación de diseño.
+Los cuatro criterios de verificación se cumplen. La evidencia conserva parámetros, semillas, bits, errores, tiempos y clics; cada punto contiene \PThreeRepetitions{} repeticiones; el flujo comprueba invariantes numéricos; y la tasa tamizada conserva holgura frente a la referencia analítica en toda la grilla. Ese control permite separar el aumento de QBER observado a larga distancia de un problema de tasa excesiva. La utilidad de la simulación no consiste sólo en producir curvas, sino en someter cada interpretación a controles independientes.
 
 \section{Cumplimiento de objetivos}
 
@@ -17,9 +17,9 @@ Los cuatro criterios de verificación se cumplen. La evidencia conserva parámet
     Objetivo & Estado & Evidencia \\
     \midrule
     Escenario Alice--Bob \textit{time-bin} & Cumplido & SeQUeNCe 0.8.5, componentes, canales y parche identificados \\
-    Barrido de distancia & Cumplido con límite & Transición de control entre \num[round-mode=places,round-precision=2]{\PThreeTransitionLowKm} y \SI[round-mode=places,round-precision=2]{\PThreeTransitionHighKm}{\kilo\meter}; no es alcance físico \\
-    Sensibilidad del detector & Cumplido, no concluyente & Los IC de eficiencia y fondo incluyen cero \\
-    Sensibilidad a visibilidad & Cumplido internamente & Pendiente QBER negativa, con doce puntos sin holgura de tasa \\
+    Barrido de distancia & Cumplido con límite & QBER bajo el umbral ideal hasta 69,54 km y aumento abrupto en 77,15 km; no es alcance físico \\
+    Sensibilidad del detector & Cumplido & Efecto de eficiencia resuelto; efecto de fondo no resuelto al 5\% \\
+    Sensibilidad a visibilidad & Cumplido internamente & Pendiente QBER negativa y doce puntos con holgura de tasa \\
     Comparación señuelo & Cumplido como estimador & Igual \(\mu\), cota asintótica híbrida y reemplazos conservadores registrados \\
     Diseño Campus Miguelete & Parcial & Topología y criterios definidos; faltan ruta y pérdidas medidas \\
     Trazabilidad & Cumplido & 60 agregados, 1.800 registros, 2.100 ejecuciones, macros y hashes \\
@@ -31,13 +31,13 @@ Los cuatro criterios de verificación se cumplen. La evidencia conserva parámet
 
 \section{Conclusiones por experimento}
 
-El barrido de distancia reproduce la caída de ganancia, pero su conclusión principal no es una distancia máxima. Entre \num[round-mode=places,round-precision=2]{\PThreeTransitionLowKm} y \SI[round-mode=places,round-precision=2]{\PThreeTransitionHighKm}{\kilo\meter}, la tasa tamizada deja de conservar holgura frente a la referencia. Los puntos posteriores sirven para auditar temporización y detecciones, no para defender prestaciones.
+El barrido de distancia reproduce la caída de ganancia y conserva holgura de tasa en los 14 puntos. QBER es 8,750\% a \SI{69.54}{\kilo\meter} y 30,273\% a \SI{77.15}{\kilo\meter}; desde ese segundo punto el indicador ideal es nulo. El intervalo localiza una transición del modelo que exige auditar errores por base, alineación de rondas y fondo. No establece una distancia máxima del enlace.
 
-El experimento de detector no resuelve los efectos entre extremos. Para eficiencia, el intervalo de \(\Delta I\) va de \num[round-mode=places,round-precision=1]{\PThreeEffDifferenceLowKbps} a \num[round-mode=places,round-precision=1]{\PThreeEffDifferenceHighKbps}\,kbit/s y \(p=\num[round-mode=places,round-precision=3]{\PThreeEffPValue}\). Para fondo, va de \num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceLowKbps} a \num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceHighKbps}\,kbit/s y \(p=\num[round-mode=places,round-precision=3]{\PThreeDarkPValue}\). Esto impide ordenar detectores a partir de estas curvas. Una comparación de hardware debe incorporar ventanas, tiempo muerto, fluctuación temporal y pérdidas internas medidas.
+El experimento de detector resuelve el efecto de eficiencia entre extremos: el intervalo de \(\Delta I\) va de \num[round-mode=places,round-precision=1]{\PThreeEffDifferenceLowKbps} a \num[round-mode=places,round-precision=1]{\PThreeEffDifferenceHighKbps}\,kbit/s y \(p<0{,}001\). Para fondo, el intervalo va de \num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceLowKbps} a \num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceHighKbps}\,kbit/s y \(p=\num[round-mode=places,round-precision=3]{\PThreeDarkPValue}\), por lo que no se resuelve degradación al 5\%. La tendencia de eficiencia verifica la propagación del parámetro, pero no basta para ordenar equipos: una comparación de hardware debe incorporar ventanas, tiempo muerto, fluctuación temporal y pérdidas internas medidas.
 
-El barrido de visibilidad confirma una pendiente negativa de QBER. Era esperable porque \(p_\mathrm{fase}\) se calcula desde \(V\); el resultado demuestra que la dependencia llega a BB84 después de corregir el interferómetro. No demuestra estabilidad física. Los doce puntos carecen de holgura de tasa, de modo que el valor absoluto del indicador no se usa como evidencia de factibilidad.
+El barrido de visibilidad confirma una pendiente negativa de QBER. Era esperable porque \(p_\mathrm{fase}\) se calcula desde \(V\); el resultado demuestra que la dependencia llega a BB84 después de corregir el interferómetro. Los doce puntos conservan holgura de tasa. Esto no demuestra estabilidad física ni reemplaza mediciones de visibilidad, deriva y pérdidas internas.
 
-La comparación de estados señuelo muestra la utilidad de estimar la contribución monofotónica. Con igual \(\mu=0{,}1\), la tasa sin señuelos se anula cerca de \SI{24}{\kilo\meter}, mientras la estimación señuelo conserva \SI[round-mode=places,round-precision=1]{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second}. El resultado depende de ganancias analíticas, error de fase aproximado y tratamiento asintótico. Los \PThreeDecoyFallbackTotal{} reemplazos conservadores en 300 repeticiones pareadas deben considerarse al interpretar la media.
+La comparación de estados señuelo muestra la utilidad de estimar la contribución monofotónica. Con igual \(\mu=0{,}1\), la tasa sin señuelos se anula cerca de \SI{24}{\kilo\meter}, mientras la estimación señuelo conserva \SI[round-mode=places,round-precision=1]{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second} y permanece positiva hasta \SI{71.11}{\kilo\meter}. Ambas estimaciones son nulas desde \SI{80.56}{\kilo\meter}. El resultado depende de ganancias analíticas, error de fase aproximado y tratamiento asintótico. Los \PThreeDecoyFallbackTotal{} reemplazos conservadores en 300 repeticiones pareadas deben considerarse al interpretar la media.
 
 \section{Aporte para la implementación UNSAM}
 
@@ -50,7 +50,7 @@ El presupuesto y las imágenes de equipos cumplen una función de preselección,
 Las principales limitaciones son:
 
 \begin{itemize}
-  \item la referencia de tasa no reproduce toda la temporización interna y detecta una discrepancia todavía no resuelta;
+  \item la referencia de tasa no reproduce toda la temporización interna y no explica por sí sola el aumento abrupto de QBER a larga distancia;
   \item la ventana de \SI{1}{\nano\second} es analítica y no una compuerta implementada en el receptor;
   \item el barrido de eficiencia excede la especificación del detector comercial usado como referencia;
   \item el modelo no separa errores por base ni ejecuta autenticación, reconciliación y amplificación de privacidad;
@@ -61,7 +61,7 @@ Las principales limitaciones son:
 
 \section{Trabajo futuro priorizado}
 
-La primera prioridad es resolver la diferencia entre tasa tamizada y referencia. Para ello debe instrumentarse el tiempo efectivo de emisión, la cantidad de pulsos, los clics aceptados y el instante usado en el denominador. La prueba debe cubrir el intervalo de \num[round-mode=places,round-precision=2]{\PThreeTransitionLowKm} a \SI[round-mode=places,round-precision=2]{\PThreeTransitionHighKm}{\kilo\meter} y el escenario de visibilidad.
+La primera prioridad es explicar la transición de QBER entre 69,54 y \SI{77.15}{\kilo\meter}. Para ello deben exportarse errores por base y ronda, marcas temporales de mensajes, índices emparejados y composición de clics de señal y fondo. La prueba debe verificar si el aumento proviene del régimen físico idealizado o de alineación y solapamiento en la implementación protocolar.
 
 La segunda prioridad es medir una ruta del Campus Miguelete con OTDR o instrumentación equivalente. El resultado debe incluir longitud óptica, atenuación total, conectores, empalmes, fibras disponibles y restricciones de acceso. Con esos datos puede calcularse un presupuesto de enlace específico.
 

@@ -178,7 +178,7 @@ La salida esperada del relevamiento no es solo descriptiva. Debe traducirse en p
 
 \section{Relación entre simulación y diseño físico}
 
-El valor de la simulación es que permite anticipar qué debe verificarse. El barrido de distancia localiza un intervalo donde la tasa pierde holgura frente a una referencia, por lo que una ruta real debe medirse antes de extrapolar. El experimento de detector no resuelve diferencias de eficiencia ni fondo y, por eso, no permite ordenar equipos. El barrido de visibilidad confirma la sensibilidad lógica de QBER, pero no una prestación física. El relevamiento debe aportar los datos que faltan: pérdida total, ventana efectiva, eficiencia, fondo y estabilidad.
+El valor de la simulación es que permite anticipar qué debe verificarse. El barrido de distancia mantiene la tasa por debajo de la referencia analítica, pero muestra un aumento abrupto de QBER entre 69,54 y \SI{77.15}{\kilo\meter}; una ruta real debe medirse antes de extrapolar esa transición. El experimento de detector resuelve el efecto de eficiencia entre extremos, aunque el rango exploratorio no representa un único equipo comercial, y no resuelve el efecto de fondo al 5\%. El barrido de visibilidad confirma la sensibilidad lógica de QBER, pero no una prestación física. El relevamiento debe aportar los datos que faltan: pérdida total, ventana efectiva, eficiencia, fondo y estabilidad.
 
 Esta relación evita que el trabajo sea una colección de capítulos desconectados. La teoría define variables, la simulación las barre, el diseño de campus busca dónde aparecen en la infraestructura real y el hardware ofrece maneras de controlarlas. El entregable final esperado no es una orden de compra cerrada, sino una guía técnica para decidir qué banco construir primero y qué datos faltan para sostener la decisión.
 
@@ -199,7 +199,7 @@ La primera etapa requiere un conjunto mínimo de equipos que permita preparar pu
     Bloque & Instrumento propuesto & Razón de inclusión \\
     \midrule
     Fuente & Láser de 1550 nm acoplado a fibra & Opera en ventana de telecomunicaciones y alimenta la fuente coherente débil \\
-    Modulación & Modulador de intensidad LiNbO\(_3\) y modulador/fase equivalente & Permite codificar bits, bases e intensidades señuelo \\
+    Modulación & Modulador de intensidad LNA6213 y modulador de fase LN53S-FC o equivalente & Separa control de intensidad señuelo y fase relativa \(0/\pi\) \\
     Atenuación & Atenuadores ópticos variables y fijos & Ajustan \(\mu\) hasta régimen de pocos fotones por pulso \\
     Canal & Fibra monomodo, patch cords y conectores FC/PC o FC/APC & Representa el enlace de campus y el presupuesto de pérdida \\
     Receptor & Interferómetro desbalanceado, detector de fotón único y registrador temporal & Mide bins temporales, fase relativa y eventos con resolución temporal \\

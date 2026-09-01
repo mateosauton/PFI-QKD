@@ -10,7 +10,7 @@ NUM_TRIALS = int(10e3)
 SEED = 0
 
 
-def create_intf(quantum_state):
+def create_intf(quantum_state, phase_error=0):
     class Owner:
         def __init__(self):
             self.generator = np.random.default_rng(SEED)
@@ -28,7 +28,9 @@ def create_intf(quantum_state):
             self.log.append(self.timeline.now())
 
     tl = Timeline()
-    intfm = Interferometer("interferometer", tl, time_bin["bin_separation"])
+    intfm = Interferometer(
+        "interferometer", tl, time_bin["bin_separation"], phase_error=phase_error
+    )
     d0 = Receiver("d0", tl)
     d1 = Receiver("d1", tl)
     own = Owner()
@@ -114,6 +116,15 @@ def test_Interferometer_get():
             assert False
 
     assert abs(counter1 / counter3 - 1) < 0.1 and counter2 == 0
+
+
+def test_Interferometer_phase_error_flips_x_basis_output():
+    log0, log1 = create_intf(time_bin["bases"][1][0], phase_error=1)
+    middle_0 = sum(time % 1e6 == time_bin["bin_separation"] for time in log0)
+    middle_1 = sum(time % 1e6 == time_bin["bin_separation"] for time in log1)
+
+    assert middle_0 == 0
+    assert middle_1 > NUM_TRIALS * 0.2
 
     # qstate = |e-l>
     log0, log1 = create_intf(time_bin["bases"][1][1])

@@ -8,6 +8,7 @@
   \item \texttt{experiments/results/}: CSV agregados, CSV por repetición, figuras, macros y manifiesto.
   \item \texttt{sequence/qkd/BB84.py}: implementación BB84 usada por \texttt{QKDNode}.
   \item \texttt{sequence/topology/node.py}: nodos y receptor \textit{time-bin}.
+  \item \texttt{sequence/components/detector.py}: clases base y detector \textit{time-bin}.
   \item \texttt{sequence/components/interferometer.py}: interferómetro con la corrección local de \texttt{phase\_error}.
   \item \texttt{paper/main.tex}: documento completo.
 \end{itemize}
@@ -22,7 +23,7 @@ El repositorio fija dependencias en \texttt{pyproject.toml} y \texttt{uv.lock}. 
 uv sync
 \end{verbatim}
 
-El manifiesto de resultados registra hashes de ambos archivos, del flujo y del parche del interferómetro. La versión efectiva del simulador es SeQUeNCe 0.8.5 más ese cambio local.
+El manifiesto de resultados registra hashes de ambos archivos de dependencias, del flujo, de BB84 y de los módulos de nodo, detector e interferómetro. La versión efectiva del simulador es SeQUeNCe 0.8.5 más las correcciones locales documentadas.
 
 \section{Generación de datos y figuras}
 
@@ -43,7 +44,7 @@ El número de trabajadores sólo modifica el paralelismo. Cada corrida recibe se
   \item \texttt{experiment\_summary.json}, con métodos, parámetros, filas y hashes.
 \end{itemize}
 
-Los cuatro CSV agregados contienen 60 filas y los archivos detallados contienen 1.800 registros de repetición. En el experimento señuelo, cada registro combina dos ejecuciones; el total real es de 2.100 ejecuciones de SeQUeNCe. El flujo se detiene si falla alguno de sus invariantes numéricos. El número de claves completadas se exporta y los datos actuales cumplen lo solicitado, pero esa igualdad todavía no se fuerza mediante una aserción.
+Los cuatro CSV agregados contienen 60 filas y los archivos detallados contienen 1.800 registros de repetición. En el experimento señuelo, cada registro combina dos ejecuciones; el total real es de 2.100 ejecuciones de SeQUeNCe. El flujo se detiene si falla un invariante numérico o si los parámetros efectivos de un detector difieren de la configuración solicitada. El número de claves completadas se exporta y los datos actuales cumplen lo solicitado, pero esa igualdad todavía no se fuerza mediante una aserción.
 
 \section{Compilación del documento}
 

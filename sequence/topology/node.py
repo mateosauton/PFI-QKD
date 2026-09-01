@@ -593,7 +593,7 @@ class QKDNode(Node):
 
     def update_detector_params(self, detector_id: int, arg_name: str, value: Any) -> None:
         for component in self.components.values():
-            if type(component) is QSDetector:
+            if isinstance(component, QSDetector):
                 component.update_detector_params(detector_id, arg_name, value)
                 return
 

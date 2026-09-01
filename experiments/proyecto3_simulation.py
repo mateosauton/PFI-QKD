@@ -279,6 +279,19 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
         bob.update_detector_params(i, "count_rate", p.count_rate_hz)
         bob.update_detector_params(i, "time_resolution", p.time_resolution_ps)
         qsd.detectors[i].attach(detection_counter)
+    effective_detector_params = {
+        "efficiency": p.detector_efficiency,
+        "dark_count": p.dark_count_hz,
+        "count_rate": p.count_rate_hz,
+        "time_resolution": p.time_resolution_ps,
+    }
+    for detector in qsd.detectors:
+        for name, expected in effective_detector_params.items():
+            actual = getattr(detector, name)
+            if actual != expected:
+                raise RuntimeError(
+                    f"detector parameter {name} was not applied: {actual!r} != {expected!r}"
+                )
     qsd.update_interferometer_params("phase_error", phase_error)
 
     qc0.set_ends(alice, bob.name)
@@ -825,6 +838,10 @@ def experiment_1_distance_sweep(
     records = []
     run_records = []
     for i, d in enumerate(distances_km):
+        print(
+            f"  Distance point {i + 1}/{len(distances_km)}: {d:.2f} km",
+            flush=True,
+        )
         base = SimParams(
             distance_km=float(d),
             detector_efficiency=0.1,
@@ -833,7 +850,7 @@ def experiment_1_distance_sweep(
             frequency_hz=DEFAULT_FREQUENCY_HZ,
             visibility=0.98,
             runtime_ps=2e12,
-            num_keys=3,
+            num_keys=1,
         )
         runs = _run_replicates(base, repetitions, seed_base=10_000 + i * 100, executor=executor)
         q_mean, q_low, q_high = _wilson_qber_ci(runs)
@@ -930,6 +947,10 @@ def experiment_2_detector_sweep(
     run_records = []
     eff_runs_by_point: list[list[dict[str, Any]]] = []
     for i, eff in enumerate(efficiencies):
+        print(
+            f"  Efficiency point {i + 1}/{len(efficiencies)}: {eff:.3f}",
+            flush=True,
+        )
         base = SimParams(
             distance_km=d_fix,
             detector_efficiency=float(eff),
@@ -987,6 +1008,10 @@ def experiment_2_detector_sweep(
     dark_sifted_high, dark_rate_bounds = [], []
     dark_runs_by_point: list[list[dict[str, Any]]] = []
     for i, dc in enumerate(darks):
+        print(
+            f"  Dark-count point {i + 1}/{len(darks)}: {dc:.2f} Hz",
+            flush=True,
+        )
         base = SimParams(
             distance_km=d_fix,
             detector_efficiency=0.85,
@@ -1117,6 +1142,10 @@ def experiment_3_visibility_sweep(
     records = []
     run_records = []
     for i, v in enumerate(vis):
+        print(
+            f"  Visibility point {i + 1}/{len(vis)}: {v:.4f}",
+            flush=True,
+        )
         base = SimParams(
             distance_km=30.0,
             visibility=float(v),
@@ -1224,6 +1253,10 @@ def experiment_4_decoy_distance(
     run_records = []
 
     for i, d_km in enumerate(distances_km):
+        print(
+            f"  Decoy point {i + 1}/{len(distances_km)}: {d_km:.2f} km",
+            flush=True,
+        )
         d_m = float(d_km) * 1000.0
         att = alpha / 1000.0
         eta_ch = channel_transmittance(d_m, att)
@@ -1235,7 +1268,7 @@ def experiment_4_decoy_distance(
             dark_count_hz=dark_count_hz,
             visibility=0.97,
             runtime_ps=1.8e12,
-            num_keys=3,
+            num_keys=1,
         )
         base_nu = SimParams(
             distance_km=float(d_km),
@@ -1244,7 +1277,7 @@ def experiment_4_decoy_distance(
             dark_count_hz=dark_count_hz,
             visibility=0.97,
             runtime_ps=1.8e12,
-            num_keys=3,
+            num_keys=1,
         )
         q_mu = wcs_gain(mu, eta_ch, eta_d, vacuum_yield)
         q_nu = wcs_gain(nu, eta_ch, eta_d, vacuum_yield)
@@ -1611,7 +1644,10 @@ def main() -> None:
     metadata = {
         "generated_at_utc": datetime.now(UTC).isoformat(),
         "sequence_version": "0.8.5",
-        "sequence_local_patch": "sequence/components/interferometer.py phase_error correction for FreeQuantumState",
+        "sequence_local_patch": (
+            "sequence/components/interferometer.py phase_error correction and "
+            "QKDNode detector subclass parameter propagation"
+        ),
         "repetitions_per_point": args.repetitions,
         "parallel_workers": args.workers,
         "pulse_rate_hz": DEFAULT_FREQUENCY_HZ,
@@ -1644,6 +1680,11 @@ def main() -> None:
             "sequence/components/interferometer.py": _sha256(
                 _ROOT / "sequence/components/interferometer.py"
             ),
+            "sequence/topology/node.py": _sha256(_ROOT / "sequence/topology/node.py"),
+            "sequence/components/detector.py": _sha256(
+                _ROOT / "sequence/components/detector.py"
+            ),
+            "sequence/qkd/BB84.py": _sha256(_ROOT / "sequence/qkd/BB84.py"),
             "pyproject.toml": _sha256(_ROOT / "pyproject.toml"),
             "uv.lock": _sha256(_ROOT / "uv.lock"),
         },

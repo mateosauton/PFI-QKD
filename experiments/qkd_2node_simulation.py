@@ -1269,7 +1269,7 @@ def experiment_2_detector_sweep(
             dark_count_hz=100.0,
             classical_extra_delay_ps=0,
             runtime_ps=2.5e12,
-            num_keys=4,
+            num_keys=DEFAULT_NUM_KEYS,
         )
         runs = _run_replicates(
             base, repetitions, seed_base=20_000 + i * 100, executor=executor
@@ -1343,7 +1343,7 @@ def experiment_2_detector_sweep(
             dark_count_hz=float(dc),
             classical_extra_delay_ps=0,
             runtime_ps=2.5e12,
-            num_keys=4,
+            num_keys=DEFAULT_NUM_KEYS,
         )
         runs = _run_replicates(
             base, repetitions, seed_base=30_000 + i * 100, executor=executor
@@ -1498,7 +1498,7 @@ def experiment_3_visibility_sweep(
             detector_efficiency=0.15,
             dark_count_hz=200.0,
             runtime_ps=2.5e12,
-            num_keys=4,
+            num_keys=DEFAULT_NUM_KEYS,
         )
         runs = _run_replicates(
             base, repetitions, seed_base=40_000 + i * 100, executor=executor

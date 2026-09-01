@@ -13,6 +13,8 @@ from experiments.qkd_2node_simulation import (
     click_slot_indices,
     decoy_e1_upper,
     decoy_yield_y1_lower,
+    experiment_2_detector_sweep,
+    experiment_3_visibility_sweep,
     replicate_seed_pairs,
     summarize_accounting,
     wcs_detection_prob,
@@ -240,3 +242,52 @@ def test_aggregate_helpers_can_explicitly_exclude_incomplete_runs():
     )
 
     assert mean == 10.0
+
+
+def test_detector_and_visibility_sweeps_request_the_rigorous_key_count(
+    monkeypatch, tmp_path
+):
+    def fake_run_replicates(base, repetitions, seed_base, executor):
+        del seed_base, executor
+        return [
+            {
+                "mean_qber": 0.01,
+                "aggregate_sifted_rate_bps": 100.0,
+                "n_keys": base.num_keys,
+                "completed_requested_keys": True,
+                "total_sifted_bits": base.num_keys * base.key_length,
+                "total_errors": 1,
+                "elapsed_key_s": 1.0,
+                "pulses_sent": 10_000,
+                "click_events": 100,
+                "click_slots": 100,
+                "valid_detection_slots": 100,
+                "basis_compared_valid_slots": 100,
+                "observed_basis_matched_bits": 100,
+                "sifting_fraction": 1.0,
+                "observed_click_gain": 0.01,
+                "click_rate_bps": 100.0,
+                "accounting_consistent": True,
+                "params": base,
+                "detector_clicks": [1, 2, 3],
+                "total_detector_clicks": 6,
+                "background_yield_per_pulse": 1e-6,
+                "sifted_rate_reference_bps": 1_000.0,
+                "p_detection_model": 0.01,
+            }
+            for _ in range(repetitions)
+        ]
+
+    monkeypatch.setattr(
+        "experiments.qkd_2node_simulation._run_replicates", fake_run_replicates
+    )
+
+    detector = experiment_2_detector_sweep(tmp_path, repetitions=2)
+    visibility = experiment_3_visibility_sweep(tmp_path, repetitions=2)
+
+    assert {record["claves_por_repeticion"] for record in detector["records"]} == {
+        DEFAULT_NUM_KEYS
+    }
+    assert {record["claves_por_repeticion"] for record in visibility["records"]} == {
+        DEFAULT_NUM_KEYS
+    }

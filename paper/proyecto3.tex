@@ -1,0 +1,468 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage[section]{placeins}
+\usepackage{siunitx}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usepackage{xcolor}
+\usetikzlibrary{arrows.meta,positioning}
+
+\geometry{margin=2.7cm}
+\emergencystretch=3em
+\graphicspath{{../experiments/results/}{assets/}}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=black,
+  urlcolor=blue,
+  pdftitle={Proyecto 3 - Avance QKD BB84 time-bin},
+  pdfauthor={Mateo Sauton e Ignacio Polesello}
+}
+\sisetup{
+  output-decimal-marker={,},
+  per-mode=symbol,
+  detect-all=true,
+  round-mode=figures,
+  round-precision=3
+}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  columns=fullflexible,
+  frame=single,
+  rulecolor=\color{black!25},
+  numbers=left,
+  numberstyle=\tiny\color{black!50},
+  xleftmargin=1.5em,
+  framexleftmargin=1.2em,
+  showstringspaces=false
+}
+\addto\captionsspanish{\renewcommand{\lstlistingname}{Código}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\newcommand{\hbin}[1]{h_2\!\left(#1\right)}
+\input{../experiments/results/proyecto3_results.tex}
+
+\title{
+  \textbf{Proyecto 3}\\[0.35em]
+  \large Avance del Proyecto Final Integrador\\[0.35em]
+  \large Diseño y evaluación por simulación de un enlace QKD BB84 en \textit{time-bin}
+}
+\author{
+  Mateo Sauton\\
+  Ignacio Polesello\\[0.5em]
+  Ingeniería en Telecomunicaciones\\
+  Universidad Nacional de San Martín
+}
+\date{2026}
+
+\begin{document}
+\maketitle
+
+\section{Introducción}
+
+Este documento presenta el avance experimental del Proyecto Final Integrador dedicado al diseño y evaluación por simulación de un enlace de distribución cuántica de claves (QKD, \textit{Quantum Key Distribution}) basado en BB84 con codificación \textit{time-bin}. La versión completa del trabajo incorpora marco teórico, estado del arte, análisis de hardware y una propuesta para el Campus Miguelete. Esta entrega de Proyecto 3 concentra el análisis en cuatro partes: introducción, experimentos, resultados y conclusiones.
+
+El problema de ingeniería es distribuir material criptográfico entre dos nodos remotos a través de un medio que no se supone confiable. QKD no cifra el tráfico de usuario ni reemplaza por sí sola una arquitectura de seguridad. Su función es producir bits compartidos y permitir que Alice y Bob estimen si las estadísticas del enlace son compatibles con continuar el protocolo. Necesita un canal cuántico y un canal clásico autenticado. En BB84, medir estados preparados en bases no ortogonales altera las estadísticas observadas y puede manifestarse como un aumento de la tasa de error cuántico, QBER (\textit{Quantum Bit Error Rate}) \cite{bennettBrassard1984,gisin2002qkd,scarani2009security}.
+
+Alice genera bits y bases aleatorias, prepara los estados ópticos y los envía a Bob. Bob elige una base de medición para cada símbolo. Después de la transmisión, ambos revelan las bases por el canal clásico, descartan posiciones incompatibles y conservan una secuencia tamizada. Sobre esa secuencia se estiman errores y, en un sistema completo, se realizan reconciliación, verificación y amplificación de privacidad. La Figura~\ref{fig:p3_bb84} resume este flujo sin representar todos los mensajes de control.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    node distance=8mm and 9mm,
+    block/.style={draw, rounded corners=2pt, align=center, minimum height=9mm, text width=27mm},
+    flow/.style={-{Stealth[length=2mm]}, thick}
+  ]
+    \node[block] (prep) {Alice\\bit y base};
+    \node[block, right=of prep] (quantum) {Preparación\\estado \textit{time-bin}};
+    \node[block, right=of quantum] (measure) {Bob\\base y detección};
+    \node[block, below=of quantum] (sift) {Canal clásico autenticado\\anuncio y tamizado};
+    \node[block, right=of sift] (estimate) {Estimación de QBER\\y posprocesamiento};
+    \draw[flow] (prep) -- (quantum);
+    \draw[flow] (quantum) -- (measure);
+    \draw[flow] (measure) -- (sift);
+    \draw[flow] (prep) |- (sift);
+    \draw[flow] (sift) -- (estimate);
+  \end{tikzpicture}
+  \caption{Secuencia conceptual de BB84. La simulación llega hasta generación y evaluación de secuencias tamizadas; no implementa una pila criptográfica de producción.}
+  \label{fig:p3_bb84}
+\end{figure}
+
+La codificación \textit{time-bin} representa la información mediante arribos tempranos, tardíos y superposiciones coherentes de ambos modos temporales. La base directa distingue tiempos de llegada. La base conjugada requiere interferencia, por lo que introduce una relación concreta entre protocolo y hardware: atenuación, resolución temporal, visibilidad interferométrica, eficiencia, conteos oscuros y sincronización afectan la salida \cite{lopezGrande2018}.
+
+La fuente modelada es coherente débil. El número de fotones por pulso sigue una distribución de Poisson y existe una probabilidad no nula de emitir dos o más fotones. Si esos eventos no se tratan, un adversario podría explotar información asociada a pulsos multifotónicos. Los estados señuelo permiten estimar la contribución monofotónica a partir de ganancias y errores medidos con distintas intensidades \cite{hwang2003decoy,loMaChen2005,maQiZhaoLo2005}.
+
+\subsection*{Hipótesis, objetivo y alcance}
+
+La hipótesis es que una simulación de eventos discretos puede identificar respuestas del modelo, inconsistencias y condiciones de ensayo antes de construir un banco físico. No afirma que la simulación certifique seguridad ni determine una distancia comercial. Una afirmación de seguridad requeriría autenticación, estimación de clave finita, corrección de errores, amplificación de privacidad, hipótesis sobre dispositivos y evaluación de canales laterales.
+
+El objetivo general es evaluar un enlace Alice--Bob BB84 \textit{time-bin} mediante barridos de distancia, eficiencia de detección, conteos oscuros, visibilidad y estados señuelo. Las preguntas experimentales son:
+
+\begin{itemize}
+  \item \textquestiondown En qué intervalo el IC del 95\,\% de la tasa tamizada comienza a alcanzar la referencia analítica de clics y tamizado?
+  \item \textquestiondown Qué efecto estadístico se observa al variar eficiencia y conteos oscuros con menor influencia de latencia clásica?
+  \item \textquestiondown Cómo responde QBER al error de fase impuesto a partir de la visibilidad interferométrica?
+  \item \textquestiondown Qué diferencia produce la estimación con estados señuelo frente a la estimación conservadora sin señuelos, manteniendo igual intensidad de señal?
+\end{itemize}
+
+El aporte de esta etapa no es una cifra aislada. Se entrega un flujo auditable que conserva semillas, errores, bits, tiempos y clics de cada repetición; separa una métrica ideal de posprocesamiento de estimadores asintóticos bajo supuestos explícitos; aplica incertidumbre estadística acorde con cada variable; y contrasta la salida de SeQUeNCe con una referencia analítica externa. Esto permite informar resultados negativos y señalar regiones donde el modelo requiere una auditoría adicional, sin presentar esa referencia estadística como una ley física determinista.
+
+\section{Experimentos}
+
+\subsection*{SeQUeNCe y modelo Alice--Bob}
+
+Los experimentos se implementaron con SeQUeNCe 0.8.5, simulador de eventos discretos desarrollado para estudiar componentes, protocolos y redes cuánticas \cite{wu2021sequence}. Una línea temporal ordena emisiones, propagación, pérdidas, detecciones y mensajes clásicos. Alice contiene una fuente coherente débil y una instancia emisora de BB84. Bob contiene un receptor \textit{time-bin} con tres detectores: uno para medición temporal directa y dos a las salidas del interferómetro. Dos canales clásicos transportan coordinación y un canal cuántico transporta los pulsos.
+
+El repositorio usa una modificación local explícita en el archivo
+\begin{center}
+  \path{sequence/components/interferometer.py}.
+\end{center}
+Allí se corrigió la aplicación de \texttt{phase\_error} a estados \texttt{FreeQuantumState}. Es necesaria para representar visibilidad menor que uno y se registra en el resumen JSON. La versión efectiva es SeQUeNCe 0.8.5 más ese parche local.
+
+\begin{figure}[htbp]
+  \centering
+  \begin{tikzpicture}[
+    node distance=7mm and 9mm,
+    block/.style={draw, rounded corners=2pt, align=center, minimum height=10mm, text width=27mm},
+    flow/.style={-{Stealth[length=2mm]}, thick}
+  ]
+    \node[block] (source) {Alice\\fuente y BB84};
+    \node[block, right=of source] (fiber) {Fibra\\pérdida y retardo};
+    \node[block, right=of fiber] (switch) {Selección de base\\directa / interferométrica};
+    \node[block, below right=7mm and -4mm of switch] (direct) {Detector directo\\temprano / tardío};
+    \node[block, above right=7mm and -4mm of switch] (mzi) {Interferómetro\\dos detectores};
+    \draw[flow] (source) -- (fiber);
+    \draw[flow] (fiber) -- (switch);
+    \draw[flow] (switch) -- (direct);
+    \draw[flow] (switch) -- (mzi);
+  \end{tikzpicture}
+  \caption{Modelo del receptor \textit{time-bin}. Un observador agregado al experimento conserva el número de clics aceptados aunque SeQUeNCe limpie sus búferes temporales durante el tamizado.}
+  \label{fig:p3_receiver}
+\end{figure}
+
+\subsection*{Métricas y referencia analítica}
+
+Para una longitud \(L\) y atenuación \(\alpha\) en dB/km, la transmitancia es
+
+\begin{equation}
+  \eta_{\mathrm{ch}}=10^{-\alpha L/10}.
+\end{equation}
+
+La referencia analítica distingue señal y fondo. Para tres detectores, tasa oscura \(d\) y ventana efectiva \(\tau_g=\SI{1}{\nano\second}\), el rendimiento de fondo por pulso se modela como
+
+\begin{equation}
+  Y_0=1-\exp(-3d\tau_g).
+\end{equation}
+
+La ganancia total para intensidad media \(\mu\) es
+
+\begin{equation}
+  Q_\mu=1-(1-Y_0)\exp(-\mu\eta_{\mathrm{ch}}\eta_d).
+  \label{eq:gain}
+\end{equation}
+
+Con elección uniforme de bases, \(q=1/2\), se construye la tasa de referencia
+
+\begin{equation}
+  R_{\mathrm{ref}}
+  =q\min\{f_{\mathrm{rep}}Q_\mu,3R_{\mathrm{max,det}}\}.
+  \label{eq:analytical-reference}
+\end{equation}
+
+La expresión representa una disponibilidad media esperada de clics tamizados bajo supuestos favorables. No es un máximo determinista: una realización finita puede quedar por encima o por debajo. El diagnóstico empleado compara el extremo superior del IC del 95\,\% de la media simulada con \(R_{\mathrm{ref}}\). Si todo el intervalo queda por debajo, se informa \emph{holgura confirmada}; si lo alcanza, se marca el punto para auditar temporización y contabilidad. Ninguno de los dos casos valida por sí solo el enlace ni constituye una prueba de seguridad.
+
+La QBER se calcula agrupando errores y bits de las repeticiones:
+
+\begin{equation}
+  E=\frac{\sum_j N_{\mathrm{error},j}}{\sum_j N_{\mathrm{tam},j}}.
+  \label{eq:qber}
+\end{equation}
+
+La tasa tamizada de cada repetición usa todos sus bits y el instante de la última clave:
+
+\begin{equation}
+  R_{\mathrm{tam},j}=\frac{N_{\mathrm{tam},j}}{t_{\mathrm{fin},j}-t_0}.
+  \label{eq:sifted-rate}
+\end{equation}
+
+Para los experimentos 1 a 3 se informa además el indicador ideal
+
+\begin{equation}
+  I_{\mathrm{ideal}}=R_{\mathrm{tam}}
+  \max\{0,1-f_{\mathrm{EC}}\hbin{E}-\hbin{E}\},
+  \qquad f_{\mathrm{EC}}=1{,}16.
+  \label{eq:ideal-indicator}
+\end{equation}
+
+Este indicador presupone BB84 monofotónico ideal. No es una cota de clave secreta para la fuente coherente débil de esos barridos, porque no ejecutan estimación señuelo. Se conserva para medir cómo QBER y temporización afectan un posprocesamiento idealizado. Su factor se anula en \(E\approx0{,}0981\), valor que tampoco se interpreta como umbral universal \cite{shorPreskill2000}.
+
+La Ecuación~\ref{eq:ideal-indicator} usa el QBER de bits como sustituto del error de fase, hipótesis de simetría propia de este indicador diagnóstico. SeQUeNCe descarta como inválidas las posiciones ambiguas con detecciones incompatibles; no se les asigna un bit favorable. La ventana de \SI{1}{\nano\second} se usa únicamente en el control analítico de fondo y no pretende describir una electrónica de compuerta ya calibrada.
+
+\subsection*{Cotas con y sin estados señuelo}
+
+El cuarto experimento usa la misma intensidad de señal \(\mu=0{,}1\) en ambas configuraciones y una intensidad señuelo \(\nu=0{,}05\). Sin señuelos, todos los pulsos multifotónicos se consideran comprometidos:
+
+\begin{equation}
+  P_{\geq2}(\mu)=1-e^{-\mu}(1+\mu),\qquad
+  Q_1^{L}=\max\{0,Q_\mu-P_{\geq2}(\mu)-e^{-\mu}Y_0\}.
+\end{equation}
+
+El error monofotónico y la tasa del caso sin señuelos se estiman mediante
+
+\begin{align}
+  e_{1,\mathrm{no}}^{U}
+    &=\min\!\left\{\frac{1}{2},\frac{E_\mu Q_\mu}{Q_1^{L}}\right\},\\
+  R_{\mathrm{no}}
+    &=\frac{f_{\mathrm{rep}}}{2}
+      \max\!\left\{0,-Q_\mu f_{\mathrm{EC}}\hbin{E_\mu}
+      +Q_1^{L}\left(1-\hbin{e_{1,\mathrm{no}}^{U}}\right)\right\},
+  \label{eq:no-decoy-rate}
+\end{align}
+
+con tasa nula cuando \(Q_1^L=0\). Este tratamiento asigna a un adversario todos los pulsos multifotónicos y no aprovecha una estimación separada del rendimiento monofotónico.
+
+Con estados señuelo se emplean \cite{loMaChen2005,maQiZhaoLo2005}
+
+\begin{align}
+  Y_1^{L}&=\frac{\mu}{\mu\nu-\nu^2}
+  \left[Q_\nu e^\nu-Q_\mu e^\mu\frac{\nu^2}{\mu^2}
+  -\frac{\mu^2-\nu^2}{\mu^2}Y_0\right],\\
+  e_1^{U}&=\frac{E_\nu Q_\nu e^\nu-e_0Y_0}{Y_1^{L}\nu},
+  \qquad e_0=\frac{1}{2},\\
+  Q_1^{L}&=\mu e^{-\mu}Y_1^{L}.
+\end{align}
+
+El estimador asintótico con señuelos es
+
+\begin{equation}
+  R_{\mathrm{decoy}}\geq\frac{f_{\mathrm{rep}}}{2}
+  \left[-Q_\mu f_{\mathrm{EC}}\hbin{E_\mu}
+  +Q_1^{L}(1-\hbin{e_1^{U}})\right].
+  \label{eq:decoy-rate}
+\end{equation}
+
+En este experimento, \(Y_0=\num{\PThreeDecoyVacuumYield}\) se deriva analíticamente de \SI{80}{\hertz}, tres detectores y una ventana supuesta de \SI{1}{\nano\second}. SeQUeNCe usa la misma tasa de conteos oscuros, pero el receptor simulado no implementa una compuerta electrónica de esa duración; por lo tanto, la ventana pertenece a la parte analítica del estimador híbrido. Las tasas de error provienen de cada corrida de SeQUeNCe y el error de fase se aproxima con su QBER agregada internamente, bajo una hipótesis explícita de simetría entre bases. Por ello, el resultado es asintótico y no una cota de seguridad componible. Si el numerador de \(e_1^U\) resulta no positivo por la combinación de muestra finita y ganancias analíticas, se adopta conservadoramente \(e_1^U=1/2\), en lugar de truncarlo a cero.
+
+\subsection*{Diseño estadístico y reproducibilidad}
+
+Cada punto se ejecuta con \PThreeRepetitions{} pares de semillas independientes y deterministas. Cada repetición genera claves de \PThreeKeyBits{} bits. Esto reúne 23.040 bits tamizados por punto en los barridos de tres claves y 30.720 bits en los de cuatro claves. Para QBER se usa un intervalo de Wilson del 95\,\% sobre errores y bits agrupados \cite{wilson1927}. Para tasas e indicadores se usa la media y un intervalo t de Student del 95\,\% entre repeticiones. Los efectos entre extremos se evalúan con diferencia de Welch; la tendencia de visibilidad, mediante regresión lineal con intervalo y valor \(p\) \cite{welch1947}. Estos intervalos cuantifican incertidumbre Monte Carlo, no seguridad de clave finita.
+
+Se exportan agregados por punto y una fila por repetición con semillas, claves, bits, errores, tiempo, tasa y clics por detector. En el caso señuelo esos campos se conservan por separado para \(\mu\) y \(\nu\). El resumen JSON registra fecha UTC, métodos, versión y hashes SHA-256 del script, el parche del interferómetro, la configuración del proyecto, las dependencias y cada conjunto de datos. Las cifras del documento provienen de \texttt{proyecto3\_results.tex}, generado en la misma corrida.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabularx}{\textwidth}{lXl}
+    \toprule
+    Parámetro & Función & Valor \\
+    \midrule
+    Frecuencia de pulsos & Ritmo de emisión de Alice & \SI{80}{\mega\hertz} \\
+    Atenuación de fibra & Pérdida distribuida & \SI{0.2}{\decibel\per\kilo\meter} \\
+    Longitud de clave & Bits por clave completada & \PThreeKeyBits{} bits \\
+    Repeticiones & Corridas independientes por punto & \PThreeRepetitions{} \\
+    Ventana analítica & Exposición usada para \(Y_0\) & \SI{1}{\nano\second} \\
+    Factor de tamizado & Bases compatibles & \(q=1/2\) \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Parámetros comunes y su interpretación.}
+  \label{tab:p3_global}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabularx}{\textwidth}{lYY}
+    \toprule
+    Barrido & Variable y rango & Condiciones principales \\
+    \midrule
+    Distancia & 14 puntos entre 1 y \SI{100}{\kilo\meter} & \(\eta_d=0{,}10\), \(V=0{,}98\), \(\mu=0{,}1\), \SI{100}{\hertz} oscuros \\
+    Eficiencia & 12 puntos entre 0,05 y 0,85 & \SI{5}{\kilo\meter}, \SI{100}{\hertz} oscuros, sin retardo adicional \\
+    Fondo & 12 puntos entre 1 y \SI{10000}{\hertz} & \SI{5}{\kilo\meter}, \(\eta_d=0{,}85\), sin retardo adicional \\
+    Visibilidad & 12 puntos entre 0,82 y 0,999 & \SI{30}{\kilo\meter}, \(\eta_d=0{,}15\), \SI{200}{\hertz} oscuros \\
+    Señuelos & 10 puntos entre 5 y \SI{90}{\kilo\meter} & \(\mu=0{,}1\) en ambos casos; \(\nu=0{,}05\), \(Y_0=\num{\PThreeDecoyVacuumYield}\) \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Configuración de los cuatro experimentos.}
+  \label{tab:p3_sweeps}
+\end{table}
+
+\begin{lstlisting}[language=bash, numbers=none, caption={Comando de reproducción de datos, figuras y macros LaTeX.}]
+uv run python experiments/proyecto3_simulation.py \
+  --repetitions 30 --workers 8
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Tasa agregada y referencia analítica.}]
+total_sifted_bits = n_keys * p.key_length
+elapsed_key_s = bb_a.last_key_time * 1e-12
+aggregate_sifted_rate = total_sifted_bits / elapsed_key_s
+
+y0 = background_yield(p.dark_count_hz, p.detection_window_ps)
+q_mu = wcs_gain(p.mean_photon_num, eta_ch,
+                p.detector_efficiency, y0)
+sifted_rate_reference = 0.5 * min(
+    p.frequency_hz * q_mu, 3 * p.count_rate_hz)
+\end{lstlisting}
+
+\subsection*{Procedimiento y expectativa}
+
+\textbf{Experimento 1: distancia.} Se modifica únicamente la longitud de fibra. Se espera que transmitancia y ganancia caigan exponencialmente. El propósito es localizar el intervalo de la grilla donde el IC del 95\,\% de la tasa tamizada comienza a alcanzar o exceder la Ecuación~\ref{eq:analytical-reference}. La transición se informa entre el último punto con holgura confirmada y el primero sin ella; no se interpreta como una frontera física.
+
+\textbf{Experimento 2: detector.} Se fija la distancia en \SI{5}{\kilo\meter} y se elimina el retardo clásico adicional para reducir su influencia. Primero se barre eficiencia y luego tasa de conteos oscuros. Para el segundo barrido se fija \(\eta_d=0{,}85\), lo que conserva holgura frente a la referencia analítica en todo el rango de fondo. Se espera mayor disponibilidad de clics al aumentar eficiencia y mayor error al aumentar fondo. Las conclusiones se basan en intervalos para diferencias, no en superposición visual de bandas.
+
+\textbf{Experimento 3: visibilidad.} Se fija la distancia en \SI{30}{\kilo\meter} y se impone \(p_{\mathrm{fase}}=(1-V)/2\). Se espera una pendiente negativa de QBER. Como la relación se introduce como entrada, es una prueba de sensibilidad interna, no una validación independiente de un interferómetro. El mismo diagnóstico de referencia se aplica a todos los puntos y condiciona la interpretación de las tasas, no la comprobación lógica de la respuesta de QBER.
+
+\textbf{Experimento 4: estados señuelo.} Los dos estimadores usan \(\mu=0{,}1\), por lo que la comparación aísla el método de estimación. Se espera que el caso sin señuelos se anule cuando no pueda acotarse una contribución monofotónica positiva después de descontar pulsos multifotónicos y fondo, mientras la estimación con \(\nu=0{,}05\) conserve información adicional sobre \(Y_1\).
+
+\section{Resultados de los experimentos}
+
+\subsection*{Distancia y referencia analítica}
+
+La Figura~\ref{fig:p3_exp1_distance} muestra la caída de ganancia y la QBER agrupada. El IC del 95\,\% deja de quedar completamente por debajo de la referencia entre \num{\PThreeTransitionLowKm} y \SI{\PThreeTransitionHighKm}{\kilo\meter}; en el segundo punto, el intervalo completo ya está por encima. Es una resolución de grilla y un diagnóstico del modelo, no una distancia límite del sistema.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.96\textwidth]{exp1_distance_sweep.png}
+  \caption{QBER agrupada con intervalo de Wilson del 95\,\% y ganancia total analítica. La zona roja comienza donde el IC de la tasa tamizada alcanza la referencia analítica.}
+  \label{fig:p3_exp1_distance}
+\end{figure}
+
+En \SI{\PThreeTransitionLowKm}{\kilo\meter}, último punto con holgura confirmada, la QBER es \num{\PThreeDistanceQberPct}\,\% (IC 95\,\%: \num{\PThreeDistanceQberLowPct}--\num{\PThreeDistanceQberHighPct}\,\%). La tasa tamizada es \SI[round-mode=places,round-precision=1]{\PThreeDistanceSiftKbps}{\kilo bit\per\second} (IC 95\,\%: \num[round-mode=places,round-precision=1]{\PThreeDistanceSiftLowKbps}--\num[round-mode=places,round-precision=1]{\PThreeDistanceSiftHighKbps}\,kbit/s), frente a una referencia de \SI[round-mode=places,round-precision=1]{\PThreeDistanceReferenceKbps}{\kilo bit\per\second}. En el punto siguiente, el extremo superior de tasa es \SI[round-mode=places,round-precision=1]{\PThreeOverlapSiftHighKbps}{\kilo bit\per\second} y la referencia es \SI[round-mode=places,round-precision=1]{\PThreeOverlapReferenceKbps}{\kilo bit\per\second}; también el extremo inferior queda por encima. Esto no viola una cota física: señala una diferencia sistemática entre la referencia media y la temporización contabilizada que debe auditarse antes de extrapolar.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{exp1_skr_distance.png}
+  \caption{Indicador ideal frente a distancia. No es una tasa secreta para la fuente coherente débil; muestra la respuesta combinada de tasa tamizada y QBER bajo el supuesto monofotónico ideal.}
+  \label{fig:p3_exp1_indicator}
+\end{figure}
+
+El valor de \(I_{\mathrm{ideal}}\) en el último punto con holgura confirmada es \SI{\PThreeDistanceIdealKbps}{\kilo bit\per\second}. No se usa como evidencia de seguridad: la contribución multifotónica debe tratarse mediante un estimador específico.
+
+\subsection*{Sensibilidad del detector}
+
+El subconjunto con holgura confirmada abarca eficiencias desde \num{\PThreeEffFirst} hasta \num{\PThreeEffLast}. En esos extremos, el indicador toma \num{\PThreeEffFirstKbps} y \SI{\PThreeEffLastKbps}{\kilo bit\per\second}, respectivamente. El contraste se resume como
+\[
+  \begin{aligned}
+    \Delta I&=\SI{\PThreeEffDifferenceKbps}{\kilo bit\per\second},\\
+    \mathrm{IC}_{95}&=[\num{\PThreeEffDifferenceLowKbps};
+      \num{\PThreeEffDifferenceHighKbps}]\ \text{kbit/s},\\
+    p&=\num{\PThreeEffPValue}.
+  \end{aligned}
+\]
+El intervalo incluye cero y el valor \(p\) es mayor que 0,05. Por lo tanto, dentro del subconjunto con holgura frente a la referencia no se resuelve una diferencia entre los extremos de eficiencia.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.96\textwidth]{exp2_detector_sensitivity.png}
+  \caption{QBER e indicador ideal frente a eficiencia y conteos oscuros a \SI{5}{\kilo\meter}. Las cruces identifican puntos sin holgura confirmada frente a la referencia analítica. Los ejes de QBER se ajustan al rango observado.}
+  \label{fig:p3_exp2_detector}
+\end{figure}
+
+En el barrido de fondo, la QBER cambia de \num{\PThreeDarkFirstQberPct}\,\% a \num{\PThreeDarkLastQberPct}\,\% entre 1 y \SI{10000}{\hertz}. La diferencia del indicador es \SI{\PThreeDarkDifferenceKbps}{\kilo bit\per\second}, con IC 95\,\% \([\num{\PThreeDarkDifferenceLowKbps};\num{\PThreeDarkDifferenceHighKbps}]\) kbit/s y \(p=\num{\PThreeDarkPValue}\). Este intervalo también incluye cero: el experimento no resuelve degradación en el rango ensayado. Esto no demuestra inmunidad al fondo; indica que la abstracción temporal y el tamaño de señal dominan la salida. Los clics por detector quedan disponibles para estudiar ventanas, saturación y composición señal--fondo.
+
+\subsection*{Visibilidad interferométrica}
+
+Al aumentar la visibilidad, QBER disminuye y el indicador ideal aumenta. Los extremos son
+\[
+  \begin{aligned}
+    E(0{,}82)&=\SI{\PThreeVisibilityFirstQberPct}{\percent},&
+    E(0{,}999)&=\SI{\PThreeVisibilityLastQberPct}{\percent},\\
+    I(0{,}82)&=\num{\PThreeVisibilityFirstIdealKbps}\ \text{kbit/s},&
+    I(0{,}999)&=\num{\PThreeVisibilityLastIdealKbps}\ \text{kbit/s}.
+  \end{aligned}
+\]
+
+La regresión sobre corridas queda resumida por
+\[
+  \begin{aligned}
+    \hat{\beta}_{E,V}&=\num{\PThreeVisibilityQberSlope},&
+    \mathrm{IC}_{95}&=[\num{\PThreeVisibilityQberSlopeLow};
+      \num{\PThreeVisibilityQberSlopeHigh}],\\
+    r&=\num{\PThreeVisibilityCorrelation},&
+    p&<0{,}001.
+  \end{aligned}
+\]
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.96\textwidth]{exp3_visibility.png}
+  \caption{Respuesta del modelo a la visibilidad a \SI{30}{\kilo\meter}. QBER usa intervalo de Wilson; el indicador usa intervalo t entre repeticiones. Las cruces señalan ausencia de holgura frente a la referencia analítica.}
+  \label{fig:p3_exp3_visibility}
+\end{figure}
+
+La tendencia es coherente con la relación impuesta \(p_{\mathrm{fase}}=(1-V)/2\). Verifica la propagación lógica del parámetro, pero no demuestra estabilidad térmica, balance de caminos ni visibilidad alcanzable en hardware. En los \PThreeVisibilityNoMarginPoints{} niveles ensayados, el IC de tasa no queda por debajo de la referencia. Por eso se conserva la pendiente de QBER como prueba interna, mientras el indicador de tasa se presenta sólo como diagnóstico y no como evidencia cuantitativa de factibilidad.
+
+\subsection*{Comparación con estados señuelo}
+
+A \SI{5}{\kilo\meter}, la estimación sin señuelos es \SI{\PThreeNoDecoyFiveKbps}{\kilo bit\per\second} y la estimación con señuelos es \SI{\PThreeDecoyFiveKbps}{\kilo bit\per\second}. Cerca de \SI{24}{\kilo\meter}, la primera vale \SI{\PThreeNoDecoyTwentyFourKbps}{\kilo bit\per\second}, mientras la estimación decoy conserva \SI{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second}. A \SI{90}{\kilo\meter}, esta última es \SI{\PThreeDecoyNinetyKbps}{\kilo bit\per\second} bajo el modelo asintótico; \PThreeDecoyNinetyFallbacks{} de \PThreeRepetitions{} repeticiones activan el reemplazo conservador \(e_1^U=1/2\). En el barrido completo, el fallback aparece en \PThreeDecoyFallbackTotal{} de 300 corridas, distribuidas en \PThreeDecoyFallbackDistances{} de las 10 distancias. Esta frecuencia explica parte de la dispersión y limita la lectura de la media.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.9\textwidth]{exp4_decoy_impact.png}
+  \caption{Estimadores asintóticos sin y con estados señuelo, ambos con \(\mu=0{,}1\). La configuración señuelo usa \(\nu=0{,}05\) y \(Y_0=\num{\PThreeDecoyVacuumYield}\), derivado del mismo modelo de fondo.}
+  \label{fig:p3_exp4_decoy}
+\end{figure}
+
+La diferencia proviene de estimar \(Y_1\) y \(e_1\), no de aumentar la intensidad. La curva no certifica claves: las ganancias son analíticas, los errores son simulados, el error de fase usa la hipótesis de simetría y no hay tratamiento de clave finita.
+
+\subsection*{Síntesis y trazabilidad}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabularx}{\textwidth}{lYY}
+    \toprule
+    Experimento & Resultado & Interpretación defendible \\
+    \midrule
+    Distancia & Transición entre \num{\PThreeTransitionLowKm} y \SI{\PThreeTransitionHighKm}{\kilo\meter} & Cambio de holgura estadística; no fija alcance QKD. \\
+    Eficiencia & Diferencia \SI{\PThreeEffDifferenceKbps}{\kilo bit\per\second}, con IC y \(p\) & El efecto se juzga por contraste y referencia. \\
+    Fondo & QBER \num{\PThreeDarkFirstQberPct}--\num{\PThreeDarkLastQberPct}\,\% & Ventanas y clics permiten auditar su observabilidad. \\
+    Visibilidad & Pendiente QBER \num{\PThreeVisibilityQberSlope} & Sensibilidad al error impuesto, no desempeño físico. \\
+    Señuelos & Comparación con igual \(\mu\) & Ventaja de la estimación monofotónica bajo supuestos. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Resultados principales y límites de interpretación.}
+  \label{tab:p3_results}
+\end{table}
+
+Los cuatro CSV agregados, cuatro CSV de corridas, el resumen JSON, las cinco figuras y las macros LaTeX se generan juntos. El script verifica orden de intervalos, \(I_{\mathrm{ideal}}\leq R_{\mathrm{tam}}\), la definición de holgura frente a la referencia, ganancias en \([0,1]\), contabilidad de clics y límites del estimador decoy. La compilación posterior de LaTeX incorpora esas macros al PDF; es un paso reproducible pero separado del simulador. La trazabilidad permite recalcular intervalos sin repetir la simulación.
+
+\section{Conclusiones}
+
+La hipótesis se sostiene con alcance preciso: la simulación de eventos discretos es útil para convertir el diseño de un banco QKD en preguntas medibles y detectar cuándo una salida exige revisar los supuestos. No se obtuvo una certificación criptográfica ni una distancia máxima. Se obtuvo un procedimiento reproducible para distinguir comportamiento interno, referencias analíticas de diseño y estimadores asintóticos bajo modelos específicos.
+
+El barrido de distancia identifica entre \num{\PThreeTransitionLowKm} y \SI{\PThreeTransitionHighKm}{\kilo\meter} el paso desde un IC completamente por debajo de la referencia hasta otro completamente por encima. Los puntos posteriores se conservan para estudiar temporización, detección y contabilización. La transición no es una violación física ni una frontera de factibilidad; informar el intervalo evita atribuir precisión continua a una grilla discreta.
+
+El experimento de detector fue reformulado para reducir el retardo adicional, registrar clics y evaluar diferencias directamente. Los dos intervalos entre extremos incluyen cero, de modo que esta configuración no resuelve los efectos de eficiencia ni fondo; ello no vuelve irrelevantes a los componentes. Una caracterización de hardware deberá separar clics de señal y fondo, incorporar ventanas medidas, tiempo muerto, \textit{jitter} y pérdidas internas.
+
+El barrido de visibilidad muestra una pendiente negativa de QBER cuantificada. Era esperable porque el error de fase se deriva de \(V\); el aporte es verificar que la dependencia se propaga correctamente por el modelo. Los doce niveles carecen de holgura confirmada frente a la referencia de tasa, por lo que el resultado cuantitativo defendible es la sensibilidad de QBER y no el valor absoluto del indicador. El laboratorio deberá sustituir la relación impuesta por mediciones de deriva térmica, desbalance óptico y estabilidad temporal.
+
+La comparación de señuelos corrige tres ambigüedades. Las ganancias analíticas usan un único fondo derivado de conteos oscuros y una ventana supuesta; el caso sin señuelos descuenta también la contribución de vacío; y un numerador no positivo en \(e_1^U\) activa el valor conservador \(1/2\). Además, ambas configuraciones comparten \(\mu=0{,}1\), por lo que la diferencia no se atribuye a potencia distinta. El resultado explica la utilidad de estimar la contribución monofotónica, aunque sigue limitado por su carácter asintótico, híbrido y no componible.
+
+En relación con Proyecto 3, el avance verificable es:
+
+\begin{itemize}
+  \item un enlace Alice--Bob BB84 \textit{time-bin} documentado en SeQUeNCe;
+  \item separación entre indicador monofotónico ideal y estimadores para fuente coherente débil;
+  \item \PThreeRepetitions{} repeticiones por punto con intervalos adecuados a QBER, tasas y efectos;
+  \item resultados individuales, semillas, errores, tiempos y clics por detector;
+  \item fondo, ventana, tamizado y límite de conteo en una referencia analítica explícita;
+  \item comparación señuelo con igual intensidad y fórmulas consistentes;
+  \item generación conjunta de datos, figuras y macros, seguida de compilación reproducible del PDF.
+\end{itemize}
+
+Los próximos pasos son implementar elección de intensidades dentro del protocolo, separar estadísticas por base, analizar clave finita, modelar autenticación y posprocesamiento, calibrar pérdidas y ventanas con datos de laboratorio, y comparar con un receptor real. Hasta entonces, las tasas decoy son estimadores asintóticos de diseño y \(I_{\mathrm{ideal}}\) es un indicador diagnóstico, nunca una clave certificada.
+
+\bibliographystyle{ieeetr}
+\bibliography{references}
+
+\end{document}

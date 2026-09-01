@@ -5,6 +5,7 @@ Esta carpeta contiene un trabajo técnico en LaTeX para el Proyecto Final Integr
 ## Estructura
 
 - `main.tex`: archivo principal.
+- `proyecto3.tex`: entrega abreviada de Proyecto 3.
 - `references.bib`: bibliografía.
 - `chapters/`: capítulos y apéndices.
 - `assets/`: imágenes conceptuales generadas para el trabajo.
@@ -32,4 +33,10 @@ En este entorno también se puede compilar con Tectonic:
 
 ```bash
 tectonic --keep-logs main.tex
+```
+
+La entrega abreviada se compila por separado:
+
+```bash
+tectonic --keep-logs proyecto3.tex
 ```

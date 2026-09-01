@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f1e9">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <title>QKD · Ruta guiada</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="site-header">
+        <a class="brand" href="#/" aria-label="Ir al inicio de la ruta guiada">
+          <span class="brand-mark" aria-hidden="true">Q</span>
+          <span><strong>QKD / Ruta guiada</strong><small>preparación para defensa</small></span>
+        </a>
+        <nav class="primary-nav" aria-label="Navegación principal">
+          <a href="#/">Inicio</a>
+          <a href="#/history">Historial</a>
+          <a href="#/defense">Defensa</a>
+        </nav>
+        <div class="connection-state" id="connection-state" aria-live="polite"><span class="state-dot"></span> conectando</div>
+      </header>
+      <main id="app" tabindex="-1">
+        <div class="loading-state"><span class="spinner" aria-hidden="true"></span><p>Cargando tu ruta...</p></div>
+      </main>
+      <footer class="site-footer"><span>Contenido académico en <code>study/</code></span><span>Respuestas privadas en <code>.study_state/</code></span></footer>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

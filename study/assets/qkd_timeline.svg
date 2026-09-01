@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760" role="img" aria-labelledby="title desc">
+  <title id="title">Timeline de QKD</title>
+  <desc id="desc">Timeline from Wiesner and BB84 to twin-field QKD, satellite QKD, integrated photonics and device-independent QKD.</desc>
+  <style>
+    .bg { fill: #fffdf7; }
+    .title { font: 700 32px Arial, sans-serif; fill: #111827; }
+    .sub { font: 400 15px Arial, sans-serif; fill: #475467; }
+    .axis { stroke: #111827; stroke-width: 4; stroke-linecap: round; }
+    .tick { stroke: #111827; stroke-width: 3; }
+    .card { fill: #ffffff; stroke: #667085; stroke-width: 1.8; rx: 12; }
+    .blue { fill: #e0f2fe; stroke: #0369a1; }
+    .green { fill: #ecfdf3; stroke: #15803d; }
+    .orange { fill: #fff7ed; stroke: #c2410c; }
+    .red { fill: #fff1f2; stroke: #be123c; }
+    .purple { fill: #f5f3ff; stroke: #6d28d9; }
+    .year { font: 700 16px Arial, sans-serif; fill: #111827; }
+    .label { font: 700 14px Arial, sans-serif; fill: #111827; }
+    .small { font: 400 12px Arial, sans-serif; fill: #344054; }
+  </style>
+  <rect class="bg" width="1400" height="760"/>
+  <text x="60" y="58" class="title">Timeline conceptual de QKD</text>
+  <text x="60" y="88" class="sub">De la teorizacion a redes hibridas, TF-QKD, satelites pequenos, chips fotonicos y DI-QKD.</text>
+
+  <line x1="95" y1="385" x2="1305" y2="385" class="axis"/>
+
+  <g transform="translate(120 385)">
+    <line y1="-12" y2="12" class="tick"/>
+    <rect x="-75" y="-170" width="150" height="105" class="card blue"/>
+    <text x="0" y="-138" text-anchor="middle" class="year">c. 1970 / 1983</text>
+    <text x="0" y="-111" text-anchor="middle" class="label">Wiesner</text>
+    <text x="0" y="-88" text-anchor="middle" class="small">conjugate coding</text>
+  </g>
+  <g transform="translate(245 385)">
+    <line y1="-12" y2="12" class="tick"/>
+    <rect x="-75" y="55" width="150" height="105" class="card green"/>
+    <text x="0" y="87" text-anchor="middle" class="year">1984</text>
+    <text x="0" y="114" text-anchor="middle" class="label">BB84</text>
+    <text x="0" y="137" text-anchor="middle" class="small">primer protocolo</text>
+  </g>
+  <g transform="translate(370 385)">
+    <line y1="-12" y2="12" class="tick"/>
+    <rect x="-75" y="-170" width="150" height="105" class="card purple"/>
+    <text x="0" y="-138" text-anchor="middle" class="year">1991-1992</text>
+    <text x="0" y="-111" text-anchor="middle" class="label">E91 / B92</text>
+    <text x="0" y="-88" text-anchor="middle" class="small">entanglement y demo</text>
+  </g>
+  <g transform="translate(505 385)">
+    <line y1="-12" y2="12" class="tick"/>
+    <rect x="-75" y="55" width="150" height="105" class="card orange"/>
+    <text x="0" y="87" text-anchor="middle" class="year">2003-2005</text>
+    <text x="0" y="114" text-anchor="middle" class="label">Decoy states</text>
+    <text x="0" y="137" text-anchor="middle" class="small">laser debil practico</text>
+  </g>
+  <g transform="translate(640 385)">
+    <line y1="-12" y2="12" class="tick"/>
+    <rect x="-75" y="-170" width="150" height="105" class="card blue"/>
+    <text x="0" y="-138" text-anchor="middle" class="year">2012</text>
+    <text x="0" y="-111" text-anchor="middle" class="label">MDI-QKD</text>
+    <text x="0" y="-88" text-anchor="middle" class="small">detectores no confiables</text>
+  </g>
+  <g transform="translate(775 385)">
+    <line y1="-12" y2="12" class="tick"/>
+    <rect x="-75" y="55" width="150" height="105" class="card purple"/>
+    <text x="0" y="87" text-anchor="middle" class="year">2017</text>
+    <text x="0" y="114" text-anchor="middle" class="label">PLOB / Micius</text>
+    <text x="0" y="137" text-anchor="middle" class="small">limite y satelite</text>
+  </g>
+  <g transform="translate(910 385)">
+    <line y1="-12" y2="12" class="tick"/>
+    <rect x="-75" y="-170" width="150" height="105" class="card red"/>
+    <text x="0" y="-138" text-anchor="middle" class="year">2018</text>
+    <text x="0" y="-111" text-anchor="middle" class="label">TF-QKD</text>
+    <text x="0" y="-88" text-anchor="middle" class="small">sqrt(eta)</text>
+  </g>
+  <g transform="translate(1045 385)">
+    <line y1="-12" y2="12" class="tick"/>
+    <rect x="-75" y="55" width="150" height="105" class="card green"/>
+    <text x="0" y="87" text-anchor="middle" class="year">2021-2023</text>
+    <text x="0" y="114" text-anchor="middle" class="label">4600 km / 1000 km</text>
+    <text x="0" y="137" text-anchor="middle" class="small">redes y TF fibra</text>
+  </g>
+  <g transform="translate(1180 385)">
+    <line y1="-12" y2="12" class="tick"/>
+    <rect x="-75" y="-170" width="150" height="105" class="card orange"/>
+    <text x="0" y="-138" text-anchor="middle" class="year">2025</text>
+    <text x="0" y="-111" text-anchor="middle" class="label">Telecom + sat</text>
+    <text x="0" y="-88" text-anchor="middle" class="small">red real y microsat</text>
+  </g>
+  <g transform="translate(1300 385)">
+    <line y1="-12" y2="12" class="tick"/>
+    <rect x="-95" y="55" width="190" height="105" class="card red"/>
+    <text x="0" y="87" text-anchor="middle" class="year">2026</text>
+    <text x="0" y="114" text-anchor="middle" class="label">chips + DI 100 km</text>
+    <text x="0" y="137" text-anchor="middle" class="small">escala e independencia</text>
+  </g>
+</svg>

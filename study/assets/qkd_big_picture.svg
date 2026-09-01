@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">QKD big picture</title>
+  <desc id="desc">Alice and Bob use a quantum channel plus an authenticated classical channel to distill a shared secret key while an eavesdropper creates detectable disturbance.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f4e79"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#b23a48"/>
+    </marker>
+    <style>
+      .bg { fill: #fbfbf8; }
+      .title { font: 700 30px Arial, sans-serif; fill: #1f2933; }
+      .subtitle { font: 400 16px Arial, sans-serif; fill: #4b5563; }
+      .label { font: 700 18px Arial, sans-serif; fill: #17202a; }
+      .small { font: 400 14px Arial, sans-serif; fill: #344054; }
+      .tiny { font: 400 12px Arial, sans-serif; fill: #475467; }
+      .box { fill: #ffffff; stroke: #344054; stroke-width: 2; rx: 10; }
+      .alice { fill: #e7f1ff; stroke: #1f4e79; }
+      .bob { fill: #e9f8ef; stroke: #287a4f; }
+      .eve { fill: #fff0f3; stroke: #b23a48; }
+      .process { fill: #fff7dc; stroke: #a86f00; }
+      .line { stroke: #1f4e79; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .line2 { stroke: #287a4f; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .red { stroke: #b23a48; stroke-width: 3; fill: none; marker-end: url(#arrowRed); stroke-dasharray: 7 7; }
+      .dash { stroke-dasharray: 8 8; }
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="680"/>
+  <text x="60" y="54" class="title">QKD en una imagen</text>
+  <text x="60" y="84" class="subtitle">El canal cuantico crea correlaciones detectables; el canal clasico autenticado convierte esas correlaciones en una clave secreta.</text>
+
+  <rect x="70" y="155" width="190" height="140" class="box alice"/>
+  <text x="165" y="193" text-anchor="middle" class="label">Alice</text>
+  <text x="165" y="224" text-anchor="middle" class="small">Prepara estados</text>
+  <text x="165" y="246" text-anchor="middle" class="small">cuanticos aleatorios</text>
+  <text x="165" y="268" text-anchor="middle" class="tiny">bases, bits, decoys</text>
+
+  <rect x="940" y="155" width="190" height="140" class="box bob"/>
+  <text x="1035" y="193" text-anchor="middle" class="label">Bob</text>
+  <text x="1035" y="224" text-anchor="middle" class="small">Mide estados</text>
+  <text x="1035" y="246" text-anchor="middle" class="small">en bases aleatorias</text>
+  <text x="1035" y="268" text-anchor="middle" class="tiny">detecciones, errores</text>
+
+  <rect x="500" y="130" width="200" height="90" class="box"/>
+  <text x="600" y="166" text-anchor="middle" class="label">Canal cuantico</text>
+  <text x="600" y="195" text-anchor="middle" class="small">fotones / pulsos debiles</text>
+  <path d="M 260 210 C 360 170, 420 170, 500 176" class="line"/>
+  <path d="M 700 176 C 780 170, 840 170, 940 210" class="line"/>
+
+  <rect x="500" y="280" width="200" height="100" class="box eve"/>
+  <text x="600" y="315" text-anchor="middle" class="label">Eve</text>
+  <text x="600" y="344" text-anchor="middle" class="small">Si mide o manipula,</text>
+  <text x="600" y="366" text-anchor="middle" class="small">sube el QBER</text>
+  <path d="M 600 280 C 590 250, 590 235, 600 220" class="red"/>
+
+  <path d="M 260 360 C 450 430, 750 430, 940 360" class="line2 dash"/>
+  <text x="600" y="450" text-anchor="middle" class="label">Canal clasico autenticado</text>
+  <text x="600" y="476" text-anchor="middle" class="small">publico, pero no modificable por Eve sin ser detectada</text>
+
+  <g transform="translate(95 530)">
+    <rect x="0" y="0" width="155" height="70" class="box process"/>
+    <text x="77" y="30" text-anchor="middle" class="small">1. Sifting</text>
+    <text x="77" y="52" text-anchor="middle" class="tiny">descartar bases</text>
+  </g>
+  <g transform="translate(285 530)">
+    <rect x="0" y="0" width="155" height="70" class="box process"/>
+    <text x="77" y="30" text-anchor="middle" class="small">2. Estimar QBER</text>
+    <text x="77" y="52" text-anchor="middle" class="tiny">detectar espionaje</text>
+  </g>
+  <g transform="translate(475 530)">
+    <rect x="0" y="0" width="155" height="70" class="box process"/>
+    <text x="77" y="30" text-anchor="middle" class="small">3. Reconciliar</text>
+    <text x="77" y="52" text-anchor="middle" class="tiny">corregir errores</text>
+  </g>
+  <g transform="translate(665 530)">
+    <rect x="0" y="0" width="175" height="70" class="box process"/>
+    <text x="87" y="30" text-anchor="middle" class="small">4. Privacy amp.</text>
+    <text x="87" y="52" text-anchor="middle" class="tiny">reducir info de Eve</text>
+  </g>
+  <g transform="translate(875 530)">
+    <rect x="0" y="0" width="210" height="70" class="box bob"/>
+    <text x="105" y="30" text-anchor="middle" class="small">Clave secreta final</text>
+    <text x="105" y="52" text-anchor="middle" class="tiny">simetrica y compartida</text>
+  </g>
+</svg>

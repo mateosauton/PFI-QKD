@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Mapa de familias QKD</title>
+  <desc id="desc">Taxonomy of QKD protocol families: discrete-variable, continuous-variable, MDI, twin-field, device-independent, satellite and trusted-node networks.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475467"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px Arial, sans-serif; fill: #111827; }
+      .sub { font: 400 15px Arial, sans-serif; fill: #4b5563; }
+      .node { fill: #ffffff; stroke: #334155; stroke-width: 2; rx: 12; }
+      .main { fill: #e0f2fe; stroke: #0369a1; }
+      .dv { fill: #ecfdf3; stroke: #15803d; }
+      .cv { fill: #fff7ed; stroke: #c2410c; }
+      .net { fill: #f5f3ff; stroke: #6d28d9; }
+      .frontier { fill: #fff1f2; stroke: #be123c; }
+      .label { font: 700 17px Arial, sans-serif; fill: #111827; }
+      .small { font: 400 13px Arial, sans-serif; fill: #344054; }
+      .line { stroke: #475467; stroke-width: 2.2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="760"/>
+  <text x="60" y="52" class="title">Mapa mental de QKD</text>
+  <text x="60" y="82" class="sub">QKD no es un unico protocolo: es una familia de arquitecturas con distintos supuestos de hardware, distancia y confianza.</text>
+
+  <rect x="470" y="120" width="260" height="86" class="node main"/>
+  <text x="600" y="156" text-anchor="middle" class="label">QKD</text>
+  <text x="600" y="182" text-anchor="middle" class="small">distribucion cuantica de claves</text>
+
+  <rect x="90" y="285" width="230" height="105" class="node dv"/>
+  <text x="205" y="323" text-anchor="middle" class="label">DV-QKD</text>
+  <text x="205" y="350" text-anchor="middle" class="small">bits en polarizacion, fase,</text>
+  <text x="205" y="371" text-anchor="middle" class="small">time-bin o path</text>
+
+  <rect x="360" y="285" width="230" height="105" class="node dv"/>
+  <text x="475" y="323" text-anchor="middle" class="label">MDI-QKD</text>
+  <text x="475" y="350" text-anchor="middle" class="small">detectores en nodo central</text>
+  <text x="475" y="371" text-anchor="middle" class="small">no confiable</text>
+
+  <rect x="630" y="285" width="230" height="105" class="node frontier"/>
+  <text x="745" y="323" text-anchor="middle" class="label">TF-QKD</text>
+  <text x="745" y="350" text-anchor="middle" class="small">interferencia central</text>
+  <text x="745" y="371" text-anchor="middle" class="small">escala como sqrt(eta)</text>
+
+  <rect x="900" y="285" width="230" height="105" class="node cv"/>
+  <text x="1015" y="323" text-anchor="middle" class="label">CV-QKD</text>
+  <text x="1015" y="350" text-anchor="middle" class="small">cuadraturas medidas con</text>
+  <text x="1015" y="371" text-anchor="middle" class="small">homodino / heterodino</text>
+
+  <rect x="135" y="475" width="230" height="105" class="node net"/>
+  <text x="250" y="513" text-anchor="middle" class="label">Satelital</text>
+  <text x="250" y="540" text-anchor="middle" class="small">downlink, uplink,</text>
+  <text x="250" y="561" text-anchor="middle" class="small">trusted relay o entanglement</text>
+
+  <rect x="485" y="475" width="230" height="105" class="node net"/>
+  <text x="600" y="513" text-anchor="middle" class="label">Redes hibridas</text>
+  <text x="600" y="540" text-anchor="middle" class="small">fibra + nodos confiables</text>
+  <text x="600" y="561" text-anchor="middle" class="small">+ satelites</text>
+
+  <rect x="835" y="475" width="230" height="105" class="node frontier"/>
+  <text x="950" y="513" text-anchor="middle" class="label">DI-QKD</text>
+  <text x="950" y="540" text-anchor="middle" class="small">seguridad via Bell</text>
+  <text x="950" y="561" text-anchor="middle" class="small">minima confianza en equipo</text>
+
+  <path d="M 520 205 C 390 245, 285 255, 220 285" class="line"/>
+  <path d="M 565 206 C 535 250, 500 255, 480 285" class="line"/>
+  <path d="M 635 206 C 670 250, 715 255, 740 285" class="line"/>
+  <path d="M 690 205 C 815 245, 930 255, 1000 285" class="line"/>
+  <path d="M 340 385 C 300 420, 270 440, 255 475" class="line"/>
+  <path d="M 600 206 C 600 300, 600 405, 600 475" class="line"/>
+  <path d="M 850 385 C 900 420, 930 440, 945 475" class="line"/>
+
+  <text x="250" y="626" text-anchor="middle" class="label">Protocolos base</text>
+  <text x="250" y="650" text-anchor="middle" class="small">BB84, B92, E91 y decoy-state</text>
+  <text x="600" y="626" text-anchor="middle" class="label">Escala de red</text>
+  <text x="600" y="650" text-anchor="middle" class="small">fibra, satelites y nodos confiables</text>
+  <text x="950" y="626" text-anchor="middle" class="label">Frontera experimental</text>
+  <text x="950" y="650" text-anchor="middle" class="small">TF-QKD y DI-QKD</text>
+</svg>

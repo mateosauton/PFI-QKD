@@ -41,6 +41,20 @@ uv run python experiments/qkd_2node_simulation.py
 
 Note: the combined runner uses experiment 2 **step 1 only** for speed. Use `exp2_detector_sensitivity.py --step all` for steps 1–3; add `--step 4` separately if needed.
 
+## Reproduce Proyecto 3
+
+The shortened Proyecto 3 document uses a frozen, auditable four-sweep pipeline
+with 30 deterministic repetitions per point, statistical intervals, per-run
+CSV exports, figures, LaTeX macros, and SHA-256 metadata:
+
+```bash
+uv run python experiments/proyecto3_simulation.py --repetitions 30 --workers 8
+```
+
+This pipeline treats the 1 ns gate as an analytical assumption; the SeQUeNCe
+receiver does not implement that electronic gate. Its outputs are written to
+`experiments/results/` and consumed by `paper/proyecto3.tex`.
+
 ## Figures
 
 Written to `experiments/results/` (PNG).

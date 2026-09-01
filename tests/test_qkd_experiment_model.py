@@ -49,3 +49,25 @@ def test_decoy_y1_lower_is_clamped_to_a_physical_yield():
         y0=0.0,
     )
     assert 0.0 <= result <= 1.0
+
+
+def test_decoy_e1_upper_is_clamped_to_physical_error_bounds():
+    negative_numerator = decoy_e1_upper(
+        e_nu=0.0,
+        q_nu=0.0014,
+        e0=0.5,
+        y0=1e-6,
+        y1=0.0064,
+        nu=0.2,
+    )
+    above_half = decoy_e1_upper(
+        e_nu=1.0,
+        q_nu=0.0014,
+        e0=0.0,
+        y0=0.0,
+        y1=0.0064,
+        nu=0.2,
+    )
+
+    assert negative_numerator == pytest.approx(0.0)
+    assert above_half == pytest.approx(0.5)

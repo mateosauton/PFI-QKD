@@ -41,6 +41,21 @@
     "scope": "asymptotic hybrid estimator; not a composable finite-key bound",
     "vacuum_yield_model": "three detectors times accepted detection window and dark-count rate"
   },
+  "derived_export_provenance": {
+    "commit": "4410ef1fc809201ee1db93e16e360c272a1a33fb",
+    "simulation_rerun": false,
+    "source_sha256": {
+      "pyproject.toml": "7cc4527a078b1aa764b56a88350bfb019d80d344495eb2439cb20ac6ad0bf9b3",
+      "qkd_2node_simulation.py": "36e8bd2bff5ff48d26713e099748beb05f20e139dd4e3ba27b4cc7a720cc3386",
+      "sequence/components/interferometer.py": "fde06363e9b9b160ccec156fdb21770fdcfa7a974896ec5d5e3480b4cad3bd93",
+      "uv.lock": "d97d446352e746bcd8174abcf636605dea9981eacac13047ebc7078576f4c1d4"
+    },
+    "transformations": [
+      "safe no-transition LaTeX macros",
+      "canonical decoy summary aliases",
+      "manifest and hash refresh"
+    ]
+  },
   "detection_window_ps": 1000,
   "effects": {
     "dark_counts": [
@@ -110,9 +125,19 @@
   "seed_policy": "deterministic non-overlapping pairs documented in qkd_2node_simulation.py",
   "sequence_local_patch": "sequence/components/interferometer.py phase_error correction for FreeQuantumState",
   "sequence_version": "0.8.5",
+  "simulation_provenance": {
+    "command": "uv run python experiments/qkd_2node_simulation.py --repetitions 30 --workers 8",
+    "commit": "40a848bb2647ee1713172eb10b9c1d8fe0e5f858",
+    "source_sha256": {
+      "pyproject.toml": "7cc4527a078b1aa764b56a88350bfb019d80d344495eb2439cb20ac6ad0bf9b3",
+      "qkd_2node_simulation.py": "45f368f23d9083c3b930c63b820d5582d7f4389f2fab0fc441a5ff8b9272fe0d",
+      "sequence/components/interferometer.py": "fde06363e9b9b160ccec156fdb21770fdcfa7a974896ec5d5e3480b4cad3bd93",
+      "uv.lock": "d97d446352e746bcd8174abcf636605dea9981eacac13047ebc7078576f4c1d4"
+    }
+  },
   "source_sha256": {
     "pyproject.toml": "7cc4527a078b1aa764b56a88350bfb019d80d344495eb2439cb20ac6ad0bf9b3",
-    "qkd_2node_simulation.py": "36e8bd2bff5ff48d26713e099748beb05f20e139dd4e3ba27b4cc7a720cc3386",
+    "qkd_2node_simulation.py": "45f368f23d9083c3b930c63b820d5582d7f4389f2fab0fc441a5ff8b9272fe0d",
     "sequence/components/interferometer.py": "fde06363e9b9b160ccec156fdb21770fdcfa7a974896ec5d5e3480b4cad3bd93",
     "uv.lock": "d97d446352e746bcd8174abcf636605dea9981eacac13047ebc7078576f4c1d4"
   },

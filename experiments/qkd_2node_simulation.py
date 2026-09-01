@@ -16,6 +16,7 @@ import json
 import math
 import os
 import random
+import subprocess
 import sys
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field, replace
@@ -2147,6 +2148,20 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _git_revision(root: Path) -> str:
+    """Return the source revision for reproducibility metadata when available."""
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unavailable"
+
+
 def _validate_outputs(
     e1: dict[str, Any],
     e2: dict[str, Any],
@@ -2450,16 +2465,26 @@ def main() -> None:
     latex_results = out_dir / "proyecto3_results.tex"
     _write_latex_results(latex_results, args.repetitions, e1, e2, e3, e4)
 
+    source_hashes = {
+        "qkd_2node_simulation.py": _sha256(Path(__file__).resolve()),
+        "sequence/components/interferometer.py": _sha256(
+            _ROOT / "sequence/components/interferometer.py"
+        ),
+        "pyproject.toml": _sha256(_ROOT / "pyproject.toml"),
+        "uv.lock": _sha256(_ROOT / "uv.lock"),
+    }
+    source_commit = _git_revision(_ROOT)
+    command = (
+        "uv run python experiments/qkd_2node_simulation.py "
+        f"--repetitions {args.repetitions} --workers {args.workers}"
+    )
     metadata = {
         "generated_at_utc": datetime.now(UTC).isoformat(),
         "sequence_version": "0.8.5",
         "sequence_local_patch": "sequence/components/interferometer.py phase_error correction for FreeQuantumState",
         "repetitions_per_point": args.repetitions,
         "parallel_workers": args.workers,
-        "command": (
-            "uv run python experiments/qkd_2node_simulation.py "
-            f"--repetitions {args.repetitions}"
-        ),
+        "command": command,
         "pulse_rate_hz": DEFAULT_FREQUENCY_HZ,
         "key_length_bits": DEFAULT_KEY_LENGTH,
         "keys_per_run": DEFAULT_NUM_KEYS,
@@ -2505,13 +2530,17 @@ def main() -> None:
             "visibility_qber": e3["qber_trend"],
             "visibility_monophoton_proxy": e3["ideal_rate_trend"],
         },
-        "source_sha256": {
-            "qkd_2node_simulation.py": _sha256(Path(__file__).resolve()),
-            "sequence/components/interferometer.py": _sha256(
-                _ROOT / "sequence/components/interferometer.py"
-            ),
-            "pyproject.toml": _sha256(_ROOT / "pyproject.toml"),
-            "uv.lock": _sha256(_ROOT / "uv.lock"),
+        "source_sha256": source_hashes,
+        "simulation_provenance": {
+            "commit": source_commit,
+            "command": command,
+            "source_sha256": source_hashes,
+        },
+        "derived_export_provenance": {
+            "commit": source_commit,
+            "source_sha256": source_hashes,
+            "simulation_rerun": True,
+            "transformations": [],
         },
         "datasets": {
             filename: {"rows": len(records), "sha256": _sha256(out_dir / filename)}

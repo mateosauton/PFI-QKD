@@ -1,5 +1,8 @@
 import csv
+import hashlib
+import json
 import math
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -596,6 +599,45 @@ def test_result_csv_attributes_preserve_bytes_without_whitespace_check_noise():
         "experiments/results/*.csv -text whitespace=trailing-space,cr-at-eol"
         in attributes
     )
+
+
+def test_result_metadata_separates_simulation_and_postprocessing_provenance():
+    metadata = json.loads(
+        Path("experiments/results/experiment_summary.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    simulation = metadata["simulation_provenance"]
+    postprocessing = metadata["derived_export_provenance"]
+    assert simulation["commit"] == "40a848bb2647ee1713172eb10b9c1d8fe0e5f858"
+    assert simulation["command"].endswith("--repetitions 30 --workers 8")
+    assert metadata["source_sha256"] == simulation["source_sha256"]
+    assert postprocessing["commit"] == "4410ef1fc809201ee1db93e16e360c272a1a33fb"
+    assert postprocessing["simulation_rerun"] is False
+    assert postprocessing["source_sha256"] != simulation["source_sha256"]
+    assert postprocessing["transformations"] == [
+        "safe no-transition LaTeX macros",
+        "canonical decoy summary aliases",
+        "manifest and hash refresh",
+    ]
+    for key, relative in {
+        "qkd_2node_simulation.py": "experiments/qkd_2node_simulation.py",
+        "sequence/components/interferometer.py": "sequence/components/interferometer.py",
+        "pyproject.toml": "pyproject.toml",
+        "uv.lock": "uv.lock",
+    }.items():
+        simulation_blob = subprocess.check_output(
+            ["git", "show", f"{simulation['commit']}:{relative}"]
+        )
+        postprocessing_blob = subprocess.check_output(
+            ["git", "show", f"{postprocessing['commit']}:{relative}"]
+        )
+        assert simulation["source_sha256"][key] == hashlib.sha256(
+            simulation_blob
+        ).hexdigest()
+        assert postprocessing["source_sha256"][key] == hashlib.sha256(
+            postprocessing_blob
+        ).hexdigest()
 
 
 def test_write_records_keeps_union_of_fields(tmp_path):

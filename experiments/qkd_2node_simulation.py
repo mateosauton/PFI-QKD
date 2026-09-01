@@ -222,6 +222,7 @@ class RunAccounting:
     click_events: int = 0
     click_slots: int = 0
     valid_detection_slots: int = 0
+    basis_compared_valid_slots: int = 0
     observed_basis_matched_bits: int = 0
     last_detection_times: list[list[int]] = field(default_factory=list)
 
@@ -254,6 +255,7 @@ def summarize_accounting(
 ) -> dict[str, float | int | bool]:
     consistent = (
         0 <= completed_key_bits <= accounting.observed_basis_matched_bits
+        <= accounting.basis_compared_valid_slots
         <= accounting.valid_detection_slots
         <= accounting.click_slots <= accounting.click_events
         and accounting.pulses_sent >= accounting.click_slots
@@ -263,11 +265,12 @@ def summarize_accounting(
         "click_events": accounting.click_events,
         "click_slots": accounting.click_slots,
         "valid_detection_slots": accounting.valid_detection_slots,
+        "basis_compared_valid_slots": accounting.basis_compared_valid_slots,
         "observed_basis_matched_bits": accounting.observed_basis_matched_bits,
         "completed_key_bits": completed_key_bits,
         "sifting_fraction": (
-            accounting.observed_basis_matched_bits / accounting.valid_detection_slots
-            if accounting.valid_detection_slots else float("nan")
+            accounting.observed_basis_matched_bits / accounting.basis_compared_valid_slots
+            if accounting.basis_compared_valid_slots else float("nan")
         ),
         "observed_click_gain": (
             accounting.click_slots / accounting.pulses_sent
@@ -329,6 +332,7 @@ def attach_run_accounting(
         ):
             basis_list = bob_protocol.basis_lists[0]
             bits = bob_protocol.bit_lists[0]
+            accounting.basis_compared_valid_slots += sum(bit != -1 for bit in bits)
             accounting.observed_basis_matched_bits += sum(
                 bits[index] != -1 and basis_list[index] == basis
                 for index, basis in enumerate(msg.bases)

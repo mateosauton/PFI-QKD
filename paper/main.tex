@@ -17,6 +17,7 @@
 \usepackage{siunitx}
 \usepackage{tabularx}
 \usepackage{tikz}
+\usepackage{xurl}
 \usepackage{xcolor}
 \usetikzlibrary{arrows.meta,calc,fit,positioning,shapes.geometric}
 
@@ -37,6 +38,7 @@
   detect-all=true
 }
 \setlist{itemsep=0.2em, topsep=0.4em}
+\urlstyle{same}
 \lstset{
   basicstyle=\ttfamily\small,
   breaklines=true,
@@ -49,6 +51,9 @@
   framexleftmargin=1.2em
 }
 
+% Cifras generadas por la misma corrida que produce los CSV y las figuras.
+\input{../experiments/results/proyecto3_results.tex}
+
 \title{
   \textbf{Diseño y evaluación por simulación de un banco de pruebas de QKD BB84 en time-bin con estados señuelo}\\[0.5em]
   \large Proyecto Final Integrador -- Ingeniería en Telecomunicaciones
@@ -58,18 +63,24 @@
   Ignacio Polesello\\[0.75em]
   Universidad Nacional de San Martín
 }
-\date{2026}
+\date{San Martín, 2026}
 
 \begin{document}
 
 \maketitle
 
+\pagenumbering{roman}
 \input{chapters/00_preliminares}
 
 \tableofcontents
 \listoffigures
+\begingroup
+\small
 \listoftables
+\endgroup
 
+\clearpage
+\pagenumbering{arabic}
 \input{chapters/01_introduccion}
 \input{chapters/02_marco_teorico}
 \input{chapters/03_estado_arte_qkd}
@@ -84,8 +95,9 @@
 \appendix
 \input{chapters/a_reproduccion}
 \input{chapters/b_codigo_relevante}
-\input{chapters/d_riesgos_cronograma}
 
+\phantomsection
+\addcontentsline{toc}{chapter}{Bibliografía}
 \bibliographystyle{ieeetr}
 \bibliography{references}
 

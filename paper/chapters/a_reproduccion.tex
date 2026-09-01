@@ -1,64 +1,83 @@
 \chapter{Reproducción del experimento}
 \label{app:reproduccion}
 
-\section{Archivos relevantes}
+\section{Fuentes autoritativas}
 
 \begin{itemize}
-  \item \texttt{experiments/qkd\_2node\_simulation.py}: script principal de barridos.
-  \item \texttt{experiments/README.md}: descripción breve de los experimentos.
-  \item \texttt{experiments/results/}: figuras generadas por el script.
-  \item \texttt{sequence/qkd/BB84.py}: implementación del protocolo BB84 usado por \texttt{QKDNode}.
-  \item \texttt{sequence/topology/node.py}: definición de \texttt{QKDNode} y componentes asociados.
+  \item \texttt{experiments/proyecto3\_simulation.py}: flujo estadístico que genera la evidencia de la tesis.
+  \item \texttt{experiments/results/}: CSV agregados, CSV por repetición, figuras, macros y manifiesto.
+  \item \texttt{sequence/qkd/BB84.py}: implementación BB84 usada por \texttt{QKDNode}.
+  \item \texttt{sequence/topology/node.py}: nodos y receptor \textit{time-bin}.
+  \item \texttt{sequence/components/detector.py}: clases base y detector \textit{time-bin}.
+  \item \texttt{sequence/components/interferometer.py}: interferómetro con la corrección local de \texttt{phase\_error}.
+  \item \texttt{paper/main.tex}: documento completo.
 \end{itemize}
 
-\section{Ejecución}
+El archivo \texttt{experiments/qkd\_2node\_simulation.py} es un lanzador de demostraciones separadas. No debe usarse para reconstruir las figuras de esta versión porque no genera el mismo diseño estadístico.
 
-Desde la raíz del repositorio, con el entorno Python del proyecto instalado:
+\section{Entorno}
+
+El repositorio fija dependencias en \texttt{pyproject.toml} y \texttt{uv.lock}. Desde la raíz:
 
 \begin{verbatim}
-uv run python experiments/qkd_2node_simulation.py
+uv sync
 \end{verbatim}
 
-El script crea o actualiza las siguientes figuras:
+El manifiesto de resultados registra hashes de ambos archivos de dependencias, del flujo, de BB84 y de los módulos de nodo, detector e interferómetro. La versión efectiva del simulador es SeQUeNCe 0.8.5 más las correcciones locales documentadas.
+
+\section{Generación de datos y figuras}
+
+\begin{verbatim}
+uv run python experiments/proyecto3_simulation.py \
+  --repetitions 30 --workers 8
+\end{verbatim}
+
+El número de trabajadores sólo modifica el paralelismo. Cada corrida recibe semillas deterministas antes de distribuirse entre procesos, por lo que la evidencia no depende del orden de finalización. La ejecución genera:
 
 \begin{itemize}
-  \item \texttt{experiments/results/exp1\_distance\_sweep.png}
-  \item \texttt{experiments/results/exp1\_skr\_distance.png}
-  \item \texttt{experiments/results/exp2\_detector\_sensitivity.png}
-  \item \texttt{experiments/results/exp3\_visibility.png}
-  \item \texttt{experiments/results/exp4\_decoy\_impact.png}
+  \item \texttt{exp1\_distance\_data.csv} y \texttt{exp1\_distance\_runs.csv};
+  \item \texttt{exp2\_detector\_data.csv} y \texttt{exp2\_detector\_runs.csv};
+  \item \texttt{exp3\_visibility\_data.csv} y \texttt{exp3\_visibility\_runs.csv};
+  \item \texttt{exp4\_decoy\_data.csv} y \texttt{exp4\_decoy\_runs.csv};
+  \item cinco figuras PNG;
+  \item \texttt{proyecto3\_results.tex}, con las macros numéricas;
+  \item \texttt{experiment\_summary.json}, con métodos, parámetros, filas y hashes.
 \end{itemize}
 
-\section{Fragmento central del modelo}
+Los cuatro CSV agregados contienen 60 filas y los archivos detallados contienen 1.800 registros de repetición. En el experimento señuelo, cada registro combina dos ejecuciones; el total real es de 2.100 ejecuciones de SeQUeNCe. El flujo se detiene si falla un invariante numérico o si los parámetros efectivos de un detector difieren de la configuración solicitada. El número de claves completadas se exporta y los datos actuales cumplen lo solicitado, pero esa igualdad todavía no se fuerza mediante una aserción.
 
-El experimento crea una línea temporal, dos canales cuánticos, dos canales clásicos y dos nodos QKD. Luego configura parámetros de fuente y detector, vincula las instancias BB84 y agenda la generación de llaves:
+\section{Compilación del documento}
+
+Desde la carpeta \texttt{paper/}:
 
 \begin{verbatim}
-alice = QKDNode("alice", tl, encoding=time_bin, stack_size=1)
-bob = QKDNode("bob", tl, encoding=time_bin, stack_size=1)
-alice.update_lightsource_params("frequency", p.frequency_hz)
-alice.update_lightsource_params("mean_photon_num", p.mean_photon_num)
-pair_bb84_protocols(alice.protocol_stack[0], bob.protocol_stack[0])
-proc = Process(alice.protocol_stack[0], "push",
-               [p.key_length, p.num_keys, run_time])
-tl.schedule(Event(0, proc))
+tectonic --keep-logs main.tex
 \end{verbatim}
+
+La compilación importa \texttt{../experiments/results/proyecto3\_results.tex}. De este modo, los valores principales del resumen, resultados y conclusiones provienen de la ejecución. Tectonic no vuelve a correr el simulador; generación y composición son pasos separados.
 
 \section{Trazabilidad de figuras}
 
-\begin{table}[H]
+\begin{table}[htbp]
   \centering
-  \begin{tabular}{lll}
+  \footnotesize
+  \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.16\textwidth}>{\raggedright\arraybackslash}p{0.36\textwidth}>{\raggedright\arraybackslash}X}
     \toprule
-    Figura & Función generadora & Archivo \\
+    Figura & Función de experimento & Archivo \\
     \midrule
-    Distancia/QBER & \texttt{plot\_experiment\_1} & \texttt{exp1\_distance\_sweep.png} \\
-    Distancia/SKR & \texttt{plot\_experiment\_1} & \texttt{exp1\_skr\_distance.png} \\
-    Detector & \texttt{plot\_experiment\_2} & \texttt{exp2\_detector\_sensitivity.png} \\
-    Visibilidad & \texttt{plot\_experiment\_3} & \texttt{exp3\_visibility.png} \\
-    Estados señuelo & \texttt{plot\_experiment\_4} & \texttt{exp4\_decoy\_impact.png} \\
+    QBER & \path{experiment_1_distance_sweep} & \path{exp1_distance_sweep.png} \\
+    Indicador ideal & \path{experiment_1_distance_sweep} & \path{exp1_skr_distance.png} \\
+    Detector & \path{experiment_2_detector_sweep} & \path{exp2_detector_sensitivity.png} \\
+    Visibilidad & \path{experiment_3_visibility_sweep} & \path{exp3_visibility.png} \\
+    Señuelos & \path{experiment_4_decoy_distance} & \path{exp4_decoy_impact.png} \\
     \bottomrule
-  \end{tabular}
-  \caption{Correspondencia entre funciones del script y figuras usadas en el trabajo.}
+  \end{tabularx}
+  \caption{Correspondencia entre funciones y figuras del trabajo.}
   \label{tab:trazabilidad_figuras}
 \end{table}
+
+\section{Verificación independiente}
+
+Para revisar una cifra sin repetir el experimento se parte del CSV de repeticiones. QBER se recalcula sumando errores y bits; las tasas se recalculan con las 30 observaciones de cada punto. Después se comparan los resultados con el CSV agregado y con las macros LaTeX. Los hashes del manifiesto comprueban la identidad del código, las dependencias, los CSV y las macros. No incluyen las figuras, las fuentes LaTeX ni el PDF; la correspondencia documental se verifica compilando las fuentes versionadas que importan esas macros. Una identidad exacta del PDF requiere además conservar el archivo compilado o su hash en el mismo commit.
+
+La reproducibilidad computacional no elimina la dependencia del entorno. Diferencias de arquitectura, bibliotecas numéricas o versión de SeQUeNCe pueden cambiar detalles de punto flotante. Por eso el manifiesto conserva versiones y hashes, y los resultados se interpretan mediante intervalos y no por igualdad exacta de todos los decimales.

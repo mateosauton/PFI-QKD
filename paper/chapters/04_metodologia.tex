@@ -3,135 +3,176 @@
 
 \section{Diseño general}
 
-La metodología consiste en ejecutar barridos paramétricos sobre un enlace QKD de dos nodos y observar cómo cambian QBER, SKR y probabilidad de detección. Cada punto del barrido crea una línea temporal nueva, configura canales y componentes, ejecuta BB84 durante un horizonte de simulación y registra las métricas obtenidas. Los barridos se encuentran en \path{experiments/qkd_2node_simulation.py}; las figuras resultantes se guardan en \path{experiments/results/}.
+La metodología consiste en barrer parámetros de un enlace Alice--Bob y separar tres niveles de evidencia. El primero es la salida de eventos discretos de SeQUeNCe: bits, errores, tiempos y clics. El segundo reúne indicadores derivados, intervalos y contrastes estadísticos. El tercero contiene referencias y estimadores analíticos, que permiten controlar la plausibilidad de la salida o tratar aspectos que el simulador no implementa de punta a punta. La distinción evita llamar tasa secreta a cualquier cociente de bits por tiempo.
 
-El diseño experimental parte de una idea simple: modificar una variable dominante por vez y mantener el resto del sistema en condiciones controladas. Esto permite interpretar cada curva como respuesta a una pregunta de diseño. La distancia responde al presupuesto de pérdidas del enlace. La eficiencia y los conteos oscuros responden a la elección de detector. La visibilidad responde a la estabilidad interferométrica. Los estados señuelo responden al problema de usar fuentes coherentes débiles en lugar de fotones individuales ideales.
+El flujo autoritativo es \path{experiments/proyecto3_simulation.py}. Ese archivo genera en una misma ejecución los CSV agregados, los CSV por repetición, las cinco figuras, las macros numéricas usadas por LaTeX y el manifiesto \path{experiment_summary.json}. El lanzador \path{experiments/qkd_2node_simulation.py} conserva demostraciones rápidas, pero no produce la evidencia presentada en este capítulo. Antes de cada corrida, el flujo verifica que eficiencia, fondo, límite de conteo y resolución se hayan propagado a los tres detectores internos de \texttt{QSDetectorTimeBin}; una discrepancia detiene la ejecución.
 
-La tasa de repetición de pulsos se fija en \SI{80}{\mega\hertz}. Este valor no representa el límite tecnológico máximo de un sistema QKD, sino una elección práctica para que la simulación de eventos discretos finalice en tiempos razonables. Las llaves solicitadas tienen longitud de 128 bits, lo cual también es una elección de simulación para obtener muestras rápidas; no debe confundirse con una longitud de llave final de producción.
+Cada ejecución de SeQUeNCe crea una línea temporal nueva, configura nodos, canales y componentes, ejecuta BB84 y guarda su evidencia. El diseño modifica una variable principal por vez. La distancia tensiona la atenuación y la temporización; la eficiencia y el fondo examinan la observabilidad del receptor; la visibilidad comprueba la propagación del error de fase; los estados señuelo comparan dos estimadores con la misma intensidad de señal.
 
-\section{Parámetros base}
+\section{Unidad experimental y controles}
 
-\begin{table}[H]
+La unidad de análisis es una repetición registrada. En los experimentos 1--3, cada repetición corresponde a una ejecución completa de SeQUeNCe con un par de semillas para Alice y Bob. En el experimento 4, cada repetición empareja dos ejecuciones independientes, una con \(\mu\) y otra con \(\nu\), y por eso conserva cuatro semillas de nodo. Cada punto contiene \PThreeRepetitions{} repeticiones deterministas y no superpuestas. Distancia solicita una clave de \PThreeKeyBits{} bits por ejecución; detector y visibilidad solicitan cuatro; señuelos solicita una en cada una de las dos ejecuciones pareadas. Si todas se completan, un punto reúne respectivamente 7.680, 30.720 o 15.360 bits tamizados. Mantener 30 semillas preserva la estimación de variabilidad entre corridas, mientras una sola clave limita el costo de simular pulso a pulso los enlaces de 90--100 km. Los CSV actuales satisfacen esas cantidades; el validador automático comprueba rangos y contabilidad, pero no exige el número solicitado de claves.
+
+La frecuencia de pulsos es \SI{80}{\mega\hertz} y la atenuación distribuida es \SI{0.2}{\decibel\per\kilo\meter}. Estos valores definen el escenario de simulación, no una especificación cerrada de hardware UNSAM. El receptor simulado es idealizado: usa por defecto un límite de \SI{50}{\mega\hertz} por detector y resolución temporal de \SI{10}{\pico\second}, mientras la eficiencia se barre hasta 0,85. No corresponde al ID230 presentado en el Capítulo~\ref{chap:hardware}. Ese APD alcanza hasta 25\% de eficiencia, informa alrededor de \SI{150}{\pico\second} de resolución temporal y un tiempo muerto mínimo de \SI{2}{\micro\second}, equivalente a no más de aproximadamente \SI{0.5}{\mega\hertz} por detector bajo esa restricción \cite{idqID230}. El barrido explora el modelo; una simulación de compra debe sustituir el conjunto completo por valores de un mismo equipo y representar tiempo muerto y pospulsado.
+
+\begin{table}[htbp]
   \centering
-  \begin{tabular}{p{0.27\textwidth}p{0.27\textwidth}p{0.34\textwidth}}
+  \begin{tabularx}{\textwidth}{p{0.28\textwidth}p{0.25\textwidth}X}
     \toprule
-    Parámetro & Valor base & Comentario \\
+    Parámetro común & Valor & Función \\
     \midrule
-    Atenuación de fibra & \SI{0.2}{\decibel\per\kilo\meter} & Valor típico ilustrativo \\
-    Frecuencia de fuente & \SI{80}{\mega\hertz} & Limitada por costo computacional \\
-    Longitud de llave BB84 & 128 bits & Tamaño de muestra de simulación \\
-    Número medio de fotones & 0,1 o valor de barrido & Fuente coherente débil \\
-    Eficiencia de detector & 0,1 o valor de barrido & Parámetro de sensibilidad \\
-    Conteos oscuros & \SI{100}{\hertz} o valor de barrido & Parámetro de sensibilidad \\
-    Visibilidad & 0,98 o valor de barrido & Convertida a error de fase \\
-    Tiempo de resolución & \SI{10}{\pico\second} & Detector \textit{time-bin} \\
+    Frecuencia de pulsos & \SI{80}{\mega\hertz} & Ritmo de emisión de Alice \\
+    Atenuación de fibra & \SI{0.2}{\decibel\per\kilo\meter} & Pérdida distribuida \\
+    Longitud de clave & \PThreeKeyBits{} bits & Bits por clave completada \\
+    Repeticiones & \PThreeRepetitions{} por punto & Incertidumbre Monte Carlo \\
+    Eficiencia protocolar \textit{time-bin} & \(q=3/8\) & Coincidencia de bases y selección central en X \\
+    Ventana analítica & \SI{1}{\nano\second} & Exposición usada sólo para modelar fondo \\
+    Ineficiencia de reconciliación & \(f_\mathrm{EC}=1{,}16\) & Indicador ideal y fórmulas de tasa \\
     \bottomrule
-  \end{tabular}
-  \caption{Parámetros base usados por el script de simulación.}
+  \end{tabularx}
+  \caption{Parámetros comunes de la ejecución autoritativa.}
   \label{tab:parametros_base}
 \end{table}
 
-\section{Procedimiento común}
+\section{Métricas simuladas}
 
-Todos los barridos comparten el mismo procedimiento:
+La QBER del punto se calcula agrupando errores y bits de todas sus repeticiones:
 
-\begin{enumerate}
-  \item Definir el conjunto de valores de la variable barrida.
-  \item Para cada valor, construir una instancia de \texttt{SimParams}.
-  \item Crear Alice, Bob, canales cuánticos y canales clásicos.
-  \item Configurar fuente, detectores e interferómetro.
-  \item Ejecutar BB84 hasta generar el número de llaves solicitado o alcanzar el tiempo máximo.
-  \item Calcular QBER medio, throughput tamizado y SKR.
-  \item Guardar los arreglos de resultados y generar figuras.
-\end{enumerate}
+\begin{equation}
+  E=\frac{\sum_j N_{\mathrm{error},j}}
+          {\sum_j N_{\mathrm{tam},j}}.
+  \label{eq:qber_agregado}
+\end{equation}
 
-Este procedimiento hace que los resultados sean reproducibles desde el repositorio. Además, permite extender el trabajo agregando nuevos barridos sin reescribir el modelo central. Por ejemplo, una futura versión podría barrer longitud de llave, tasa de repetición, pérdida de acoplamiento o jitter temporal manteniendo la misma estructura de simulación.
+La tasa tamizada de una repetición usa todos los bits de las claves completadas y el instante de la última clave:
 
-\begin{table}[H]
+\begin{equation}
+  R_{\mathrm{tam},j}
+  =\frac{N_{\mathrm{tam},j}}{t_{\mathrm{fin},j}-t_0}.
+  \label{eq:tasa_tamizada}
+\end{equation}
+
+Este cociente reemplaza el promedio simple de tasas por clave, que puede sesgar el agregado cuando los intervalos de generación son diferentes. Para los experimentos 1 a 3 se calcula además \(I_\mathrm{ideal}\), definido en la Ecuación~\ref{eq:indicador_ideal}. Su factor se anula en \(E\simeq9{,}81\%\) para \(f_\mathrm{EC}=1{,}16\). Es un indicador diagnóstico bajo el supuesto monofotónico ideal, no una cota secreta para la fuente coherente débil.
+
+\section{Referencia analítica}
+
+La referencia externa distingue señal y fondo. Para una longitud \(L\) y atenuación \(\alpha\), la transmitancia es
+
+\begin{equation}
+  \eta_{\mathrm{ch}}=10^{-\alpha L/10}.
+  \label{eq:transmitancia_metodo}
+\end{equation}
+
+Con tres detectores, tasa oscura \(d\) y ventana efectiva supuesta \(\tau_g=\SI{1}{\nano\second}\), el rendimiento de fondo por pulso es
+
+\begin{equation}
+  Y_0=1-\exp(-3d\tau_g).
+  \label{eq:fondo_analitico}
+\end{equation}
+
+Para intensidad media \(\mu\), la ganancia total se aproxima mediante
+
+\begin{equation}
+  Q_\mu=1-(1-Y_0)\exp(-\mu\eta_{\mathrm{ch}}\eta_d).
+  \label{eq:ganancia_metodo}
+\end{equation}
+
+La tasa de referencia para clics tamizados es
+
+\begin{equation}
+  R_{\mathrm{ref}}
+  =\frac{3}{8}\min\{f_{\mathrm{rep}}Q_\mu,3R_{\mathrm{max,det}}\}.
+  \label{eq:referencia_tasa}
+\end{equation}
+
+La expresión representa disponibilidad media esperada bajo supuestos favorables. No es un máximo determinista de cada realización. El diagnóstico compara el extremo superior del IC del 95\% de la tasa simulada con \(R_\mathrm{ref}\). Si el intervalo completo queda por debajo, se informa \emph{holgura confirmada}. Si alcanza o supera la referencia, el punto se marca para auditar temporización y contabilidad. La marca no demuestra una violación física ni invalida la QBER observada.
+
+\section{Estimadores con y sin estados señuelo}
+
+El cuarto experimento usa \(\mu=0{,}1\) en ambos casos y agrega \(\nu=0{,}05\) en la configuración señuelo. Sin señuelos, todos los pulsos multifotónicos se consideran comprometidos:
+
+\begin{equation}
+  P_{\geq2}(\mu)=1-e^{-\mu}(1+\mu),\qquad
+  Q_1^{L}=\max\{0,Q_\mu-P_{\geq2}(\mu)-e^{-\mu}Y_0\}.
+  \label{eq:no_decoy_q1}
+\end{equation}
+
+Cuando \(Q_1^L>0\), el error monofotónico se acota con
+
+\begin{equation}
+  e_{1,\mathrm{no}}^{U}
+  =\min\left\{\frac{1}{2},\frac{E_\mu Q_\mu}{Q_1^L}\right\};
+  \label{eq:no_decoy_e1}
+\end{equation}
+
+si \(Q_1^L=0\), la tasa sin señuelos se anula. El caso con señuelos usa las cotas de \(Y_1^L\), \(e_1^U\) y la fórmula asintótica de la Ecuación~\ref{eq:skr_decoy}. Las ganancias son analíticas y cada QBER se obtiene agrupando errores y bits de las 30 repeticiones de su intensidad. El error de fase se aproxima mediante esa QBER agregada, bajo una hipótesis de simetría entre bases. Si el numerador de \(e_1^U\) resulta no positivo, se adopta el valor conservador \(e_1^U=1/2\).
+
+La ventana de \SI{1}{\nano\second} sólo pertenece al cálculo de \(Y_0\). El receptor simulado no implementa una compuerta electrónica calibrada de esa duración. Por esta razón, las curvas son diagnósticos híbridos basados en fórmulas asintóticas y no cotas de seguridad componible ni de clave finita.
+
+\section{Diseño estadístico}
+
+QBER es una proporción de errores sobre bits. Se informa con intervalo de Wilson del 95\% aplicado a los conteos agrupados \cite{wilson1927}. Ese intervalo cuantifica incertidumbre binomial bajo el supuesto de que los bits agrupados son observaciones intercambiables; no mide por sí mismo la heterogeneidad de QBER entre las 30 repeticiones. Si existe variación adicional entre semillas, la banda agrupada puede ser más estrecha que un intervalo construido con las QBER por repetición. Las tasas e indicadores sí son variables continuas por repetición y se resumen con media e intervalo t de Student del 95\%. Los efectos entre extremos de eficiencia y fondo se evalúan mediante diferencia de Welch, que no presupone varianzas iguales \cite{welch1947}. La respuesta de QBER a visibilidad se evalúa con una regresión lineal sobre las repeticiones y se informa pendiente, intervalo, correlación y valor \(p\).
+
+Los intervalos t, Welch y de regresión cuantifican variación entre corridas Monte Carlo; Wilson caracteriza la proporción agrupada bajo el supuesto binomial indicado. Ninguno es un intervalo de seguridad de clave finita. La elección de \PThreeRepetitions{} repeticiones permite estimar dispersión y contrastes con un costo computacional manejable; no proviene de un cálculo previo de potencia. Por eso un efecto no resuelto se informa como tal y no como ausencia física del efecto.
+
+Para el cuarto experimento, el estimador puntual se calcula una sola vez con los conteos agrupados. Su IC del 95\% se obtiene mediante 20.000 remuestreos bootstrap de los pares \((\mu,\nu)\): cada remuestreo vuelve a sumar bits y errores antes de aplicar las fórmulas no lineales \cite{efron1979bootstrap}. Como controles adicionales se comparan bandas Wilson con intervalos t sobre las 30 QBER por repetición en distancias representativas y se calcula una covarianza robusta HC3 para la pendiente de visibilidad \cite{mackinnonWhite1985}. Estos análisis no reemplazan un diseño jerárquico ni garantizan cobertura criptográfica.
+
+\section{Configuración de los barridos}
+
+\begin{table}[htbp]
   \centering
-  \begin{tabularx}{\textwidth}{p{0.22\textwidth}XXX}
+  \small
+  \begin{tabularx}{\textwidth}{p{0.16\textwidth}p{0.30\textwidth}X}
     \toprule
-    Experimento & Variable independiente & Métricas & Decisión que informa \\
+    Barrido & Variable y rango & Condiciones principales \\
     \midrule
-    Distancia & Longitud de fibra & QBER, \(P_\text{det}\), SKR & Rango operativo y presupuesto de pérdidas \\
-    Detector & Eficiencia y conteos oscuros & QBER, SKR & Especificación mínima de receptor \\
-    Visibilidad & Contraste interferométrico & QBER, SKR & Requisito de estabilidad óptica \\
-    Decoy & Distancia e intensidades \(\mu,\nu\) & SKR simple y decoy & Necesidad de estados señuelo \\
+    Distancia & 14 puntos entre 1 y \SI{100}{\kilo\meter} & \(\eta_d=0{,}10\), \(V=0{,}98\), \(\mu=0{,}1\), \SI{100}{\hertz}, 1 clave y \SI{2}{\second} \\
+    Eficiencia & 12 puntos entre 0,05 y 0,85 & \SI{5}{\kilo\meter}, \SI{100}{\hertz}, sin retardo adicional, 4 claves y \SI{2.5}{\second} \\
+    Fondo & 12 puntos entre 1 y \SI{10000}{\hertz} & \SI{5}{\kilo\meter}, \(\eta_d=0{,}85\), sin retardo adicional, 4 claves y \SI{2.5}{\second} \\
+    Visibilidad & 12 puntos entre 0,82 y 0,999 & \SI{30}{\kilo\meter}, \(\eta_d=0{,}15\), \SI{200}{\hertz}, 4 claves y \SI{2.5}{\second} \\
+    Señuelos & 10 puntos entre 5 y \SI{90}{\kilo\meter} & \(\eta_d=0{,}12\), \SI{80}{\hertz}, \(V=0{,}97\), \(\mu=0{,}1\), \(\nu=0{,}05\), 1 clave y \SI{1.8}{\second} \\
     \bottomrule
   \end{tabularx}
-  \caption{Resumen de los barridos experimentales y su función de diseño.}
+  \caption{Configuración efectiva de los cuatro experimentos.}
   \label{tab:resumen_barridos}
 \end{table}
 
-\section{Criterio de no modificación del modelo}
+\section{Procedimiento y expectativa por experimento}
 
-En esta versión del trabajo se decidió no modificar el modelo Python ni agregar nuevas corridas. Esta decisión mantiene trazabilidad con los resultados ya generados y evita mezclar dos objetivos: mejorar el simulador y ampliar la documentación. Por lo tanto, el crecimiento del trabajo se concentra en explicar mejor el contexto, las hipótesis, los supuestos, la interpretación de resultados y la conexión con una implementación de campus.
+\subsection{Experimento 1: distancia}
 
-La consecuencia metodológica es que algunas mejoras se formulan como trabajo futuro, no como resultados nuevos. En particular, barras de error, mapas bidimensionales, exportación CSV e implementación decoy completa quedan identificados, pero no se presentan como evidencia experimental de esta iteración. Esta separación hace que el trabajo sea más honesta: documenta lo hecho, justifica por qué sirve y declara qué falta para una siguiente etapa.
+\textbf{Pregunta técnica.} Determinar si el IC del 95\% de la tasa tamizada conserva holgura frente a la referencia analítica y localizar cualquier cambio de régimen en QBER.
 
-\section{Experimento 1: distancia}
+\textbf{Procedimiento.} Se modifica sólo la longitud de fibra. Para cada distancia se ejecutan \PThreeRepetitions{} corridas, se agrupan errores y bits, se estima la tasa tamizada entre repeticiones y se calcula \(R_\mathrm{ref}\) con los mismos parámetros de canal, fuente y detector.
 
-\textbf{Pregunta técnica.} ¿Hasta qué distancia puede operar el enlace simulado antes de que la pérdida de fibra degrade demasiado la detección y la generación de llave?
+\textbf{Expectativa.} Transmitancia y ganancia deben caer exponencialmente con la distancia. Si aparece una pérdida de holgura o una transición de QBER, se informa con la resolución de la grilla y como diagnóstico de la implementación; no se interpreta como alcance máximo de un sistema QKD.
 
-\textbf{Procedimiento.} Se barre la longitud de fibra entre aproximadamente 1 km y 100 km. Para cada distancia se actualizan los canales cuánticos y clásicos, se calcula la transmitancia asociada a la atenuación base, se ejecuta BB84 y se registran QBER, SKR y probabilidad de detección analítica.
+\subsection{Experimento 2: detector}
 
-\textbf{Comportamiento esperado.} Se espera que la probabilidad de detección disminuya con la distancia porque la transmitancia de fibra cae exponencialmente. También se espera que la SKR disminuya, ya que hay menos eventos útiles por unidad de tiempo. El QBER no necesariamente debe crecer de manera suave en todos los puntos, pero a distancias grandes puede aumentar porque el enlace acumula menos eventos válidos y se vuelve más sensible a ruido y fluctuaciones estadísticas.
+\textbf{Pregunta técnica.} Determinar si el diseño resuelve diferencias de tasa al variar eficiencia o fondo con menor influencia de latencia clásica.
 
-\textbf{Relevancia para el banco de pruebas.} Este experimento establece un rango inicial de longitudes de fibra razonables para laboratorio. Si una distancia simulada produce QBER por encima del umbral, no es una buena condición inicial para calibrar el banco. Conviene comenzar por distancias con margen y luego aumentar complejidad.
+\textbf{Procedimiento.} Se fija la distancia en \SI{5}{\kilo\meter} y se elimina el retardo clásico adicional. Primero se barre eficiencia con \SI{100}{\hertz}; luego se barre fondo con \(\eta_d=0{,}85\). Los efectos se calculan entre extremos que conservan holgura frente a la referencia, mediante intervalos de Welch.
 
-\textbf{Configuración usada.} La distancia toma 14 valores entre 1 km y 100 km. Se fija \(\alpha=\SI{0.2}{\decibel\per\kilo\meter}\), eficiencia de detector 0,1, conteos oscuros de \SI{100}{\hertz}, \(\mu=0,1\), frecuencia de \SI{80}{\mega\hertz}, visibilidad \(V=0,98\), llaves de 128 bits, tres llaves por punto y horizonte de \SI{2}{\milli\second}. Las semillas cambian por punto para evitar repetir exactamente la misma secuencia aleatoria.
+\textbf{Expectativa.} Una mayor eficiencia debería aumentar la disponibilidad de clics y un fondo mayor debería elevar errores. El experimento sólo atribuye un efecto si el intervalo de la diferencia lo resuelve. De lo contrario, la salida indica que la configuración, la abstracción temporal o el tamaño de muestra no permiten medirlo.
 
-\textbf{Lectura esperada.} La curva de detección debe caer casi lineal en escala semilogarítmica porque la pérdida se expresa en dB/km. El QBER puede mantenerse bajo hasta que la señal se vuelve comparable al ruido y a la variabilidad estadística. La SKR puede mostrar una caída abrupta porque el modelo simple anula la tasa cuando el QBER alcanza el umbral de \SI{11}{\percent}. Esa discontinuidad no debe interpretarse como una transición física exacta, sino como consecuencia del criterio de seguridad adoptado por el script.
+\subsection{Experimento 3: visibilidad}
 
-\section{Experimento 2: sensibilidad del detector}
+\textbf{Pregunta técnica.} Cuantificar la respuesta de QBER al error de fase impuesto por la visibilidad.
 
-\textbf{Pregunta técnica.} ¿Qué impacto tienen la eficiencia de detección y los conteos oscuros sobre QBER y SKR a una distancia fija?
+\textbf{Procedimiento.} Se fija la distancia en \SI{30}{\kilo\meter} y se aplica \(p_\mathrm{fase}=(1-V)/2\) al interferómetro. Se ajusta una regresión de QBER sobre \(V\) usando las corridas individuales y se mantiene el control de tasa frente a \(R_\mathrm{ref}\).
 
-\textbf{Procedimiento.} Se fija la distancia en \SI{50}{\kilo\meter}. Primero se barre la eficiencia de detección entre 0,05 y 0,85 con conteos oscuros constantes. Luego se barre la tasa de conteos oscuros entre \SI{1}{\hertz} y \SI{10000}{\hertz} con eficiencia fija. En ambos casos se ejecuta el mismo flujo Alice--Bob y se calcula la tasa secreta simple a partir del QBER y throughput simulados.
+\textbf{Expectativa.} La pendiente de QBER debe ser negativa y próxima a \(-1/6\) en el régimen ideal de la Ecuación~\ref{eq:qber_visibility_weighted}. Como la relación se impone como entrada, el resultado verifica la propagación lógica del parámetro; no valida estabilidad térmica, balance de caminos ni visibilidad alcanzable por hardware.
 
-\textbf{Comportamiento esperado.} Al aumentar la eficiencia de detección, deberían aumentar los eventos útiles y mejorar la tasa de bits tamizados. Si el QBER se mantiene bajo, una mayor eficiencia debería favorecer la SKR. Al aumentar los conteos oscuros, se espera mayor probabilidad de clicks no correlacionados con el estado enviado; en condiciones de baja señal esto puede elevar QBER.
+\subsection{Experimento 4: estados señuelo}
 
-\textbf{Relevancia para el banco de pruebas.} El detector suele ser uno de los componentes más críticos y costosos de un sistema QKD. Este barrido ayuda a decidir si el diseño está limitado por eficiencia, por ruido o por ambos. También orienta qué especificaciones conviene mirar en hojas de datos: eficiencia cuántica, dark count rate, dead time, jitter y resolución temporal.
+\textbf{Pregunta técnica.} Comparar una estimación conservadora sin señuelos con una estimación señuelo manteniendo \(\mu=0{,}1\).
 
-\textbf{Configuración usada.} El experimento se divide en dos barridos unidimensionales. En el primero, la eficiencia toma 12 valores entre 0,05 y 0,85, con distancia fija de \SI{50}{\kilo\meter} y conteos oscuros de \SI{100}{\hertz}. En el segundo, los conteos oscuros toman 12 valores logarítmicos entre \SI{1}{\hertz} y \SI{10000}{\hertz}, con eficiencia fija de 0,2. En ambos casos se usan cuatro llaves por punto y un horizonte de \SI{2.5}{\milli\second}.
+\textbf{Procedimiento.} En cada distancia se ejecutan 30 pares de simulaciones: una ejecución para \(\mu\) y otra para \(\nu\) en cada repetición. Los errores provienen del simulador; \(Q_\mu\), \(Q_\nu\), \(Y_1^L\) y el fondo provienen de fórmulas analíticas. Se agrupan los conteos de cada intensidad, se aplica una sola vez la fórmula de tasa y se construye el intervalo mediante bootstrap pareado sobre conteos agrupados. El indicador de reemplazo \(e_1^U=1/2\) se informa por distancia, no por clave corta.
 
-\textbf{Lectura esperada.} Si el enlace está dominado por señal, aumentar eficiencia debería mejorar la tasa más que el QBER. Si el enlace está dominado por ruido, los conteos oscuros deberían elevar QBER y reducir SKR. Si ninguna curva muestra tendencia limpia, no necesariamente significa que los detectores no importan; puede significar que las corridas son demasiado cortas para resolver diferencias finas. Por eso este experimento también funciona como diagnóstico estadístico del simulador.
+\textbf{Expectativa.} La tasa sin señuelos debe anularse cuando no puede acotarse una contribución monofotónica positiva después de descontar pulsos multifotónicos y vacío. La configuración señuelo puede conservar una cota positiva porque usa la segunda intensidad para estimar \(Y_1\). La comparación muestra el valor del método de estimación, no una implementación decoy completa.
 
-\section{Experimento 3: visibilidad interferométrica}
+\section{Proveniencia y reproducibilidad}
 
-\textbf{Pregunta técnica.} ¿Cuánta visibilidad necesita el interferómetro para sostener QBER bajo en una codificación \textit{time-bin}?
+La ejecución conserva una fila por repetición con semillas, claves completadas, bits, errores, tiempo y clics por detector. Los tres primeros experimentos guardan además sus tasas por corrida. En el experimento señuelo, los campos básicos se separan para \(\mu\) y \(\nu\) dentro de la misma fila pareada; las tasas sólo aparecen en el archivo agregado, después de sumar conteos. En total hay 1.800 registros de repetición, que representan 2.100 ejecuciones de SeQUeNCe: 1.500 en los tres primeros experimentos y 600 en el cuarto. El manifiesto registra fecha UTC, SeQUeNCe 0.8.5, el parche local, métodos estadísticos y hashes SHA-256 del script, dependencias y ocho conjuntos de datos. Las cifras del Capítulo~\ref{chap:resultados} provienen de \path{experiments/results/proyecto3_results.tex}, generado por la misma ejecución del flujo.
 
-\textbf{Procedimiento.} Se fija la distancia en \SI{30}{\kilo\meter} y se barre la visibilidad entre 0,82 y 0,999. Cada valor se traduce a error de fase mediante la Ecuación~\ref{eq:phase_visibility}. El resto de los parámetros se mantiene fijo para aislar el efecto de la calidad interferométrica.
-
-\textbf{Comportamiento esperado.} Una visibilidad alta debería reducir errores en la base de superposición y, por lo tanto, reducir QBER. Una visibilidad baja debería degradar la medición de fase y reducir SKR. Debido a que se usan llaves cortas y pocas repeticiones, puede aparecer dispersión estadística, pero la tendencia física esperada es clara.
-
-\textbf{Relevancia para el banco de pruebas.} En \textit{time-bin}, el interferómetro no es un accesorio sino parte central del receptor. Este barrido permite traducir una especificación óptica, la visibilidad, en una métrica criptográfica, QBER/SKR. Eso ayuda a definir requisitos de estabilidad, balance de caminos y control térmico/mecánico.
-
-\textbf{Configuración usada.} La visibilidad toma 12 valores entre 0,82 y 0,999. La distancia se fija en \SI{30}{\kilo\meter}, la eficiencia en 0,15 y los conteos oscuros en \SI{200}{\hertz}. El script convierte la visibilidad en error de fase mediante \(p_\text{fase}=(1-V)/2\) y actualiza ese parámetro en el interferómetro del receptor. La fuente se mantiene con \(\mu=0,1\) y \SI{80}{\mega\hertz}.
-
-\textbf{Lectura esperada.} Este experimento se enfoca en la base de superposición. En la base temporal directa, Bob decide entre llegada temprana y tardía. En la base interferométrica, la decisión depende de contraste de interferencia. Por eso una degradación de visibilidad no es equivalente a una pérdida de fibra: puede introducir errores aun cuando todavía llegan fotones suficientes.
-
-\section{Experimento 4: impacto de estados señuelo}
-
-\textbf{Pregunta técnica.} ¿Cómo cambia la tasa de llave estimada cuando se considera una cota decoy frente a una estimación simple sin estados señuelo?
-
-\textbf{Procedimiento.} Se comparan dos curvas entre \SI{5}{\kilo\meter} y \SI{90}{\kilo\meter}. La curva sin decoy usa la tasa simple calculada desde QBER y throughput simulados. La curva decoy usa intensidades \(\mu=0,6\), \(\nu=0,2\) y un nivel de vacío efectivo pequeño. Para cada distancia se ejecutan simulaciones con intensidad de señal y señuelo para obtener QBER representativo, mientras las ganancias \(Q_\mu\), \(Q_\nu\), el rendimiento \(Y_1\) y el error \(e_1\) se calculan de forma analítica.
-
-\textbf{Comportamiento esperado.} Se espera que ambas tasas disminuyan con distancia. La curva decoy puede quedar por debajo de la curva simple porque estima una tasa segura bajo un modelo más conservador frente a pulsos multifotónicos. Esto no significa que los estados señuelo perjudiquen el sistema; significa que una tasa defendible bajo supuestos más realistas suele ser menor que una estimación de desempeño sin esa restricción.
-
-\textbf{Relevancia para el banco de pruebas.} Las fuentes coherentes débiles son prácticas, pero no equivalen a fuentes ideales de fotones individuales. Este experimento muestra por qué un diseño serio debe considerar estados señuelo si pretende avanzar hacia una implementación con interpretación de seguridad más sólida.
-
-\textbf{Configuración usada.} La intensidad de señal se fija en \(\mu=0,6\), la intensidad señuelo en \(\nu=0,2\) y la intensidad de vacío efectiva en \(10^{-4}\). La distancia toma 10 valores entre \SI{5}{\kilo\meter} y \SI{90}{\kilo\meter}. Para cada distancia se ejecutan dos simulaciones, una con \(\mu\) y otra con \(\nu\), y luego se combinan QBER simulado, probabilidad de detección analítica y cotas asintóticas de decoy para estimar la tasa.
-
-\textbf{Lectura esperada.} La curva decoy no es la salida de un protocolo decoy implementado de punta a punta en SeQUeNCe. Es un híbrido: usa errores simulados y ganancias analíticas. Esta elección es útil para mostrar el impacto conceptual de los estados señuelo, pero debe quedar claramente separada de una futura implementación completa con selección aleatoria de intensidades, clasificación de pulsos y estimación estadística finita.
-
-\section{Criterios de interpretación}
-
-Los resultados se interpretan con tres criterios:
-
-\begin{itemize}
-  \item Si el QBER supera el umbral de referencia de \SI{11}{\percent}, la SKR simple se anula.
-  \item Si la probabilidad de detección cae fuertemente con distancia, se espera mayor dificultad para acumular llaves en un tiempo fijo.
-  \item Si una variable de hardware modifica mucho la SKR o el QBER, esa variable se considera crítica para especificar el banco de pruebas.
-\end{itemize}
-
+El flujo valida el orden de intervalos, \(I_\mathrm{ideal}\leq R_\mathrm{tam}\), ganancias en \([0,1]\), contabilidad de clics y límites de los diagnósticos. La finalización del número solicitado de claves se comprobó sobre los CSV de esta ejecución, pero no forma parte de las aserciones automáticas actuales. Esos controles verifican consistencia del cálculo. No sustituyen una prueba de seguridad ni una comparación con hardware.

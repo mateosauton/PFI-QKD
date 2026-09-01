@@ -1,88 +1,109 @@
 \chapter{Resultados}
 \label{chap:resultados}
 
-Este capítulo presenta las figuras generadas por el script de simulación y las interpreta a la luz de las preguntas metodológicas. En cada caso se distingue entre la tendencia esperada por el modelo físico y lo observado en la corrida. Esta separación es importante porque la simulación usa muestras finitas: algunas curvas muestran dispersión punto a punto, pero aun así permiten extraer conclusiones de diseño.
+Este capítulo presenta la salida de la ejecución autoritativa. Cada punto contiene \PThreeRepetitions{} repeticiones. Las bandas de QBER son intervalos de Wilson; las bandas de tasa de los experimentos 1 a 3 son intervalos t del 95\%, y las del experimento 4 son intervalos bootstrap pareados. Los valores numéricos se importan desde \path{experiments/results/proyecto3_results.tex}. Las figuras, los CSV y ese archivo se generan juntos, por lo que el texto no depende de copiar cifras manualmente.
 
-\section{Distancia de fibra}
+\section{Distancia y referencia analítica}
 
-La Figura~\ref{fig:exp1_distance} muestra el barrido de distancia. La probabilidad de detección analítica cae casi exponencialmente con la distancia, como se espera para una fibra con atenuación expresada en dB/km. Este resultado valida el comportamiento básico del canal: al crecer la longitud de fibra, disminuye la transmitancia y llegan menos pulsos detectables a Bob.
+La Figura~\ref{fig:exp1_distance} muestra la caída de la ganancia analítica y la QBER agrupada. En los 14 puntos, el extremo superior del IC del 95\% de la tasa tamizada permanece por debajo de la referencia. El control de plausibilidad no detecta una tasa excesiva. Esto no convierte la grilla en una demostración de alcance: sólo confirma que la contabilidad temporal no supera la expectativa analítica adoptada.
 
-El QBER se mantiene bajo durante la mayor parte del barrido y aumenta abruptamente en el punto de mayor distancia, donde supera el umbral de referencia de \SI{11}{\percent}. La interpretación de diseño es que el enlace conserva margen operativo hasta distancias del orden de varias decenas de kilómetros, pero se vuelve inestable cerca del extremo superior del barrido. Para un banco físico, esto sugiere comenzar por distancias moderadas y usar distancias largas solo después de validar sincronización, detección y visibilidad.
-
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{exp1_distance_sweep.png}
-  \caption{QBER y probabilidad de detección en función de la distancia de fibra para BB84 \textit{time-bin}.}
+  \includegraphics[width=0.96\textwidth]{exp1_distance_sweep.png}
+  \caption{QBER agrupada con IC de Wilson del 95\% y ganancia total analítica. La tasa tamizada conserva holgura frente a la referencia en los 14 puntos.}
   \label{fig:exp1_distance}
 \end{figure}
 
-La Figura~\ref{fig:exp1_skr} presenta la tasa de llave secreta estimada. La tasa cae gradualmente con la distancia mientras el QBER permanece por debajo del umbral, y se anula en la práctica cuando el error excede el margen de seguridad del modelo. La escala logarítmica permite observar tanto la degradación progresiva como la caída final. La tendencia es consistente con el presupuesto de pérdidas: menos detecciones útiles implican menor throughput tamizado y menor tasa secreta.
+En \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm}{\kilo\meter}, la QBER agrupada es \num[round-mode=places,round-precision=3]{\PThreeQberTransitionLowPct}\% y todavía queda por debajo del umbral de 9,81\% asociado al indicador ideal. En el punto siguiente, \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm}{\kilo\meter}, aumenta a \num[round-mode=places,round-precision=3]{\PThreeQberTransitionHighPct}\% y el indicador se anula. La variación no es una frontera física: localiza una región donde deben estudiarse por separado pérdidas, fondo, solapamiento de rondas y alineación temporal del protocolo.
 
-\begin{figure}[H]
+En el extremo de \SI[round-mode=places,round-precision=2]{\PThreeReferenceMarginMaxKm}{\kilo\meter}, la QBER es \num[round-mode=places,round-precision=3]{\PThreeDistanceQberPct}\%, con IC de Wilson entre \num[round-mode=places,round-precision=3]{\PThreeDistanceQberLowPct} y \num[round-mode=places,round-precision=3]{\PThreeDistanceQberHighPct}\%. La tasa tamizada media es \SI[round-mode=places,round-precision=3]{\PThreeDistanceSiftKbps}{\kilo bit\per\second}, con IC entre \num[round-mode=places,round-precision=3]{\PThreeDistanceSiftLowKbps} y \num[round-mode=places,round-precision=3]{\PThreeDistanceSiftHighKbps}\,kbit/s, frente a una referencia de \SI[round-mode=places,round-precision=3]{\PThreeDistanceReferenceKbps}{\kilo bit\per\second}. La tasa conserva holgura, pero QBER próxima a 0,5 indica ausencia de correlación útil.
+
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.92\textwidth]{exp1_skr_distance.png}
-  \caption{Tasa de llave secreta estimada en función de la distancia.}
+  \includegraphics[width=0.90\textwidth]{exp1_skr_distance.png}
+  \caption{Indicador monofotónico ideal frente a distancia. No es una tasa secreta para la fuente coherente débil; resume la respuesta de la tasa tamizada y QBER bajo el supuesto ideal.}
   \label{fig:exp1_skr}
 \end{figure}
 
+En \SI{100}{\kilo\meter}, \(I_\mathrm{ideal}\) vale \SI[round-mode=places,round-precision=1]{\PThreeDistanceIdealKbps}{\kilo bit\per\second}. El valor nulo proviene del QBER y no de la referencia de tasa. La seguridad de una fuente coherente débil requiere además estimar la contribución monofotónica, como se hace por separado en el cuarto experimento.
+
 \section{Sensibilidad del detector}
 
-La Figura~\ref{fig:exp2_detector} resume el impacto de eficiencia y conteos oscuros a \SI{50}{\kilo\meter}. En el barrido de eficiencia, el QBER permanece por debajo del umbral para todos los puntos simulados. La SKR cambia con la eficiencia de detector, aunque el resultado muestra variaciones punto a punto asociadas al carácter estocástico y al tamaño finito de muestra. Esto refuerza que el barrido sirve como indicador de tendencia y sensibilidad, no como predicción determinista punto por punto.
+La Figura~\ref{fig:exp2_detector} reúne los barridos de eficiencia y conteos oscuros a \SI{5}{\kilo\meter}. Todos los puntos conservan holgura frente a la referencia. Para evitar confundir superposición de bandas con evidencia de un efecto, el análisis compara directamente los extremos mediante intervalos de Welch.
 
-El resultado esperado era que mayor eficiencia favoreciera la tasa útil. La curva de SKR muestra que la eficiencia es relevante, pero también que la métrica queda afectada por la cantidad limitada de llaves generadas en cada punto. Para una segunda etapa del proyecto convendría repetir cada punto varias veces, aumentar el número de llaves y guardar resultados tabulares para estimar barras de error.
-
-En el barrido de conteos oscuros, el QBER también se mantiene bajo en las condiciones simuladas. La degradación esperada por conteos oscuros no domina fuertemente este conjunto de parámetros, lo que sugiere que, para el banco de pruebas inicial, la eficiencia y la acumulación de eventos válidos pueden ser restricciones más visibles que los conteos oscuros dentro del rango elegido. En una implementación física, este resultado debería revisarse con ventanas temporales, jitter y tasas de repetición reales.
-
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{exp2_detector_sensitivity.png}
-  \caption{QBER y SKR frente a eficiencia de detector y conteos oscuros a \SI{50}{\kilo\meter}.}
+  \includegraphics[width=0.96\textwidth]{exp2_detector_sensitivity.png}
+  \caption{QBER e indicador ideal frente a eficiencia y conteos oscuros a \SI{5}{\kilo\meter}. QBER usa IC de Wilson y el indicador usa IC t entre repeticiones.}
   \label{fig:exp2_detector}
 \end{figure}
 
+El subconjunto de eficiencia con holgura confirmada abarca desde \num[round-mode=places,round-precision=2]{\PThreeEffFirst} hasta \num[round-mode=places,round-precision=2]{\PThreeEffLast}. En esos extremos, el indicador toma \num[round-mode=places,round-precision=1]{\PThreeEffFirstKbps} y \SI[round-mode=places,round-precision=1]{\PThreeEffLastKbps}{\kilo bit\per\second}. La diferencia es
+
+\begin{align*}
+  \Delta I & = \SI[round-mode=places,round-precision=1]{\PThreeEffDifferenceKbps}{\kilo bit\per\second},
+  & p & = \num[round-mode=places,round-precision=3]{\PThreeEffPValue}, \\
+  \mathrm{IC}_{95} & =
+  [\num[round-mode=places,round-precision=1]{\PThreeEffDifferenceLowKbps};
+   \num[round-mode=places,round-precision=1]{\PThreeEffDifferenceHighKbps}]\ \text{kbit/s}. &&
+\end{align*}
+
+El intervalo queda completamente por encima de cero y el valor \(p\) es muy inferior a 0,001. Por lo tanto, el diseño resuelve un aumento del indicador entre los extremos de eficiencia. El efecto confirma además que la eficiencia solicitada se propaga al receptor \textit{time-bin}; no permite elegir un detector comercial, porque el barrido combina valores exploratorios con resolución y límite de conteo ideales.
+
+En el barrido de fondo, la QBER cambia de \num[round-mode=places,round-precision=3]{\PThreeDarkFirstQberPct}\% a \num[round-mode=places,round-precision=3]{\PThreeDarkLastQberPct}\% entre 1 y \SI{10000}{\hertz}. La diferencia del indicador es \SI[round-mode=places,round-precision=1]{\PThreeDarkDifferenceKbps}{\kilo bit\per\second}, con IC del 95\% \([\num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceLowKbps};\num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceHighKbps}]\) kbit/s y \(p=\num[round-mode=places,round-precision=3]{\PThreeDarkPValue}\). El intervalo también incluye cero. El experimento no resuelve la degradación esperada por fondo; esto señala la necesidad de modelar una compuerta temporal real y separar clics de señal y oscuros.
+
 \section{Visibilidad interferométrica}
 
-La Figura~\ref{fig:exp3_visibility} muestra el barrido de visibilidad. A medida que la visibilidad mejora, el QBER tiende a disminuir y la SKR se ubica en valores más altos. El efecto no es perfectamente monótono porque la simulación usa llaves cortas y un número limitado de repeticiones; aun así, la relación física principal se conserva: la calidad interferométrica es una variable crítica para una codificación \textit{time-bin}.
+Al aumentar la visibilidad desde 0,82 hasta 0,999, QBER disminuye desde \SI[round-mode=places,round-precision=3]{\PThreeVisibilityFirstQberPct}{\percent} hasta \SI[round-mode=places,round-precision=3]{\PThreeVisibilityLastQberPct}{\percent}. En los mismos extremos, \(I_\mathrm{ideal}\) cambia de \num[round-mode=places,round-precision=1]{\PThreeVisibilityFirstIdealKbps} a \SI[round-mode=places,round-precision=1]{\PThreeVisibilityLastIdealKbps}{\kilo bit\per\second}.
 
-El resultado tiene una lectura directa para el diseño óptico. Si el receptor no mantiene buena visibilidad, la medición de la base de superposición se degrada y el protocolo empieza a producir errores aunque la distancia no sea extrema. Esto significa que el interferómetro, la estabilidad de fase, el balance de caminos y la resolución temporal del detector deben considerarse requisitos de primer orden, no detalles de implementación.
+La regresión sobre las corridas produce una pendiente de QBER respecto de \(V\) igual a \num[round-mode=places,round-precision=3]{\PThreeVisibilityQberSlope}, con IC del 95\% entre \num[round-mode=places,round-precision=3]{\PThreeVisibilityQberSlopeLow} y \num[round-mode=places,round-precision=3]{\PThreeVisibilityQberSlopeHigh}. La correlación es \(r=\num[round-mode=places,round-precision=3]{\PThreeVisibilityCorrelation}\) y \(p<0{,}001\). El signo es el esperado para \(p_\mathrm{fase}=(1-V)/2\). La referencia física para la magnitud es \(-1/6\), porque los bits X constituyen un tercio del conjunto aceptado.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.92\textwidth]{exp3_visibility.png}
-  \caption{QBER y SKR en función de la visibilidad del interferómetro a \SI{30}{\kilo\meter}.}
+  \includegraphics[width=0.96\textwidth]{exp3_visibility.png}
+  \caption{Respuesta del modelo a la visibilidad a \SI{30}{\kilo\meter}. Los doce puntos conservan holgura frente a la referencia analítica de tasa.}
   \label{fig:exp3_visibility}
 \end{figure}
 
-\section{Estados señuelo}
+La regresión verifica que el parámetro se propaga por el modelo corregido del interferómetro. No demuestra que un montaje real alcance esa visibilidad ni que la conserve frente a temperatura y vibración. Ninguno de los doce niveles pierde holgura frente a la referencia, por lo que todos satisfacen el control de tasa. Los valores absolutos siguen describiendo el modelo; para atribuirlos a hardware se requieren pérdidas internas y visibilidad medidas.
 
-La Figura~\ref{fig:exp4_decoy} compara la estimación sin estados señuelo con la cota analítica decoy. Ambas curvas disminuyen con la distancia. La curva decoy queda por debajo de la estimación simple porque aplica una cota más conservadora sobre la contribución segura de eventos monofotónicos. Por lo tanto, el resultado no implica que los estados señuelo empeoren el sistema; indica que la tasa segura certificable bajo ese modelo es menor que una estimación simple que no contempla la misma exposición a pulsos multifotónicos.
+\section{Comparación con estados señuelo}
 
-La comparación también muestra una diferencia conceptual importante. La curva sin decoy responde a ``cuánto parece rendir el enlace bajo una estimación simple''. La curva decoy responde a ``cuánta tasa puede defenderse si se intenta acotar la contribución segura de eventos de un solo fotón''. Para un banco de pruebas real, ambas preguntas son útiles, pero no equivalentes. La primera ayuda a calibrar desempeño; la segunda acerca el diseño a una interpretación de seguridad más realista.
+La Figura~\ref{fig:exp4_decoy} compara diagnósticos basados en fórmulas asintóticas con igual intensidad de señal. A \SI{5}{\kilo\meter}, la estimación sin señuelos es \SI[round-mode=places,round-precision=1]{\PThreeNoDecoyFiveKbps}{\kilo bit\per\second} y la estimación con señuelos es \SI[round-mode=places,round-precision=1]{\PThreeDecoyFiveKbps}{\kilo bit\per\second}. Cerca de \SI{24}{\kilo\meter}, la primera se anula, mientras la estimación decoy conserva \SI[round-mode=places,round-precision=1]{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second}.
 
-\begin{figure}[H]
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.92\textwidth]{exp4_decoy_impact.png}
-  \caption{Comparación de SKR modelo sin estados señuelo y cota analítica con estados señuelo.}
+  \includegraphics[width=0.90\textwidth]{exp4_decoy_impact.png}
+  \caption{Diagnósticos de tasa calculados con conteos agrupados y fórmulas asintóticas, ambos con \(\mu=0{,}1\). Las bandas son IC bootstrap pareados del 95\%; la configuración señuelo usa \(\nu=0{,}05\) y \(Y_0=\num[scientific-notation=true,round-mode=figures,round-precision=3]{\PThreeDecoyVacuumYield}\).}
   \label{fig:exp4_decoy}
 \end{figure}
 
-\section{Síntesis de resultados}
+A \SI{90}{\kilo\meter}, la estimación decoy es \SI[round-mode=places,round-precision=1]{\PThreeDecoyNinetyKbps}{\kilo bit\per\second}. La curva permanece positiva hasta \SI{71.11}{\kilo\meter} y se anula en 80,56 y \SI{90}{\kilo\meter}. El reemplazo conservador \(e_1^U=1/2\) se evalúa después de agrupar cada distancia y no se activa en ninguno de los diez puntos. Los ceros de los dos últimos puntos se deben al nivel de error observado y no a esa regla de reemplazo.
+
+La ventaja de la curva señuelo proviene de estimar \(Y_1\) y \(e_1\), no de aumentar la intensidad de señal. La curva no certifica claves: las ganancias son analíticas, los errores son simulados, el error de fase se aproxima mediante QBER agregada y no existe tratamiento de clave finita.
+
+\section{Síntesis cuantitativa}
 
 \begin{table}[H]
   \centering
-  \begin{tabular}{p{0.25\textwidth}p{0.64\textwidth}}
+  \small
+  \begin{tabularx}{\textwidth}{p{0.18\textwidth}p{0.34\textwidth}X}
     \toprule
-    Barrido & Conclusión de diseño \\
+    Experimento & Resultado & Interpretación defendible \\
     \midrule
-    Distancia & La atenuación reduce la probabilidad de detección y termina anulando la SKR cuando el QBER supera el umbral. \\
-    Detector & La eficiencia afecta la tasa útil; los conteos oscuros del rango probado no dominan el error bajo estos parámetros. \\
-    Visibilidad & La calidad interferométrica es crítica para \textit{time-bin}; visibilidad baja aumenta QBER y reduce SKR. \\
-    Estados señuelo & La cota decoy es más conservadora y representa mejor el riesgo de pulsos multifotónicos en fuentes coherentes débiles. \\
+    Distancia & QBER \num[round-mode=places,round-precision=3]{\PThreeQberTransitionLowPct}\% a \num[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm} km y \num[round-mode=places,round-precision=3]{\PThreeQberTransitionHighPct}\% a \num[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm} km; tasa con holgura en toda la grilla & Transición del modelo; no alcance físico \\
+    Eficiencia & \(\Delta I=\num[round-mode=places,round-precision=1]{\PThreeEffDifferenceKbps}\) kbit/s; \(p<0{,}001\) & Efecto resuelto entre extremos exploratorios \\
+    Fondo & \(\Delta I=\num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceKbps}\) kbit/s; \(p=\num[round-mode=places,round-precision=3]{\PThreeDarkPValue}\) & No se resuelve degradación en el rango \\
+    Visibilidad & Pendiente QBER \(\num[round-mode=places,round-precision=3]{\PThreeVisibilityQberSlope}\); \(p<0{,}001\) & Sensibilidad al error impuesto, no validación de hardware \\
+    Señuelos & \num{\PThreeDecoyFallbackDistances} reemplazos conservadores en 10 estimaciones agrupadas & Ventaja del estimador monofotónico bajo supuestos explícitos \\
     \bottomrule
-  \end{tabular}
-  \caption{Resumen de conclusiones experimentales para el diseño del banco de pruebas.}
+  \end{tabularx}
+  \caption{Resultados principales y límites de interpretación.}
   \label{tab:sintesis_resultados}
 \end{table}
 
-En conjunto, los resultados cumplen la función del experimento: no entregan una especificación final cerrada del banco, pero sí identifican las variables que dominan el diseño. Para avanzar hacia hardware, la prioridad debería ser validar primero un enlace corto con QBER bajo, luego aumentar distancia, medir visibilidad real del interferómetro y finalmente incorporar estados señuelo como parte del flujo protocolar.
+\section{Trazabilidad de la evidencia}
 
+Los cuatro CSV agregados contienen 60 puntos y los cuatro CSV detallados contienen 1.800 registros de repetición. El cuarto archivo reúne dos ejecuciones por registro, por lo que el conjunto representa 2.100 ejecuciones completas de SeQUeNCe. El manifiesto registra cantidades de filas y hashes SHA-256. Los agregados de QBER y tasa se recalculan a partir de las filas individuales, y una revisión de los datos confirma que las 2.100 ejecuciones completaron las claves previstas. Esta última condición describe la evidencia actual; no es una aserción automática del flujo. Los controles permiten vincular las cifras numéricas del texto con evidencia tabular.
+
+La compilación de LaTeX es posterior al simulador. El script genera las macros numéricas, pero no ejecuta Tectonic. Esta separación evita que una falla editorial se confunda con una falla de cálculo y permite verificar ambos pasos de manera independiente.

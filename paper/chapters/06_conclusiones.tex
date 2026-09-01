@@ -1,44 +1,74 @@
-\chapter{Análisis y conclusiones}
+\chapter{Conclusiones}
 \label{chap:conclusiones}
 
-\section{Conclusiones técnicas}
+\section{Respuesta a la hipótesis}
 
-El proyecto confirma que una simulación de eventos discretos puede aportar información útil antes de construir un banco de pruebas QKD. El modelo permite integrar parámetros de fuente, canal, detector e interferómetro, y observar su impacto sobre QBER y SKR. Esa integración es valiosa porque el desempeño de un enlace QKD no depende de un único componente: emerge de pérdidas, ruido, sincronización, bases de medición y postprocesamiento.
+La hipótesis se sostiene dentro del alcance definido: una simulación de eventos discretos permite convertir el diseño de un banco QKD en preguntas medibles, cuantificar la variación entre corridas y detectar cuándo una salida exige revisar sus supuestos. El trabajo no confirma la factibilidad física del Campus Miguelete ni certifica seguridad criptográfica.
 
-El análisis de distancia muestra el límite más directo del enlace. La probabilidad de detección cae con la atenuación de fibra y, cuando los eventos útiles se vuelven escasos, el QBER puede superar el umbral de referencia. Esto define un rango de operación inicial para el banco: conviene comenzar con distancias cortas o moderadas, validar detección y sincronización, y luego aumentar longitud de fibra de manera progresiva.
+Los cuatro criterios de verificación se cumplen. La evidencia conserva parámetros, semillas, bits, errores, tiempos y clics; cada punto contiene \PThreeRepetitions{} repeticiones; el flujo comprueba invariantes numéricos; y la tasa tamizada conserva holgura frente a la referencia analítica en toda la grilla. Ese control permite separar el aumento de QBER observado a larga distancia de un problema de tasa excesiva. La utilidad de la simulación no consiste sólo en producir curvas, sino en someter cada interpretación a controles independientes.
 
-El barrido de detectores indica que la eficiencia de detección y la acumulación de eventos válidos son variables de diseño prioritarias. Los conteos oscuros no dominaron el error en el rango simulado, pero no deben descartarse: en hardware real su impacto depende de ventanas de detección, temperatura, jitter, tasa de repetición y pérdidas previas. El barrido de visibilidad muestra una conclusión más específica para \textit{time-bin}: la estabilidad interferométrica debe tratarse como requisito central del sistema.
+\section{Cumplimiento de objetivos}
 
-La comparación con estados señuelo muestra la diferencia entre una estimación de desempeño y una cota de tasa segura más conservadora. Las fuentes coherentes débiles simplifican el diseño experimental, pero introducen pulsos multifotónicos. Por eso, una implementación de mayor madurez debería incorporar intensidades señuelo dentro del protocolo y no solo como cálculo posterior.
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabularx}{\textwidth}{p{0.27\textwidth}p{0.18\textwidth}X}
+    \toprule
+    Objetivo & Estado & Evidencia \\
+    \midrule
+    Escenario Alice--Bob \textit{time-bin} & Cumplido & SeQUeNCe 0.8.5, componentes, canales y parche identificados \\
+    Barrido de distancia & Cumplido con límite & QBER bajo el umbral ideal hasta \num[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm} km y aumento abrupto en \num[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm} km; no es alcance físico \\
+    Sensibilidad del detector & Cumplido & Efecto de eficiencia resuelto; efecto de fondo no resuelto al 5\% \\
+    Sensibilidad a visibilidad & Cumplido internamente & Pendiente QBER negativa y doce puntos con holgura de tasa \\
+    Comparación señuelo & Cumplido como diagnóstico & Igual \(\mu\), conteos agrupados, bootstrap y límites registrados \\
+    Diseño Campus Miguelete & Parcial & Topología y criterios definidos; faltan ruta y pérdidas medidas \\
+    Trazabilidad & Cumplido & 60 agregados, 1.800 registros, 2.100 ejecuciones, macros y hashes \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Respuesta de la evidencia a los objetivos del trabajo.}
+  \label{tab:objetivos_cierre}
+\end{table}
 
-Desde el punto de vista del PFI, el resultado principal es que el proyecto tiene una ruta técnica razonable: comenzar con un enlace de dos nodos, usar la simulación para fijar rangos de operación, validar en laboratorio una distancia corta y luego trasladar el análisis a una topología de campus. El aporte de la simulación es reducir incertidumbre antes de la etapa costosa: ayuda a decidir qué medir, qué hardware comparar y qué límites esperar.
+\section{Conclusiones por experimento}
 
-Esta ampliación también permite ubicar el trabajo frente al estado del arte. QKD aparece como una tecnología complementaria a PQC, no como reemplazo universal. Los estándares e interfaces de ETSI muestran que la entrega de llaves y el KMS son parte del problema de ingeniería. Las referencias comerciales muestran que BB84 con estados señuelo y codificación compatible con fibra es una línea madura, aunque las prestaciones publicadas no deban trasladarse directamente a un banco académico.
+El barrido de distancia reproduce la caída de ganancia y conserva holgura de tasa en los 14 puntos. QBER es \num[round-mode=places,round-precision=3]{\PThreeQberTransitionLowPct}\% a \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm}{\kilo\meter} y \num[round-mode=places,round-precision=3]{\PThreeQberTransitionHighPct}\% a \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm}{\kilo\meter}; desde ese segundo punto el indicador ideal es nulo. El intervalo localiza una transición del modelo que exige auditar errores por base, alineación de rondas y fondo. No establece una distancia máxima del enlace.
+
+El experimento de detector resuelve el efecto de eficiencia entre extremos: el intervalo de \(\Delta I\) va de \num[round-mode=places,round-precision=1]{\PThreeEffDifferenceLowKbps} a \num[round-mode=places,round-precision=1]{\PThreeEffDifferenceHighKbps}\,kbit/s y \(p<0{,}001\). Para fondo, el intervalo va de \num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceLowKbps} a \num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceHighKbps}\,kbit/s y \(p=\num[round-mode=places,round-precision=3]{\PThreeDarkPValue}\), por lo que no se resuelve degradación al 5\%. La tendencia de eficiencia verifica la propagación del parámetro, pero no basta para ordenar equipos: una comparación de hardware debe incorporar ventanas, tiempo muerto, fluctuación temporal y pérdidas internas medidas.
+
+El barrido de visibilidad confirma una pendiente negativa de QBER. Era esperable porque \(p_\mathrm{fase}\) se calcula desde \(V\); el resultado demuestra que la dependencia llega a BB84 después de corregir el interferómetro. Los doce puntos conservan holgura de tasa. Esto no demuestra estabilidad física ni reemplaza mediciones de visibilidad, deriva y pérdidas internas.
+
+La comparación de estados señuelo muestra la utilidad de estimar la contribución monofotónica. Con igual \(\mu=0{,}1\), la tasa sin señuelos se anula cerca de \SI{24}{\kilo\meter}, mientras la estimación señuelo conserva \SI[round-mode=places,round-precision=1]{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second} y permanece positiva hasta \SI{71.11}{\kilo\meter}. Ambas estimaciones son nulas desde \SI{80.56}{\kilo\meter}. El resultado depende de ganancias analíticas, error de fase aproximado y tratamiento asintótico. Ninguna de las diez estimaciones agrupadas activa el reemplazo conservador de \(e_1^U\).
+
+\section{Aporte para la implementación UNSAM}
+
+El trabajo entrega una secuencia concreta para la siguiente etapa. Primero se mide una ruta óptica y se registra cada pérdida fija. Después se selecciona una combinación coherente de fuente, moduladores, detector, registro temporal e interferómetro. Esos valores restringen el dominio del simulador. Finalmente, se compara una medición corta con la salida del modelo y se ajustan temporización, fondo y visibilidad.
+
+El presupuesto y las imágenes de equipos cumplen una función de preselección, no de compra. Los rangos de costo son orientativos y no provienen de cotizaciones vigentes. Antes de adquirir equipos se necesita una tabla con cantidad, modelo exacto, accesorios, precio, fecha, importación y contingencia. Sin ese paso, sumar mínimos y máximos produce un número aparente pero no un presupuesto ejecutable.
 
 \section{Limitaciones}
 
-Las limitaciones principales son las siguientes:
+Las principales limitaciones son:
 
 \begin{itemize}
-  \item Las llaves simuladas son cortas y el número de repeticiones por punto es bajo, por lo que hay variabilidad estocástica visible.
-  \item La simulación no implementa corrección de errores ni amplificación de privacidad como etapas completas.
-  \item La comparación decoy usa cotas analíticas asintóticas y no una capa de protocolo con intensidades aleatorias y estimación finita.
-  \item No se modelan ataques laterales, autenticación del canal clásico, pérdidas de conectores, fluctuaciones térmicas ni calibraciones dinámicas.
-  \item Las curvas deben leerse como herramientas de diseño, no como certificación de seguridad criptográfica.
+  \item la referencia de tasa no reproduce toda la temporización interna y no explica por sí sola el aumento abrupto de QBER a larga distancia;
+  \item la ventana de \SI{1}{\nano\second} es analítica y no una compuerta implementada en el receptor;
+  \item el barrido de eficiencia excede la especificación del detector comercial usado como referencia;
+  \item el modelo no separa errores por base ni ejecuta autenticación, reconciliación y amplificación de privacidad;
+  \item el diagnóstico señuelo aplica una fórmula asintótica a datos finitos, combina entradas analíticas y simuladas y no es componible;
+  \item no se modelan ataques laterales, deriva térmica, dispersión, pérdidas internas ni calibración dinámica;
+  \item el campus no cuenta aún con una ruta óptica medida ni una lista de materiales cotizada.
 \end{itemize}
 
-\section{Trabajo futuro}
+\section{Trabajo futuro priorizado}
 
-El siguiente paso natural es aumentar la fidelidad del modelo sin perder reproducibilidad. En primer lugar, conviene guardar resultados numéricos en archivos CSV además de figuras, para facilitar análisis estadístico, comparación entre corridas y trazabilidad. En segundo lugar, se debería implementar una capa decoy explícita: selección aleatoria de intensidad, registro de clases de pulso, estimación de \(Q_\mu\), \(Q_\nu\), \(Y_1\) y \(e_1\) desde datos simulados, y análisis con tamaño finito.
+La primera prioridad es explicar la transición de QBER entre \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm}{\kilo\meter} y \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm}{\kilo\meter}. Para ello deben exportarse errores por base y ronda, marcas temporales de mensajes, índices emparejados y composición de clics de señal y fondo. La prueba debe verificar si el aumento proviene del régimen físico idealizado o de alineación y solapamiento en la implementación protocolar.
 
-También resulta conveniente extender el modelo de hardware. Para \textit{time-bin}, la prioridad es representar con más detalle sincronización, jitter, ventanas de detección y estabilidad de fase. Para el canal, se pueden incorporar pérdidas de acoplamiento y dispersión. Para el receptor, se puede explorar una matriz de tecnologías de detector y condiciones de operación.
+La segunda prioridad es medir una ruta del Campus Miguelete con OTDR o instrumentación equivalente. El resultado debe incluir longitud óptica, atenuación total, conectores, empalmes, fibras disponibles y restricciones de acceso. Con esos datos puede calcularse un presupuesto de enlace específico.
 
-Finalmente, una vez construido un banco físico, las curvas simuladas deberían usarse como línea base. La comparación entre mediciones reales y simulación permitiría ajustar parámetros, detectar efectos no modelados y decidir qué nivel de complejidad requiere el simulador para acompañar el desarrollo experimental.
+La tercera prioridad es definir una configuración de laboratorio coherente. Deben elegirse modelos exactos de fuente, moduladores, detector y registrador temporal; después se reemplazan los barridos amplios por rangos compatibles con sus hojas de datos y cotizaciones.
 
-En términos de documento final, conviene incorporar tres bloques que todavía quedan como trabajo futuro. El primero es un relevamiento del Campus Miguelete con distancias ópticas, disponibilidad de fibra, seguridad física de nodos y restricciones de instalación. El segundo es una matriz de hardware con fuente, moduladores, detectores, time tagger, FPGA/control, conectores y costos estimados. El tercero es una arquitectura de tres nodos con KMS, donde se explique qué nodo es confiable, qué llaves se generan por enlace y cómo se entregarían a una aplicación.
-
-Además, debería agregarse una etapa estadística: repetir cada punto de simulación con múltiples semillas, exportar datos crudos en CSV y graficar intervalos de confianza. Esta mejora permitiría separar tendencias robustas de ruido Monte Carlo, especialmente en los barridos de eficiencia, conteos oscuros y visibilidad.
+La cuarta prioridad es avanzar desde estimadores a protocolo. Esto requiere elegir intensidades dentro de la ejecución, separar estadísticas por base e intensidad, implementar reconciliación, verificación, amplificación de privacidad y autenticación, y aplicar análisis de clave finita.
 
 \section{Cierre}
 
-El trabajo deja una base técnica coherente para un PFI de Ingeniería en Telecomunicaciones: parte de un problema de distribución segura de claves, incorpora el marco físico y protocolar de BB84, utiliza un simulador de redes cuánticas, evalúa variables de diseño relevantes para fibra óptica y proyecta una arquitectura de campus con KMS. La conclusión principal es que un banco de pruebas QKD BB84 \textit{time-bin} es abordable como proyecto experimental si se controla cuidadosamente la distancia, la eficiencia de detección y la visibilidad interferométrica, y si la etapa de estados señuelo se trata con el rigor estadístico que exige una fuente coherente débil.
+El trabajo no demuestra que UNSAM pueda desplegar hoy un enlace QKD operativo. Demuestra algo anterior y necesario: cómo construir una simulación auditable, cómo distinguir métricas de desempeño de tasas con interpretación criptográfica y cómo detectar límites antes de comprar hardware. Esa base permite que la siguiente decisión se apoye en datos medidos y no en una extrapolación de curvas.

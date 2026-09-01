@@ -7,44 +7,42 @@ El objetivo de este capítulo es explicar cómo se pasa del marco teórico a un 
 
 Un banco QKD requiere coordinar fuente óptica, canal de fibra, detectores, interferometría, sincronización y comunicación clásica. Construir directamente el banco físico sin una etapa de diseño puede llevar a invertir tiempo en configuraciones que no tienen margen operativo. La simulación permite explorar esas configuraciones con bajo costo, identificar variables sensibles y estimar rangos razonables antes de pasar a laboratorio.
 
-En este proyecto la simulación no se usa como sustituto del experimento real, sino como herramienta de diseño. La pregunta no es ``cuál será exactamente la tasa de llave de un equipo final'', sino ``qué condiciones hacen plausible un banco de pruebas y qué parámetros conviene controlar primero''. Esa diferencia define la forma de interpretar resultados: se buscan tendencias, umbrales y dependencias, no certificación criptográfica final.
+En este proyecto la simulación no se usa como sustituto del experimento real, sino como herramienta de diseño. La pregunta no es ``cuál será exactamente la tasa de clave de un equipo final'', sino ``qué condiciones hacen plausible un banco de pruebas y qué parámetros conviene controlar primero''. Esa diferencia define la forma de interpretar resultados: se buscan tendencias, umbrales y dependencias, no certificación criptográfica final.
 
 \section{SeQUeNCe}
 
-SeQUeNCe es un simulador de eventos discretos para redes cuánticas desarrollado por Wu, Kolar, Chung, Jin, Zhong, Kettimuthu y Suchara \cite{wu2021sequence}. Su propósito es ofrecer una plataforma configurable para estudiar redes cuánticas con componentes de hardware, canales, protocolos y aplicaciones. A diferencia de un cálculo puramente analítico, SeQUeNCe permite agendar eventos en el tiempo y observar cómo interactúan transmisión óptica, retardo de canal, detecciones y mensajes clásicos.
+SeQUeNCe es un simulador de eventos discretos para redes cuánticas desarrollado por Wu, Kolar, Chung, Jin, Zhong, Kettimuthu y Suchara \cite{wu2021sequence}. Su propósito es ofrecer una plataforma configurable para estudiar hardware, canales, protocolos y aplicaciones. Los experimentos usan la versión 0.8.5. A diferencia de un cálculo puramente analítico, SeQUeNCe agenda eventos y permite observar cómo interactúan transmisión óptica, retardo, detecciones y mensajes clásicos.
 
-La arquitectura de SeQUeNCe se organiza alrededor de una línea temporal. Los objetos del sistema agendan procesos como eventos futuros; la simulación avanza ejecutando esos eventos en orden temporal. Este enfoque es natural para telecomunicaciones porque muchos fenómenos relevantes son discretos: emisión de pulsos, llegada de fotones, clicks de detector, envío de mensajes clásicos y finalización de ventanas de medición.
+La arquitectura de SeQUeNCe se organiza alrededor de una línea temporal. Los objetos del sistema agendan procesos como eventos futuros; la simulación avanza ejecutando esos eventos en orden temporal. Este enfoque es natural para telecomunicaciones porque muchos fenómenos relevantes son discretos: emisión de pulsos, llegada de fotones, clics de detector, envío de mensajes clásicos y finalización de ventanas de medición.
 
-El simulador incluye módulos para hardware, gestión de entrelazamiento, gestión de recursos, gestión de red y aplicación. En este trabajo se usan principalmente el kernel de eventos, componentes ópticos, canales, nodos QKD y el protocolo BB84. No se desarrolla una nueva arquitectura de simulación; se aprovecha la infraestructura existente para construir un escenario específico.
+El simulador incluye módulos para hardware, gestión de entrelazamiento, recursos, red y aplicaciones. En este trabajo se usan el kernel de eventos, componentes ópticos, canales, nodos QKD y BB84. El repositorio incorpora tres correcciones locales relevantes. En \path{sequence/components/interferometer.py}, \texttt{phase\_error} se aplica a estados \texttt{FreeQuantumState} y la ventana central conserva los dos puertos del Mach--Zehnder. En \path{sequence/topology/node.py}, la actualización de detectores acepta subclases de \texttt{QSDetector}, incluida \texttt{QSDetectorTimeBin}. Los barridos de visibilidad y detector dependen de esos cambios. El manifiesto conserva hashes del flujo, BB84, nodo, detector, interferómetro y dependencias; la versión efectiva es SeQUeNCe 0.8.5 con esas correcciones identificadas.
 
 La decisión de usar SeQUeNCe es pragmática. El proyecto necesita un simulador que represente eventos de red y componentes, no únicamente una fórmula cerrada de tasa secreta. Herramientas más orientadas a física detallada pueden ser útiles en etapas posteriores, pero para el primer entregable el costo de adopción no se justifica si todavía faltan parámetros medidos del campus y del laboratorio. SeQUeNCe permite avanzar con un modelo trazable, modificable y suficientemente cercano al lenguaje de telecomunicaciones: nodos, canales, retardo, pérdida, mensajes y métricas.
 
-La Figura~\ref{fig:sequence_pipeline} resume el flujo conceptual de una corrida: se eligen parámetros, se agenda una secuencia de eventos, la fuente emite pulsos, el canal introduce retardo y pérdida, Bob mide con un receptor \textit{time-bin}, el protocolo realiza tamizado por el canal clásico y finalmente se calculan QBER, throughput y SKR.
+La Figura~\ref{fig:sequence_pipeline} resume el flujo de una corrida: se fijan parámetros, la línea temporal ejecuta eventos sobre Alice, Bob y los canales, y el procesamiento calcula QBER, tasa tamizada, controles analíticos y estimadores. El ciclo se repite con semillas independientes.
 
 \begin{figure}[H]
   \centering
-  \resizebox{\textwidth}{!}{%
   \begin{tikzpicture}[
-    node distance=0.9cm,
-    box/.style={draw, rounded corners, align=center, text width=2.9cm, minimum height=0.95cm, fill=blue!5},
-    event/.style={draw, rounded corners, align=center, text width=2.7cm, minimum height=0.85cm, fill=green!7},
-    metric/.style={draw, rounded corners, align=center, text width=2.8cm, minimum height=0.85cm, fill=orange!10},
+    node distance=5mm,
+    box/.style={draw, rounded corners=2pt, align=center, text width=2.3cm, minimum height=1.0cm, fill=blue!5},
+    event/.style={draw, rounded corners=2pt, align=center, text width=2.3cm, minimum height=1.0cm, fill=green!7},
+    metric/.style={draw, rounded corners=2pt, align=center, text width=2.3cm, minimum height=1.0cm, fill=orange!10},
     arrow/.style={-{Latex[length=2.6mm]}, thick}
   ]
-    \node[box] (params) {Parámetros\\\texttt{SimParams}};
-    \node[event, right=0.9cm of params] (timeline) {Línea temporal\\\texttt{Timeline}};
-    \node[event, right=0.9cm of timeline] (events) {Eventos\\\texttt{Event}/\texttt{Process}};
-    \node[box, below=1.1cm of events] (nodes) {Nodos QKD\\Alice/Bob};
-    \node[box, left=0.9cm of nodes] (channels) {Canales\\cuántico/clásico};
-    \node[metric, left=0.9cm of channels] (metrics) {Métricas\\QBER/SKR};
+    \node[box] (params) {Parámetros y semillas};
+    \node[event, right=of params] (timeline) {\texttt{Timeline}\\y eventos};
+    \node[box, right=of timeline] (nodes) {Alice, Bob\\y canales};
+    \node[metric, right=of nodes] (metrics) {QBER y tasa\\tamizada};
+    \node[metric, right=of metrics] (checks) {Intervalos y\\controles};
     \draw[arrow] (params) -- (timeline);
-    \draw[arrow] (timeline) -- (events);
-    \draw[arrow] (events) -- (nodes);
-    \draw[arrow] (nodes) -- (channels);
-    \draw[arrow] (channels) -- (metrics);
-    \draw[arrow, dashed] (metrics.north) to[bend left=18] node[above, align=center] {nuevo punto\\de barrido} (params.south);
-  \end{tikzpicture}}
-  \caption{Flujo de eventos discretos usado por SeQUeNCe: los parámetros generan una línea temporal, la línea temporal ejecuta procesos sobre nodos y canales, y el resultado se resume en métricas para cada punto de barrido.}
+    \draw[arrow] (timeline) -- (nodes);
+    \draw[arrow] (nodes) -- (metrics);
+    \draw[arrow] (metrics) -- (checks);
+    \draw[arrow, dashed] (checks.south) -- ++(0,-0.75) -|
+      node[pos=0.25, below, font=\small] {siguiente repetición o punto} (params.south);
+  \end{tikzpicture}
+  \caption{Flujo de eventos y análisis. La realimentación inferior representa la repetición controlada del barrido, no una dependencia causal entre métricas y parámetros.}
   \label{fig:sequence_pipeline}
 \end{figure}
 
@@ -61,7 +59,7 @@ Los elementos principales usados por el experimento son:
   \item \textbf{\texttt{BB84}}: protocolo que coordina generación de bits, elección de bases, tamizado y métricas básicas.
 \end{itemize}
 
-El repositorio usado en este trabajo contiene el código base de SeQUeNCe y un script de experimentos específico en \path{experiments/qkd_2node_simulation.py}. La implementación reutiliza \texttt{QKDNode} y el protocolo \texttt{BB84} existente en \path{sequence/qkd/BB84.py}. El trabajo documenta ese experimento; no modifica la API del simulador ni agrega un nuevo protocolo QKD.
+El flujo autoritativo se encuentra en \path{experiments/proyecto3_simulation.py}. Reutiliza \texttt{QKDNode} y \texttt{BB84} de \path{sequence/qkd/BB84.py}; no agrega un protocolo nuevo. El lanzador \path{experiments/qkd_2node_simulation.py} ejecuta demostraciones separadas y no genera la evidencia estadística de este documento.
 
 Una ventaja práctica de esta organización es que cada parte del experimento queda asociada a una clase concreta. Si se quiere estudiar atenuación, se modifica el \texttt{QuantumChannel}. Si se quiere estudiar detectores, se actualizan los parámetros de las tres instancias de \texttt{Detector} dentro de \texttt{QSDetectorTimeBin}. Si se quiere estudiar visibilidad, se modifica el error de fase del interferómetro. Esta separación ayuda a justificar por qué cada barrido del Capítulo~\ref{chap:metodologia} tensiona una variable física distinta.
 
@@ -80,6 +78,9 @@ class SimParams:
     key_length: int = DEFAULT_KEY_LENGTH
     num_keys: int = DEFAULT_NUM_KEYS
     runtime_ps: float = DEFAULT_RUNTIME_PS
+    alice_seed: int = 0
+    bob_seed: int = 1
+    detection_window_ps: int = 1_000
 \end{lstlisting}
 
 La ventaja de concentrar la configuración en \texttt{SimParams} es que cada experimento puede crear una copia modificando solo la variable de interés. En el barrido de distancia cambia \texttt{distance\_km}; en el barrido de detector cambian \texttt{detector\_efficiency} o \texttt{dark\_count\_hz}; en el barrido de visibilidad cambia \texttt{visibility}. Esta estructura evita que la metodología dependa de cambios manuales dispersos en el script.
@@ -89,13 +90,13 @@ La ventaja de concentrar la configuración en \texttt{SimParams} es que cada exp
 El escenario consiste en dos nodos QKD:
 
 \begin{itemize}
-  \item \textbf{Alice}: nodo emisor, contiene la fuente óptica y la instancia BB84 que inicia la generación de llave.
+  \item \textbf{Alice}: nodo emisor, contiene la fuente óptica y la instancia BB84 que inicia la generación de clave.
   \item \textbf{Bob}: nodo receptor, contiene el detector \textit{time-bin}, el interferómetro y la instancia BB84 asociada.
 \end{itemize}
 
 Ambos nodos se conectan con un canal cuántico y un canal clásico. El canal cuántico transporta los estados ópticos preparados por Alice hacia Bob. El canal clásico transporta los mensajes de coordinación BB84: inicio de pulso, recepción de qubits, lista de bases y lista de índices con bases coincidentes. El simulador también configura el canal inverso para mantener la estructura de nodos bidireccional de SeQUeNCe, aunque el envío cuántico relevante del experimento se analiza en el sentido Alice--Bob.
 
-En el script, los canales cuánticos se instancian con una distancia en metros, una atenuación en dB/m y una frecuencia máxima de transmisión. Los canales clásicos se instancian con la misma distancia y se les agrega un retardo fijo de procesamiento de \SI{1}{\milli\second}. Ese retardo no pretende modelar una pila de red completa; evita que los mensajes clásicos colapsen artificialmente a tiempo cero y mantiene una separación temporal razonable entre transmisión cuántica y coordinación protocolar.
+En el script, los canales cuánticos se instancian con distancia en metros, atenuación en dB/m y frecuencia máxima. Los canales clásicos usan la misma distancia y admiten un retardo adicional parametrizable. El valor general es \SI{1}{\milli\second}; en el experimento de detector se anula para reducir su influencia sobre la tasa. No representa una pila completa y por eso se informa como supuesto de temporización.
 
 \begin{lstlisting}[language=Python, caption={Creación de línea temporal, canales y nodos Alice--Bob.}, label={lst:canales_nodos_cap6}]
 tl = Timeline(p.runtime_ps)
@@ -104,7 +105,7 @@ qc0 = QuantumChannel("qc0", tl, distance=distance_m,
                      attenuation=attenuation_db_m,
                      frequency=p.frequency_hz)
 cc0 = ClassicalChannel("cc0", tl, distance=distance_m)
-cc0.delay += DEFAULT_CLASSICAL_EXTRA_DELAY_PS
+cc0.delay += p.classical_extra_delay_ps
 
 alice = QKDNode("alice", tl, encoding=time_bin, stack_size=1)
 bob = QKDNode("bob", tl, encoding=time_bin, stack_size=1)
@@ -122,14 +123,15 @@ Cada punto de barrido ejecuta el mismo flujo:
   \item Se crean Alice y Bob con codificación \texttt{time\_bin}.
   \item Se fijan parámetros de fuente, detector e interferómetro.
   \item Se vinculan las instancias BB84 de ambos nodos.
-  \item Alice agenda una solicitud de generación de llaves.
-  \item La línea temporal ejecuta eventos hasta completar llaves o agotar el tiempo.
-  \item Se extraen QBER, throughput, probabilidad de detección analítica y tasa secreta modelo.
+  \item Alice agenda una solicitud de generación de claves.
+  \item La línea temporal ejecuta eventos hasta completar claves o agotar el tiempo.
+  \item Se extraen errores, bits, tiempos, clics y tasa tamizada.
+  \item Se calculan intervalos, referencia analítica e indicadores según el experimento.
 \end{enumerate}
 
 Esta estructura hace que los experimentos sean comparables. Cuando se barre distancia, eficiencia o visibilidad, el resto del flujo se mantiene constante. Así, las diferencias observadas se pueden atribuir a la variable modificada con menos ambigüedad.
 
-Los mensajes clásicos que aparecen durante la corrida son los propios de BB84: inicio de una tanda de pulsos, recepción de qubits, publicación de bases y comunicación de índices coincidentes. El resultado de esa interacción no es una llave final lista para usar, sino listas de tasas de error y throughput por llave generada. El script promedia esas listas para obtener un punto de cada gráfico.
+Los mensajes clásicos son los propios de BB84: inicio de pulsos, recepción, publicación de bases y comunicación de índices coincidentes. El resultado no es una clave final lista para usar. Para cada repetición se agrupan todos los errores y bits, y la tasa se obtiene dividiendo los bits completados por el instante de la última clave. Después se agregan \PThreeRepetitions{} repeticiones por punto.
 
 \begin{lstlisting}[language=Python, caption={Agenda del proceso BB84 en la línea temporal.}, label={lst:agenda_bb84_cap6}]
 pair_bb84_protocols(alice.protocol_stack[0], bob.protocol_stack[0])
@@ -143,11 +145,11 @@ tl.init()
 tl.run()
 \end{lstlisting}
 
-El método \texttt{push} inicia la generación de llaves desde Alice. La llamada no calcula inmediatamente una tasa; agenda un proceso que la línea temporal ejecuta junto con emisiones, propagaciones, detecciones y mensajes. Esto distingue el modelo de una planilla analítica: el resultado aparece después de simular una secuencia de eventos.
+El método \texttt{push} inicia la generación de claves desde Alice. La llamada no calcula inmediatamente una tasa; agenda un proceso que la línea temporal ejecuta junto con emisiones, propagaciones, detecciones y mensajes. Esto distingue el modelo de una planilla analítica: el resultado aparece después de simular una secuencia de eventos.
 
 \section{Codificación y hardware modelado}
 
-La codificación seleccionada es \texttt{time\_bin}, provista por SeQUeNCe. Alice prepara una secuencia de bits y bases aleatorias, traduce cada bit al estado óptico correspondiente y emite pulsos mediante la fuente. Bob elige bases de medición aleatorias y registra detecciones mediante el detector \textit{time-bin}. Luego, el protocolo conserva posiciones con bases coincidentes para formar la llave.
+La codificación seleccionada es \texttt{time\_bin}, provista por SeQUeNCe. Alice prepara una secuencia de bits y bases aleatorias, traduce cada bit al estado óptico correspondiente y emite pulsos mediante la fuente. Bob elige bases de medición aleatorias y registra detecciones mediante el detector \textit{time-bin}. Luego, el protocolo conserva posiciones con bases coincidentes para formar la clave.
 
 Los parámetros de hardware usados por el script son deliberadamente simples, pero están conectados con variables físicas reales. La fuente se describe mediante frecuencia de emisión y número medio de fotones por pulso. La fibra se describe mediante distancia y atenuación. Los detectores se describen mediante eficiencia, tasa de conteos oscuros, tasa máxima de conteo y resolución temporal. El interferómetro se resume mediante una visibilidad \(V\), que se traduce a error de fase usando la Ecuación~\ref{eq:phase_visibility}.
 
@@ -166,25 +168,28 @@ for i in range(3):
 qsd.update_interferometer_params("phase_error", phase_error)
 \end{lstlisting}
 
-Este fragmento conecta directamente el Capítulo~\ref{chap:marco} con los barridos. La visibilidad \(V\) se transforma en error de fase; la eficiencia y los conteos oscuros se aplican a los detectores; la resolución temporal resume la capacidad de distinguir bins. En un banco físico, esos valores vendrían de hojas de datos o mediciones. En la simulación, se fijan o se barren para anticipar sensibilidad.
+Después de la asignación, el flujo lee los cuatro atributos de cada detector y aborta si alguno no coincide con \texttt{SimParams}. Una prueba de regresión construye un \texttt{QKDNode} time-bin, cambia los tres detectores y verifica sus valores internos. Este control es necesario porque \texttt{QSDetectorTimeBin} hereda de la clase base y una comparación de tipo exacto impediría propagar los parámetros.
+
+El fragmento conecta directamente el Capítulo~\ref{chap:marco} con los barridos. La visibilidad \(V\) se transforma en error de fase; la eficiencia y los conteos oscuros se aplican a los detectores; la resolución temporal resume la capacidad de distinguir bins. En un banco físico, esos valores vendrían de una misma hoja de datos o de mediciones conjuntas. En la simulación se usan \SI{50}{\mega\hertz} y \SI{10}{\pico\second} como valores idealizados, incompatibles con atribuir el escenario al ID230. La comparación cuantitativa y los cambios requeridos se detallan en la Tabla~\ref{tab:modelo_id230}.
 
 \section{Métricas extraídas}
 
-El script registra cuatro magnitudes principales:
+El script registra y separa las siguientes magnitudes:
 
 \begin{itemize}
-  \item \textbf{QBER medio}: promedio de tasas de error reportadas por BB84 para las llaves generadas.
-  \item \textbf{Throughput tamizado}: tasa de bits por segundo calculada por la implementación BB84.
-  \item \textbf{SKR modelo}: tasa secreta estimada a partir del throughput tamizado y el QBER.
-  \item \textbf{Probabilidad de detección analítica}: probabilidad aproximada de al menos un click por pulso para fuente coherente débil, canal y detector.
+  \item \textbf{QBER agrupado}: cociente entre errores y bits tamizados de todas las repeticiones del punto.
+  \item \textbf{Tasa tamizada}: bits completados por tiempo de generación en cada corrida.
+  \item \textbf{Indicador ideal}: respuesta de posprocesamiento bajo un supuesto monofotónico, no tasa secreta para la fuente coherente débil.
+  \item \textbf{Referencia analítica}: disponibilidad media esperada de clics tamizados para fuente, canal y detector.
+  \item \textbf{Diagnósticos con y sin señuelos}: fórmulas asintóticas aplicadas a QBER agrupada y ganancias analíticas en el cuarto experimento.
 \end{itemize}
 
-La separación entre métricas simuladas y métricas analíticas es importante. QBER y throughput provienen de eventos discretos del protocolo. La probabilidad de detección y parte del análisis con estados señuelo se calculan con expresiones cerradas para complementar la simulación. Esta separación evita atribuir al simulador una funcionalidad que todavía no implementa, especialmente en el caso decoy.
+QBER y tasa tamizada provienen de eventos discretos. La referencia y las ganancias señuelo se calculan con expresiones cerradas. Los intervalos cuantifican incertidumbre Monte Carlo, no seguridad de clave finita. Esta separación evita atribuir a SeQUeNCe una implementación señuelo que no posee.
 
-En particular, la probabilidad de detección no se obtiene contando todos los clicks del log interno. Se calcula como modelo cerrado de fuente coherente débil, transmitancia de canal y eficiencia de detector. En cambio, el QBER sí proviene de las llaves tamizadas generadas por la implementación BB84. Esta diferencia se mantiene explícita en las figuras y en el texto porque es una de las principales fuentes de interpretación incorrecta si se mezclan métricas.
+En particular, la probabilidad de detección no se obtiene contando todos los clics del log interno. Se calcula como modelo cerrado de fuente coherente débil, transmitancia de canal y eficiencia de detector. En cambio, el QBER sí proviene de las claves tamizadas generadas por la implementación BB84. Esta diferencia se mantiene explícita en las figuras y en el texto porque es una de las principales fuentes de interpretación incorrecta si se mezclan métricas.
 
 \section{Supuestos y límites del modelo}
 
-El modelo adopta una abstracción de ingeniería inicial. No incluye ataques laterales, calibración automática, postprocesamiento clásico completo, autenticación del canal clásico ni fluctuaciones temporales de todos los componentes. La tasa secreta debe leerse como una estimación de diseño, no como una llave certificada para uso criptográfico real.
+El modelo adopta una abstracción de ingeniería inicial. No incluye ataques laterales, calibración automática, posprocesamiento clásico completo, autenticación del canal clásico ni fluctuaciones temporales de todos los componentes \cite{scarani2009security}. El indicador ideal y las curvas señuelo son diagnósticos de diseño, no claves certificadas.
 
-Tampoco se implementa un protocolo decoy completo dentro de SeQUeNCe. La comparación con estados señuelo usa QBER simulado para intensidades de señal y señuelo, pero calcula ganancias y cotas mediante fórmulas analíticas asintóticas. Esta decisión mantiene el experimento reproducible y suficiente para comparar tendencias de diseño, aunque deja como trabajo futuro la implementación protocolar completa de intensidades aleatorias, etiquetado, estimación estadística finita y postprocesamiento.
+Tampoco se implementa un protocolo decoy completo dentro de SeQUeNCe. La comparación con estados señuelo usa QBER agrupada para intensidades de señal y señuelo, pero calcula ganancias y cotas mediante fórmulas analíticas asintóticas. La incertidumbre se obtiene remuestreando pares de repeticiones, agrupando nuevamente sus conteos y recién entonces aplicando la fórmula no lineal. Esta decisión evita promediar tasas derivadas de claves de 256 bits, aunque deja como trabajo futuro la implementación protocolar completa de intensidades aleatorias, etiquetado, estimación estadística finita y posprocesamiento.

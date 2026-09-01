@@ -91,19 +91,17 @@ class Interferometer(Entity):
                 time = 0
             elif random_num <= 0.5:
                 time = 2 * self.path_difference
-            elif detector_num == 0:
-                time = self.path_difference
             else:
-                return
+                time = self.path_difference
+                detector_num = 0
         if quantum_state.state == (complex(sqrt(1/2)), complex(-sqrt(1/2))):  # Early - Late
             if random_num <= 0.25:
                 time = 0
             elif random_num <= 0.5:
                 time = 2 * self.path_difference
-            elif detector_num == 1:
-                time = self.path_difference
             else:
-                return
+                time = self.path_difference
+                detector_num = 1
 
         process = Process(self._receivers[detector_num], "get", [])
         event = Event(self.timeline.now() + time, process)

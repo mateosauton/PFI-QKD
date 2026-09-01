@@ -1,11 +1,11 @@
 \chapter{Hardware y presupuesto de enlace}
 \label{chap:hardware}
 
-El modelo de simulación usa parámetros compactos: distancia, atenuación, número medio de fotones, eficiencia de detector, conteos oscuros y visibilidad. Detrás de cada parámetro hay componentes físicos. Este capítulo explica qué hardware representa cada variable, qué compromisos aparecen en un banco \textit{time-bin} y cómo se puede construir un presupuesto de enlace preliminar. La intención no es cerrar una lista de compra, sino mostrar qué especificaciones importan y cómo se conectan con QBER y SKR.
+El modelo de simulación usa parámetros compactos: distancia, atenuación, número medio de fotones, eficiencia de detector, conteos oscuros y visibilidad. Detrás de cada parámetro hay componentes físicos. Este capítulo explica qué hardware representa cada variable, qué compromisos aparecen en un banco \textit{time-bin} y cómo se puede construir un presupuesto de enlace preliminar. La intención no es cerrar una lista de compra, sino mostrar qué especificaciones importan y cómo se conectan con QBER, tasa tamizada y los estimadores analíticos.
 
 \section{Arquitectura física del enlace}
 
-Un enlace prepare-and-measure de dos nodos puede separarse en cuatro bloques: emisor, canal, receptor y control clásico. Alice prepara pulsos ópticos débiles con estados temporales e intensidades elegidas. El canal transporta esos pulsos con pérdidas y retardo. Bob mide en una base temporal directa o en una base interferométrica. El control clásico coordina bases, tamizado, estimación de error y, en una implementación completa, reconciliación y entrega de llaves.
+Un enlace prepare-and-measure de dos nodos puede separarse en cuatro bloques: emisor, canal, receptor y control clásico. Alice prepara pulsos ópticos débiles con estados temporales e intensidades elegidas. El canal transporta esos pulsos con pérdidas y retardo. Bob mide en una base temporal directa o en una base interferométrica. El control clásico coordina bases, tamizado, estimación de error y, en una implementación completa, reconciliación y entrega de claves.
 
 \begin{figure}[H]
   \centering
@@ -46,7 +46,7 @@ Esta formulación permite traducir un relevamiento físico a parámetros de simu
 
 Bob debe medir estados en bases aleatorias o efectivamente aleatorizadas. En \textit{time-bin}, la base directa distingue llegada temprana y tardía. La base conjugada requiere interferir componentes temporales. Una arquitectura habitual usa un interferómetro Mach--Zehnder desbalanceado, cuyo retardo iguala la separación entre bins. La calidad de esa interferencia se resume en la visibilidad \(V\). En el simulador, \(V\) se transforma en error de fase mediante \(p_\text{fase}=(1-V)/2\).
 
-Los detectores son críticos. Su eficiencia determina qué fracción de fotones incidentes se convierten en clicks. Los conteos oscuros agregan clicks falsos. El tiempo muerto limita la tasa máxima de eventos. El jitter y la resolución temporal afectan la asignación de clicks a ventanas \textit{time-bin}. Para sistemas en 1550 nm, las tecnologías comunes incluyen APD InGaAs y detectores superconductores de nanohilo. Los APD suelen ser más simples de operar, mientras que los superconductores pueden ofrecer mejores prestaciones a costa de criogenia y complejidad.
+Los detectores son críticos. Su eficiencia determina qué fracción de fotones incidentes se convierten en clics. Los conteos oscuros agregan clics falsos. El tiempo muerto limita la tasa máxima de eventos. La fluctuación temporal (\textit{jitter}) y la resolución afectan la asignación de clics a ventanas \textit{time-bin}. Para sistemas en 1550 nm, las tecnologías comunes incluyen APD InGaAs y detectores superconductores de nanohilo. Los APD suelen ser más simples de operar, mientras que los superconductores pueden ofrecer mejores prestaciones a costa de criogenia y complejidad.
 
 \begin{table}[H]
   \centering
@@ -54,8 +54,8 @@ Los detectores son críticos. Su eficiencia determina qué fracción de fotones 
     \toprule
     Parámetro & Impacto en QKD & Representación en el modelo \\
     \midrule
-    Eficiencia & Aumenta clicks útiles y tasa tamizada & \texttt{detector\_efficiency} \\
-    Conteos oscuros & Introducen clicks aleatorios y errores & \texttt{dark\_count\_hz} \\
+    Eficiencia & Aumenta clics útiles y tasa tamizada & \texttt{detector\_efficiency} \\
+    Conteos oscuros & Introducen clics aleatorios y errores & \texttt{dark\_count\_hz} \\
     Tiempo muerto & Limita detecciones cercanas & \texttt{count\_rate\_hz} como aproximación \\
     Resolución temporal & Define separación de bins & \texttt{time\_resolution\_ps} \\
     Visibilidad & Controla errores en base interferométrica & \texttt{visibility} y \texttt{phase\_error} \\
@@ -65,15 +65,40 @@ Los detectores son críticos. Su eficiencia determina qué fracción de fotones 
   \label{tab:receptor_parametros}
 \end{table}
 
+Los valores efectivos de esta tesis no deben confundirse con una hoja de datos. La configuración base fija \texttt{count\_rate\_hz} en \SI{50}{\mega\hertz} y \texttt{time\_resolution\_ps} en \SI{10}{\pico\second}; además, el barrido de eficiencia llega a 0,85. Es un receptor idealizado, cercano en intención a explorar tecnologías de mayor desempeño, no un modelo del ID230. La Tabla~\ref{tab:modelo_id230} muestra la diferencia.
+
+\begin{table}[H]
+  \centering
+  \small
+  \begin{tabularx}{\textwidth}{
+    >{\raggedright\arraybackslash}p{0.17\textwidth}
+    >{\raggedright\arraybackslash}p{0.21\textwidth}
+    >{\raggedright\arraybackslash}p{0.27\textwidth}
+    >{\raggedright\arraybackslash}X}
+    \toprule
+    Magnitud & Simulación actual & ID230 de referencia & Consecuencia \\
+    \midrule
+    Eficiencia & 0,10 base; barrido 0,05--0,85 & Ajustable hasta 25\% & Sólo el subrango hasta 0,25 es comparable \\
+    Resolución temporal & \SI{10}{\pico\second} & Aproximadamente \SI{150}{\pico\second} & El modelo distingue bins con un receptor más ideal \\
+    Límite de conteo & \SI{50}{\mega\hertz} por detector & Tiempo muerto mínimo de \SI{2}{\micro\second}; techo aproximado de \SI{0.5}{\mega\hertz} & La referencia analítica admite una tasa muy superior \\
+    Fondo & 80--\SI{10000}{\hertz} según barrido & Del orden de decenas a centenas de Hz según eficiencia & Parte del barrido explora degradación, no especificación nominal \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Comparación entre el receptor idealizado del modelo y el detector comercial usado como referencia \cite{idqID230}.}
+  \label{tab:modelo_id230}
+\end{table}
+
+Para simular una primera maqueta basada en ID230 deberían restringirse eficiencia y fondo a una misma condición de operación, sustituir el límite de conteo por el derivado del tiempo muerto y usar la resolución o fluctuación temporal publicadas. Además, el tiempo muerto no se representa fielmente con un único techo de tasa: su efecto depende de la secuencia de llegadas y del pospulsado. Por eso la presente comparación sirve para identificar cambios necesarios, no para afirmar que el presupuesto y las curvas describen un banco ya integrable.
+
 \section{Control, sincronización y temporización}
 
-Un banco QKD necesita más que óptica. La preparación de estados, el disparo de moduladores, el registro de detecciones y la asociación de eventos a ventanas temporales requieren electrónica de control. En una implementación de laboratorio pueden intervenir generadores de pulsos, FPGA, time taggers, computadoras de control y software de protocolo. La sincronización es particularmente importante en \textit{time-bin}: si Alice y Bob no comparten una referencia temporal suficiente, Bob asignará clicks a bins incorrectos.
+Un banco QKD necesita más que óptica. La preparación de estados, el disparo de moduladores, el registro de detecciones y la asociación de eventos a ventanas temporales requieren electrónica de control. En una implementación de laboratorio pueden intervenir generadores de pulsos, FPGA, registradores temporales, computadoras de control y software de protocolo. La sincronización es particularmente importante en \textit{time-bin}: si Alice y Bob no comparten una referencia temporal suficiente, Bob asignará clics a bins incorrectos.
 
-El modelo actual no simula una arquitectura completa de sincronización. SeQUeNCe agenda eventos con una línea temporal ideal y el detector tiene resolución temporal. Esto es suficiente para estudiar tendencias de diseño, pero no reemplaza una medición real de jitter ni una estrategia de sincronización. En el plan de implementación, la sincronización debería tratarse como una línea de trabajo propia, junto con visibilidad y calibración de intensidad.
+El modelo actual no simula una arquitectura completa de sincronización. SeQUeNCe agenda eventos con una línea temporal ideal y el detector tiene resolución temporal. Esto es suficiente para estudiar tendencias de diseño, pero no reemplaza una medición real de fluctuación temporal ni una estrategia de sincronización. En el plan de implementación, la sincronización debería tratarse como una línea de trabajo propia, junto con visibilidad y calibración de intensidad.
 
 \section{Presupuesto preliminar de enlace}
 
-El presupuesto de enlace conecta hardware y simulación. Para una fuente coherente débil, una aproximación de probabilidad de detección es \(P_\text{det}=1-\exp(-\mu \eta_\text{total}\eta_d)\). La pérdida total reduce \(\eta_\text{total}\); la eficiencia del detector multiplica esa transmitancia; \(\mu\) controla el número medio de fotones emitidos. Por lo tanto, una mejora en detector o una reducción de conectores puede tener un efecto similar sobre la probabilidad de click.
+El presupuesto de enlace conecta hardware y simulación. Para una fuente coherente débil, una aproximación de probabilidad de detección es \(P_\text{det}=1-\exp(-\mu \eta_\text{total}\eta_d)\). La pérdida total reduce \(\eta_\text{total}\); la eficiencia del detector multiplica esa transmitancia; \(\mu\) controla el número medio de fotones emitidos. Por lo tanto, una mejora en detector o una reducción de conectores puede tener un efecto similar sobre la probabilidad de clic.
 
 \begin{table}[H]
   \centering
@@ -97,38 +122,34 @@ La tabla no pretende describir rutas reales de UNSAM. Muestra cómo se transform
 
 Los productos QKD comerciales muestran que BB84 eficiente con estados señuelo y codificación de fase es una arquitectura madura. Toshiba publica sistemas multiplexados y de larga distancia con tasas típicas bajo pérdidas especificadas y rangos de decenas a más de cien kilómetros en fibra ideal \cite{toshibaQKDProducts}. Para este PFI, esas cifras no son metas directas. Un sistema comercial incluye optimización de hardware, postprocesamiento, control de estabilidad, seguridad de módulos y soporte operacional.
 
-La utilidad de la referencia comercial es otra: ayuda a identificar variables de especificación. Si un producto diferencia entre sistema multiplexado y sistema de larga distancia, entonces la decisión de usar fibra dedicada o compartida es central. Si publica requerimientos de fibra, entonces el relevamiento físico importa. Si incluye Q-KMS, entonces la administración de llaves no es un agregado opcional sino parte de la solución. Estas observaciones alimentan el diseño de capítulos posteriores.
+La utilidad de la referencia comercial es otra: ayuda a identificar variables de especificación. Si un producto diferencia entre sistema multiplexado y sistema de larga distancia, entonces la decisión de usar fibra dedicada o compartida es central. Si publica requerimientos de fibra, entonces el relevamiento físico importa. Si incluye Q-KMS, entonces la administración de claves no es un agregado opcional sino parte de la solución. Estas observaciones alimentan el diseño de capítulos posteriores.
 
 \section{Instrumental elegido y hojas de datos}
 
 Para dimensionar una primera implementación se seleccionan instrumentos representativos, no una compra cerrada. El criterio es cubrir la cadena completa: fuente de telecomunicaciones, modulación rápida, detección de fotón único y registro temporal. Las hojas de datos se usan como referencia de especificaciones que luego se traducen a parámetros del simulador.
 
-\begin{figure}[H]
+La modulación requiere dos funciones distintas. El LNA6213 es un modulador de intensidad y puede controlar señal y señuelo; no se lo usa como modulador de fase. Para imponer la fase relativa \(0/\pi\) se necesita un componente separado, por ejemplo un modulador de fase LN53S-FC o un equivalente vigente para 1550 nm \cite{thorlabsLNA6213,thorlabsLN53SFC}.
+
+\begin{figure}[p]
   \centering
-  \begin{minipage}{0.49\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{thorlabs-kls1550-page.png}
-  \end{minipage}\hfill
-  \begin{minipage}{0.49\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{thorlabs-lna6213-page.png}
-  \end{minipage}
-  \caption{Fuente láser Thorlabs KLS1550 y moduladores LiNbO\(_3\) de la familia LNA/LNP como referencias para fuente y modulación en 1550 nm \cite{thorlabsKLS1550,thorlabsLNA6213}.}
-  \label{fig:instrumentos_fuente_modulador}
+  \includegraphics[width=0.92\textwidth,height=0.72\textheight,keepaspectratio]{thorlabs-kls1550-page.png}
+  \caption{Fuente láser Thorlabs KLS1550 como referencia para el emisor en 1550 nm. La hoja técnica permite identificar longitud de onda, potencia y acoplamiento \cite{thorlabsKLS1550}.}
+  \label{fig:instrumento_fuente}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \begin{minipage}{0.45\textwidth}
-    \centering
-    \includegraphics[width=0.78\textwidth]{id230-detector.png}
-  \end{minipage}\hfill
-  \begin{minipage}{0.45\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{time-tagger-ultra.png}
-  \end{minipage}
-  \caption{Detector de fotón único ID Quantique ID230 y time tagger Swabian Instruments Time Tagger Ultra, usados como referencias para eficiencia, conteos oscuros, jitter, resolución temporal y registro de eventos \cite{idqID230,swabianTimeTagger}.}
-  \label{fig:instrumentos_detector_tagger}
+  \includegraphics[width=0.92\textwidth,height=0.72\textheight,keepaspectratio]{thorlabs-lna6213-page.png}
+  \caption{Modulador de intensidad LiNbO\(_3\) Thorlabs LNA6213 como referencia para controlar señal y señuelo. La fase requiere un modulador separado \cite{thorlabsLNA6213,thorlabsLN53SFC}.}
+  \label{fig:instrumento_modulador}
+\end{figure}
+
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=0.62\textwidth,height=0.44\textheight,keepaspectratio]{id230-detector.png}\par\bigskip
+  \includegraphics[width=0.82\textwidth,height=0.30\textheight,keepaspectratio]{time-tagger-ultra.png}
+  \caption{Detector de fotón único ID Quantique ID230 y registrador temporal Swabian Instruments Time Tagger Ultra. Las especificaciones relevantes se comparan en las tablas del capítulo; estos equipos no originan el conjunto idealizado de parámetros de la simulación \cite{idqID230,swabianTimeTagger}.}
+  \label{fig:instrumentos_detector_registrador}
 \end{figure}
 
 \begin{figure}[H]
@@ -150,14 +171,15 @@ Para dimensionar una primera implementación se seleccionan instrumentos represe
   \midrule
   \endhead
   Fuente & Thorlabs KLS1550 & Fuente acoplada a fibra en 1550 nm, con salida FC/PC y potencia máxima de referencia & \(\mu\), tasa de pulsos, estabilidad \\
-  Modulación & Thorlabs LNA6213 / familia LiNbO\(_3\) & Rango 1260--1625 nm y modulación de alta velocidad para intensidad/fase & Codificación, decoy, visibilidad \\
-  Detector & ID Quantique ID230 & InGaAs/InP en telecom, eficiencia ajustable hasta \SI{25}{\percent}, conteos oscuros bajos y resolución temporal sub-ns & Eficiencia, conteos oscuros, resolución temporal \\
-  Time tagger & Swabian Time Tagger Ultra & Resolución digital de \SI{1}{\pico\second}, jitter de pocos ps según configuración y múltiples canales & Ventanas \textit{time-bin}, sincronización \\
+  Intensidad & Thorlabs LNA6213 & Modulador LiNbO\(_3\) para controlar la potencia óptica & Señal, señuelo y vacío \\
+  Fase & Thorlabs LN53S-FC o equivalente & Modulador LiNbO\(_3\) de fase para la ventana de 1550 nm & Fase relativa \(0/\pi\) y base X \\
+  Detector & ID Quantique ID230 & InGaAs/InP en telecom, eficiencia ajustable hasta \SI{25}{\percent}, resolución temporal típica de \SI{150}{\pico\second} y tiempo muerto desde \SI{2}{\micro\second} & Eficiencia, fondo, resolución y límite de conteo \\
+  Registrador temporal & Swabian Time Tagger Ultra & Resolución digital de \SI{1}{\pico\second}, fluctuación temporal de pocos ps según configuración y múltiples canales & Ventanas \textit{time-bin}, sincronización \\
   Sistema integrado & Toshiba QKD & Referencia comercial para BB84 eficiente con estados señuelo y operación en fibra & Alcance de comparación, no parámetro directo \\
   \bottomrule
 \end{longtable}
 
-El valor de esta tabla es conectar hojas de datos con decisiones de simulación. Si se elige otro detector, cambian eficiencia, dark counts, tiempo muerto y jitter. Si se elige otro modulador, cambian pérdida de inserción, ancho de banda y estabilidad de fase. Si se elige una fuente con menor control de potencia, el ajuste de \(\mu\) se vuelve más incierto. Por lo tanto, el presupuesto no debe evaluarse solo por costo unitario: debe evaluarse por el impacto de cada instrumento sobre QBER, SKR y repetibilidad del banco.
+El valor de esta tabla es conectar hojas de datos con decisiones de simulación. Si se elige otro detector, cambian eficiencia, conteos oscuros, tiempo muerto y fluctuación temporal. Si se elige otro modulador, cambian pérdida de inserción, ancho de banda y estabilidad de fase. Si se elige una fuente con menor control de potencia, el ajuste de \(\mu\) se vuelve más incierto. El presupuesto debe evaluarse por el impacto de cada instrumento sobre QBER, tasa tamizada, estimadores y repetibilidad del banco.
 
 \subsection{Criterios de selección de componentes}
 
@@ -179,8 +201,8 @@ Para seleccionar hardware, el proyecto debería evitar dos extremos. El primero 
   Atenuadores & Rango, precisión, estabilidad & Control de \(\mu\) \\
   Fibra & Atenuación, disponibilidad, conectores & Experimento de distancia \\
   Interferómetro & Retardo, visibilidad, estabilidad térmica & Experimento de visibilidad \\
-  Detectores & Eficiencia, dark counts, jitter, dead time & Experimento de detector \\
-  Time tagger & Resolución, canales, tasa máxima & Asignación temporal de bins \\
+  Detectores & Eficiencia, conteos oscuros, fluctuación temporal, tiempo muerto & Experimento de detector \\
+  Registrador temporal & Resolución, canales, tasa máxima & Asignación temporal de bins \\
   Control & FPGA/PC, sincronización, software & Operación del protocolo \\
   \bottomrule
 \end{longtable}

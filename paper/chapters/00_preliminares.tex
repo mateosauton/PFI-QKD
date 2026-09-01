@@ -1,22 +1,28 @@
 \chapter*{Resumen}
+\phantomsection
+\addcontentsline{toc}{chapter}{Resumen}
 
-Este trabajo presenta el diseño y la evaluación por simulación de un banco de pruebas de distribución cuántica de claves basado en el protocolo BB84 con codificación en modos temporales discretos, o \textit{time-bin}, para un enlace de dos nodos. El objetivo es analizar la factibilidad técnica de una implementación experimental sobre fibra óptica utilizando parámetros de hardware realistas y cuantificando métricas de desempeño relevantes para telecomunicaciones: tasa de error cuántico de bit (QBER), tasa de llave secreta (SKR), probabilidad de detección, sensibilidad a la eficiencia de detección, conteos oscuros y visibilidad interferométrica.
+Este trabajo presenta el diseño y la evaluación por simulación de un banco de pruebas de distribución cuántica de claves basado en BB84 con codificación \textit{time-bin} para un enlace de dos nodos. El objetivo es estudiar qué información confiable puede obtenerse antes de construir el banco físico y qué resultados exigen revisar el modelo. Se analizan la tasa de error cuántico de bit (QBER), la tasa tamizada, un indicador ideal de posprocesamiento y diagnósticos basados en fórmulas asintóticas con y sin estados señuelo. El indicador ideal no se interpreta como tasa secreta para una fuente coherente débil.
 
-La metodología utiliza SeQUeNCe, un simulador de eventos discretos para redes cuánticas, sobre el cual se construye un escenario Alice--Bob con canal cuántico, canal clásico, fuente óptica débil, detectores de fotón único y un receptor de estados \textit{time-bin}. Se ejecutan cuatro barridos experimentales: distancia de fibra, parámetros de detector, visibilidad del interferómetro y comparación entre una estimación sin estados señuelo y una cota asintótica con estados señuelo. El protocolo de estados señuelo no se implementa como una capa completa dentro del simulador; se incorpora mediante fórmulas analíticas para ganancias y cotas de fotón único, combinadas con QBER y throughput simulados.
+La metodología usa SeQUeNCe 0.8.5 con una corrección local documentada para el error de fase del interferómetro. Se construye un escenario Alice--Bob con canal cuántico, canales clásicos, fuente coherente débil y receptor \textit{time-bin}. Se ejecutan cuatro barridos: distancia, eficiencia y conteos oscuros, visibilidad, y comparación con y sin estados señuelo. Cada punto reúne \PThreeRepetitions{} repeticiones deterministas; QBER se informa con intervalo de Wilson, las tasas de los tres primeros experimentos con intervalo t del 95\% y las tasas señuelo con bootstrap pareado. La corrida exporta datos agregados y por repetición, semillas, conteos, metadatos y hashes.
 
-Los resultados muestran que la distancia, la eficiencia de detección y la calidad interferométrica condicionan fuertemente la viabilidad del enlace. La simulación reproduce el decrecimiento esperado de la probabilidad de detección con la atenuación de fibra, evidencia el umbral práctico asociado al QBER y permite identificar qué parámetros de componentes tienen mayor impacto sobre la generación de llave. El trabajo no pretende certificar seguridad de una implementación final, sino producir una base de diseño reproducible para orientar decisiones de laboratorio, seleccionar condiciones iniciales de operación y delimitar qué aspectos deben modelarse con mayor detalle antes de pasar a un banco físico.
+En los 14 puntos de distancia, el IC del 95\% de la tasa tamizada queda por debajo de la referencia analítica. QBER permanece bajo el umbral del indicador ideal hasta \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm}{\kilo\meter} y aumenta con rapidez en el punto siguiente; esa transición caracteriza al modelo y no define alcance físico. La eficiencia produce una diferencia resuelta entre extremos, mientras el contraste de conteos oscuros no resuelve una degradación al 5\% \(p=\num[round-mode=places,round-precision=3]{\PThreeDarkPValue}\). La visibilidad genera la respuesta de QBER esperada y conserva holgura de tasa en sus doce puntos. El estimador con señuelos sigue siendo positivo cerca de \SI{71}{\kilo\meter} y se anula desde aproximadamente \SI{81}{\kilo\meter}. En consecuencia, el aporte es un procedimiento reproducible para orientar ensayos y detectar límites del modelo. No se certifica seguridad ni factibilidad física del Campus Miguelete.
 
-\textbf{Palabras clave:} distribución cuántica de claves, BB84, time-bin, estados señuelo, SeQUeNCe, fibra óptica, QBER, tasa de llave secreta.
+\textbf{Palabras clave:} distribución cuántica de claves, BB84, time-bin, estados señuelo, SeQUeNCe, fibra óptica, QBER, tasa de clave secreta.
 
 \chapter*{Resumen extendido}
+\phantomsection
+\addcontentsline{toc}{chapter}{Resumen extendido}
 
 El problema abordado por este trabajo es la distribución segura de claves criptográficas en redes de telecomunicaciones. La criptografía simétrica requiere claves compartidas, pero la distribución de esas claves es un punto crítico cuando los usuarios están separados por enlaces públicos. QKD propone resolver esa etapa usando estados cuánticos y un canal clásico autenticado: si un tercero intenta obtener información midiendo estados no ortogonales, introduce perturbaciones que pueden estimarse como errores.
 
-El proyecto se enfoca en BB84 porque es el protocolo de referencia para introducir DCC y porque su estructura permite conectar directamente teoría, simulación y diseño experimental. La elección de \textit{time-bin} responde a su relevancia para fibra óptica: los bits se codifican en ventanas temporales y la base conjugada depende de interferencia entre modos temprano y tardío. Por eso, el desempeño del enlace queda asociado a magnitudes propias de telecomunicaciones ópticas, como atenuación, eficiencia de detección, conteos oscuros, resolución temporal y visibilidad interferométrica.
+El proyecto se enfoca en BB84 porque es el protocolo de referencia para estudiar DCC y porque su estructura conecta teoría, simulación y diseño experimental. La elección de \textit{time-bin} responde a su relevancia para fibra óptica: los bits se codifican en ventanas temporales y la base conjugada depende de la interferencia entre modos temprano y tardío. Por eso, el desempeño del enlace queda asociado a atenuación, eficiencia de detección, conteos oscuros, resolución temporal y visibilidad interferométrica.
 
-El aporte específico del experimento es construir una primera capa de decisión para un banco de pruebas. Antes de comprar, integrar o calibrar hardware, la simulación permite preguntar qué distancia tiene sentido probar, qué detector resulta más exigente para el presupuesto de pérdidas, qué visibilidad mínima debería sostener el interferómetro y cómo cambia una estimación de tasa cuando se considera una cota con estados señuelo. Esta información no reemplaza una medición experimental, pero reduce incertidumbre y ordena el diseño.
+El aporte específico es construir una primera capa de decisión para el banco. La simulación verifica la respuesta interna a variables físicas, conserva evidencia por repetición y contrasta la tasa tamizada con una referencia externa. La ejecución final conserva holgura en toda la grilla y, de manera independiente, localiza una transición de QBER a larga distancia. Informar ambos controles reduce el riesgo de trasladar una salida del simulador a una especificación de hardware sin validación.
 
 \chapter*{Acrónimos}
+\phantomsection
+\addcontentsline{toc}{chapter}{Acrónimos}
 
 \begin{table}[H]
   \centering
@@ -27,12 +33,15 @@ El aporte específico del experimento es construir una primera capa de decisión
     APD & Fotodiodo de avalancha \\
     BB84 & Protocolo de Bennett y Brassard de 1984 \\
     DCC & Distribución cuántica de claves \\
+    IC & Intervalo de confianza \\
+    KMS & Sistema de administración de claves, por \textit{key management system} \\
     OTP & Cifrado de libreta de un solo uso, por \textit{one-time pad} \\
     PFI & Proyecto Final Integrador \\
     PNS & División de número de fotones, por \textit{photon number splitting} \\
+    PQC & Criptografía poscuántica, por \textit{post-quantum cryptography} \\
     QBER & Tasa de error cuántico de bit, por \textit{quantum bit error rate} \\
     QKD & Distribución cuántica de claves, por \textit{quantum key distribution} \\
-    SKR & Tasa de llave secreta, por \textit{secret key rate} \\
+    SKR & Tasa de clave secreta, por \textit{secret key rate} \\
     WCS & Fuente coherente débil, por \textit{weak coherent source} \\
     \bottomrule
   \end{tabular}

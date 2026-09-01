@@ -7,7 +7,7 @@ Este capítulo ubica el proyecto dentro del estado actual de la tecnología. La 
 
 El avance de la computación cuántica afecta principalmente a la criptografía de clave pública basada en problemas como factorización y logaritmos discretos. La respuesta de mayor alcance industrial es la criptografía post-cuántica (PQC), que busca algoritmos clásicos resistentes a adversarios con computadoras cuánticas. NIST publicó en 2024 sus primeros estándares finales de PQC, incluyendo ML-KEM para establecimiento de claves y esquemas de firma digital ML-DSA y SLH-DSA \cite{nistPQC2024}. Estos estándares son relevantes porque pueden desplegarse sobre redes existentes sin requerir fibra ni equipos ópticos cuánticos.
 
-QKD resuelve el problema desde otro plano. No reemplaza AES, TLS ni las firmas digitales. Produce material de clave compartido entre dos puntos mediante una capa física cuántica y un canal clásico autenticado. Luego esa clave puede alimentar cifrado simétrico, autenticación o aplicaciones de red. La comparación correcta no es ``QKD contra todo el sistema criptográfico'', sino ``QKD como mecanismo físico de distribución de llaves'' frente a mecanismos matemáticos de establecimiento de secretos.
+QKD resuelve el problema desde otro plano. No reemplaza AES, TLS ni las firmas digitales. Produce material de clave compartido entre dos puntos mediante una capa física cuántica y un canal clásico autenticado. Luego esa clave puede alimentar cifrado simétrico, autenticación o aplicaciones de red. La comparación correcta no es ``QKD contra todo el sistema criptográfico'', sino ``QKD como mecanismo físico de distribución de claves'' frente a mecanismos matemáticos de establecimiento de secretos.
 
 \begin{table}[H]
   \centering
@@ -28,11 +28,44 @@ QKD resuelve el problema desde otro plano. No reemplaza AES, TLS ni las firmas d
 
 Para este PFI, la consecuencia es clara: no hace falta presentar QKD como reemplazo de PQC. Es más riguroso plantearla como una línea experimental complementaria. Un banco de pruebas universitario permite medir, simular y comprender una tecnología física de distribución de claves. PQC, en cambio, representa la ruta de migración de software más amplia. Ambas pertenecen al universo de seguridad post-cuántica, pero tienen supuestos, costos y superficies de ataque distintas.
 
+\section{Familias de QKD y posición del proyecto}
+
+BB84 con estados señuelo no es la única arquitectura disponible. Se eligió porque permite relacionar preparación de pulsos débiles, pérdidas de fibra, medición \textit{time-bin}, QBER y estimación monofotónica con un banco de dos nodos abordable. La comparación con otras familias muestra qué problema queda fuera de esa decisión.
+
+MDI-QKD desplaza la medición a un nodo central que no necesita ser confiable. Alice y Bob envían estados hacia ese nodo, donde se realiza una medición de Bell. La propuesta elimina los canales laterales asociados a detectores dentro del modelo de seguridad, pero exige interferencia de señales provenientes de fuentes independientes, sincronización estricta y caracterización por pares de intensidades \cite{lo2012mdi}. No es una modificación local del receptor BB84 simulado: cambia la topología, duplica emisores y redefine las estadísticas útiles.
+
+TF-QKD también hace interferir campos enviados por los extremos hacia una estación intermedia. Su motivación es mejorar la relación entre tasa y pérdida sin usar repetidores cuánticos, pero requiere estabilización de fase sobre trayectos largos y un protocolo de estimación distinto \cite{lucamarini2018tf}. El barrido de visibilidad de este trabajo ayuda a entender por qué la fase importa, aunque no representa la estabilización distribuida de TF-QKD.
+
+CV-QKD codifica información en cuadraturas de campos ópticos y emplea detección homodina o heterodina. Puede aprovechar componentes coherentes de telecomunicaciones y evitar conteo directo de fotones, pero introduce calibración de ruido de vacío, ruido excedente, reconciliación a baja relación señal-ruido y un modelo de seguridad gaussiano diferente \cite{grosshans2003cv}. Requeriría otro receptor y otra capa de simulación; no es una alternativa que pueda evaluarse reutilizando las métricas discretas de este experimento.
+
+\begin{table}[H]
+  \centering
+  \small
+  \begin{tabularx}{\textwidth}{
+    >{\raggedright\arraybackslash}p{0.16\textwidth}
+    >{\raggedright\arraybackslash}p{0.22\textwidth}
+    >{\raggedright\arraybackslash}p{0.25\textwidth}
+    >{\raggedright\arraybackslash}X}
+    \toprule
+    Familia & Medición y confianza & Ventaja principal & Implicación para un banco UNSAM \\
+    \midrule
+    BB84 señuelo & Bob mide; detector caracterizado & Arquitectura madura y didáctica para dos nodos & Base elegida; requiere controlar fuente, interferómetro y detector \\
+    MDI-QKD & Medición central no confiable & Elimina canales laterales de detección del modelo & Dos emisores indistinguibles, medición de Bell y sincronización más exigente \\
+    TF-QKD & Interferencia en nodo central & Mejor escalamiento tasa--pérdida sin repetidor & Estabilización de fase distribuida y protocolo diferente \\
+    CV-QKD & Detección coherente & Óptica coherente y tasas potencialmente altas & Receptor, calibración de ruido y métricas completamente distintos \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Comparación de familias QKD relevantes y cambios que exigirían respecto del banco propuesto.}
+  \label{tab:familias_qkd}
+\end{table}
+
+Esta comparación evita dos extrapolaciones. Primero, que resolver un problema de detector con MDI-QKD no tenga costo de complejidad. Segundo, que una ventaja asintótica de TF-QKD o CV-QKD pueda inferirse de las curvas BB84 actuales. El aporte del proyecto es más acotado: construir una referencia reproducible para BB84 \textit{time-bin} y dejar explícitas las fronteras que obligan a cambiar de arquitectura.
+
 \section{De enlaces punto a punto a redes QKD}
 
 La unidad básica de una red QKD es un enlace punto a punto entre dos nodos, Alice y Bob. Cada enlace produce claves compartidas entre sus extremos. Para construir una red con más de dos sitios, existen varias estrategias. La más madura en términos de implementación es la red con nodos confiables: cada tramo punto a punto genera claves locales, y los nodos intermedios ayudan a transportar o reencapsular material de clave hacia otros destinos. Esta arquitectura exige confianza física y operacional en los nodos intermedios.
 
-En el largo plazo, una red cuántica ideal podría usar repetidores cuánticos, trabajos cuánticas y distribución de entrelazamiento para evitar que los nodos intermedios conozcan las claves extremo a extremo. Ese escenario es tecnológicamente más exigente y no forma parte del alcance de este trabajo. Para un banco de pruebas de campus, el camino razonable es empezar con un enlace Alice--Bob, validar métricas físicas y luego estudiar una extensión a tres nodos con un relay confiable.
+En el largo plazo, una red cuántica ideal podría usar repetidores, memorias cuánticas y distribución de entrelazamiento para evitar que los nodos intermedios conozcan las claves extremo a extremo. Ese escenario es tecnológicamente más exigente y no forma parte del alcance de este trabajo. Para un banco de campus, el camino razonable es empezar con un enlace Alice--Bob, validar métricas físicas y luego estudiar una extensión a tres nodos con un relevo confiable.
 
 \begin{figure}[H]
   \centering
@@ -44,39 +77,40 @@ En el largo plazo, una red cuántica ideal podría usar repetidores cuánticos, 
   ]
     \node[box] (a) {Nodo A\\Alice};
     \node[box, right=3.2cm of a] (b) {Nodo B\\Bob};
-    \node[box, right=3.2cm of b] (c) {Nodo C\\Relay/KMS};
+    \node[box, right=3.2cm of b] (c) {Nodo C\\Relevo/KMS};
     \node[app, below=1.6cm of b] (app) {Aplicaciones\\VPN, cifrado, servicios};
 
     \draw[arrow, blue] (a) -- node[above, align=center] {canal\\cuántico} (b);
     \draw[arrow, dashed] (a) to[bend right=16] node[below, align=center] {canal clásico\\autenticado} (b);
     \draw[arrow, blue] (b) -- node[above, align=center] {enlace\\QKD} (c);
     \draw[arrow, dashed] (b) to[bend right=16] node[below, align=center] {mensajes\\clásicos} (c);
-    \draw[arrow, green!60!black] (b) -- node[right] {llaves} (app);
+    \draw[arrow, green!60!black] (b) -- node[right] {claves} (app);
     \draw[arrow, green!60!black] (c) |- (app);
   \end{tikzpicture}
-  \caption{Evolución conceptual desde un enlace punto a punto hacia una red de campus con nodo confiable y consumo de llaves por aplicaciones.}
+  \caption{Evolución conceptual desde un enlace punto a punto hacia una red de campus con nodo confiable y consumo de claves por aplicaciones.}
   \label{fig:red_qkd_conceptual}
 \end{figure}
 
-Las redes QKD de campo muestran que el problema real no termina en la física del enlace. SECOQC integró en Viena varios sistemas QKD de fabricantes y grupos distintos dentro de una arquitectura de red con nodos confiables, interfaces y gestión de llaves \cite{peev2009secoqc}. El aporte principal para este PFI no es copiar esa escala, sino reconocer que una red útil requiere interoperabilidad entre equipos, administración de claves y decisiones explícitas de confianza.
+Las redes QKD de campo muestran que el problema real no termina en la física del enlace. SECOQC conectó cinco sedes mediante siete dispositivos de enlace QKD e integró tecnologías heterogéneas con nodos confiables, interfaces y gestión de claves \cite{peev2009secoqc}. El aporte principal para este PFI no es copiar esa escala, sino reconocer que una red útil requiere interoperabilidad y decisiones explícitas de confianza.
 
-El Tokyo QKD Network llevó esta idea a un entorno metropolitano con múltiples sistemas QKD, red mallada, aplicaciones demostrativas y relay mediante nodos confiables \cite{sasaki2011tokyo}. Para un banco universitario, la lección es concreta: incluso cuando el protocolo físico funciona, hacen falta capas de control, registro, ruteo de llaves y aplicaciones que usen el material generado. Por eso el diseño UNSAM se plantea por etapas: primero Alice--Bob, luego discusión de nodo confiable y recién después consumo de llaves.
+El Tokyo QKD Network llevó esta idea a un entorno metropolitano con sistemas de distintos proveedores y demostró videoconferencia segura sobre un enlace de \SI{45}{\kilo\meter}, además de operación estable y aplicaciones móviles \cite{sasaki2011tokyo}. Para un banco universitario, la lección es concreta: incluso cuando el protocolo físico funciona, hacen falta control, registro, encaminamiento de claves y una aplicación que use el material generado.
 
-El caso chino de red integrada espacio--tierra sobre más de \SI{4600}{\kilo\meter} muestra otra escala de madurez: combinación de enlaces de fibra y satelitales para distribuir claves entre múltiples sitios \cite{chen2021integrated}. Esa infraestructura excede por completo el alcance del PFI, pero sirve como referencia de arquitectura. Las redes grandes se construyen por tramos, con nodos de confianza, gestión centralizada y fronteras claras entre transporte cuántico, canal clásico y aplicación.
+El caso chino de red integrada espacio--tierra muestra otra escala: más de 700 enlaces QKD de fibra en una red terrestre de más de \SI{2000}{\kilo\meter}, dos enlaces satélite--tierra y comunicación entre usuarios separados hasta \SI{4600}{\kilo\meter} mediante relevos confiables \cite{chen2021integrated}. Esa infraestructura excede el PFI, pero confirma que las redes extensas se construyen por segmentos y capas.
 
 \begin{table}[H]
   \centering
-  \begin{tabularx}{\textwidth}{p{0.23\textwidth}p{0.22\textwidth}XX}
+  \small
+  \begin{tabularx}{\textwidth}{p{0.20\textwidth}p{0.22\textwidth}p{0.22\textwidth}X}
     \toprule
-    Red o iniciativa & Tipo de despliegue & Lección técnica & Vinculación con UNSAM \\
+    Red o iniciativa & Escala publicada & Modelo de confianza & Vinculación con UNSAM \\
     \midrule
-    SECOQC, Viena & Red metropolitana con nodos confiables & Integración de sistemas heterogéneos e interfaces de red & Justifica separar enlace, gestión de llaves y aplicación \\
-    Tokyo QKD Network & Red de campo con aplicaciones demostrativas & QKD requiere operación, key relay y métricas sostenidas & Orienta una etapa futura de tres nodos \\
-    Red China espacio--tierra & Infraestructura nacional híbrida & Las redes grandes se arman por segmentos y capas & Sirve como límite superior de referencia \\
-    OPENQKD / EuroQCI & Testbeds y programa europeo de infraestructura & Estándares, proveedores, pilotos y casos de uso & Refuerza el valor de un banco universitario modular \\
+    SECOQC, Viena & 5 sedes, 7 dispositivos de enlace & Nodos confiables y gestión central & Separar enlace, KMS y aplicación \\
+    Tokyo QKD Network & Enlace demostrado de \SI{45}{\kilo\meter} y aplicaciones & Relevo confiable y sistemas heterogéneos & Evaluar operación, no sólo tasa instantánea \\
+    Red China espacio--tierra & Más de 700 enlaces de fibra; hasta \SI{4600}{\kilo\meter} integrados & Cadena de nodos confiables más enlaces satelitales & No extrapolar un enlace a una red extremo a extremo \\
+    OPENQKD / EuroQCI & Testbeds y programa de infraestructura europea & Depende del piloto y proveedor & Priorizar interfaces y casos de uso \\
     \bottomrule
   \end{tabularx}
-  \caption{Redes e iniciativas QKD de referencia y lecciones aplicables al proyecto UNSAM.}
+  \caption{Escala y modelo de confianza de redes e iniciativas QKD. No todas corresponden a servicios productivos permanentes; varias son testbeds o demostradores de campo.}
   \label{tab:redes_productivas_qkd}
 \end{table}
 
@@ -89,6 +123,8 @@ La recomendación ITU-T Y.3800 define una visión general de redes que soportan 
 La normalización es importante porque un sistema QKD práctico no termina en el detector. Debe entregar claves a equipos de red, aplicaciones o módulos de cifrado mediante interfaces estables. ETSI mantiene un grupo de especificación industrial sobre QKD que trabaja en interfaces, seguridad de módulos, perfiles de protección, vocabulario y elementos de integración \cite{etsiISGQKD}. Para un trabajo de ingeniería, esto permite fundamentar que la pregunta de integración no es secundaria: si el banco genera bits pero no existe una forma clara de entregarlos, el proyecto queda incompleto como sistema de telecomunicaciones.
 
 Un documento especialmente relevante es ETSI GS QKD 014, que define una API REST para entrega de claves \cite{etsiQKD014}. La existencia de esa API no implica que el presente proyecto deba implementarla, pero sí define una frontera conceptual: una entidad de aplicación segura puede pedir material de clave a un sistema QKD/KMS mediante una interfaz acordada. Esta idea permite discutir aplicaciones futuras sin confundirlas con los resultados físicos de la simulación.
+
+ETSI GS QKD 020 V1.1.1, publicada en junio de 2026, complementa esa interfaz hacia el interior de la infraestructura: especifica el protocolo y el formato de datos de una API REST interoperable entre sistemas de administración de claves QKD \cite{etsiQKD020}. QKD 014 describe la entrega entre el KMS y la aplicación; QKD 020 aborda la coordinación entre KMS. La distinción resulta pertinente para una futura red UNSAM con más de un enlace o con un nodo confiable, aunque ninguna de las dos interfaces se implementa en la simulación de este trabajo.
 
 Otro documento útil es ETSI GS QKD 016, orientado a perfiles de protección Common Criteria para pares de módulos QKD prepare-and-measure \cite{etsiQKD016}. En este trabajo no se realiza una evaluación Common Criteria, pero el documento refuerza una idea central: la seguridad de QKD práctica depende de módulos concretos, supuestos de implementación, interfaces, control de acceso y protección física. Por eso la simulación debe leerse como paso de diseño, no como certificación.
 
@@ -106,7 +142,7 @@ La comparación con productos comerciales debe hacerse con cuidado. Una tasa pub
     \midrule
     BB84 con estados señuelo & Base de implementaciones prepare-and-measure con fuentes coherentes débiles & Comparación analítica decoy/no-decoy y motivación del modelo \\
     Codificación de fase o time-bin & Robusta para fibra y compatible con interferometría & Variable central: visibilidad del interferómetro \\
-    KMS & Entrega, almacena y administra llaves hacia aplicaciones & Arquitectura futura, no implementada en la simulación \\
+    KMS & Entrega, almacena y administra claves hacia aplicaciones & Arquitectura futura, no implementada en la simulación \\
     Fibra dedicada o multiplexada & Define costo y posibilidad de despliegue en red existente & Criterio de relevamiento para Campus Miguelete \\
     Detector de fotón único & Condiciona tasa, ruido y distancia & Barrido de eficiencia y conteos oscuros \\
     \bottomrule
@@ -119,4 +155,5 @@ La comparación con productos comerciales debe hacerse con cuidado. Una tasa pub
 
 La simulación de redes cuánticas tiene varios niveles posibles. Un cálculo cerrado de tasa permite estudiar límites analíticos, pero no representa eventos, mensajes ni componentes. Un simulador físico detallado puede modelar decoherencia y estados con mayor fidelidad, pero puede exigir parámetros que aún no se conocen. SeQUeNCe se ubica en un punto intermedio útil para este PFI: modela eventos discretos, componentes de hardware, canales y protocolos de red \cite{wu2021sequence}.
 
+\enlargethispage{\baselineskip}
 El artículo de SeQUeNCe lo presenta como un simulador personalizable de redes cuánticas, orientado a prototipos que capturen tecnologías y protocolos actuales y futuros \cite{wu2021sequence}. Esa descripción encaja con el trabajo: no se busca únicamente calcular una curva de tasa, sino construir un escenario Alice--Bob que pueda evolucionar hacia topologías de red. La elección también es práctica: el repositorio ya contiene SeQUeNCe y la implementación BB84 utilizada por el experimento.

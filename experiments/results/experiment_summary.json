@@ -1,98 +1,103 @@
 {
-  "generated_at_utc": "2026-09-01T00:42:03.936770+00:00",
+  "generated_at_utc": "2026-09-01T22:47:29.183398+00:00",
   "sequence_version": "0.8.5",
-  "sequence_local_patch": "sequence/components/interferometer.py phase_error correction for FreeQuantumState",
+  "sequence_local_patch": "sequence/components/interferometer.py phase_error correction and QKDNode detector subclass parameter propagation",
   "repetitions_per_point": 30,
   "parallel_workers": 8,
   "pulse_rate_hz": 80000000.0,
   "key_length_bits": 256,
   "detection_window_ps": 1000,
-  "bb84_sift_factor": 0.5,
+  "time_bin_protocol_efficiency": 0.375,
   "fiber_attenuation_db_km": 0.2,
   "ideal_indicator_f_ec": 1.16,
   "ideal_indicator_qber_cutoff": 0.09810603806878629,
   "decoy_estimator": {
-    "scope": "asymptotic hybrid estimator; not a composable finite-key bound",
+    "scope": "asymptotic formula applied to pooled finite Monte Carlo counts; not a composable finite-key bound",
     "phase_error_assumption": "basis-symmetric error, e_phase approximated from aggregate QBER",
     "nonpositive_e1_numerator": "conservative fallback e1=0.5",
-    "vacuum_yield_model": "three detectors times assumed analytic gate and dark-count rate"
+    "vacuum_yield_model": "three detectors times assumed analytic gate and dark-count rate",
+    "protocol_efficiency": "q=3/8: equal basis choices plus central-window postselection in X",
+    "interval": "paired pooled-count bootstrap, 20000 resamples per distance"
   },
-  "seed_policy": "deterministic non-overlapping pairs documented in qkd_2node_simulation.py",
+  "seed_policy": "deterministic non-overlapping pairs documented in proyecto3_simulation.py",
   "statistical_methods": {
     "qber": "pooled Wilson score interval, 95%",
-    "rates": "two-sided Student-t interval across independent runs, 95%",
+    "rates": "two-sided Student-t interval across independent runs, 95%; decoy curves use paired pooled-count bootstrap",
     "effects": "Welch difference interval or OLS slope interval, 95%"
   },
   "effects": {
     "detector_efficiency": [
-      8633.866554226726,
-      -12024.48749536975,
-      29292.220603823203,
-      0.40575044969261365
+      1232563.1479310452,
+      1212757.8272973816,
+      1252368.4685647087,
+      3.9091938144579787e-42
     ],
     "dark_counts": [
-      -6231.473580441205,
-      -31954.596133202744,
-      19491.648972320334,
-      0.6295374094243837
+      -19386.963962725597,
+      -51582.413981823825,
+      12808.486056372632,
+      0.23295741557738833
     ],
     "visibility_qber": {
-      "pendiente": -0.1019788085517834,
-      "pendiente_ic95_bajo": -0.10738046831933694,
-      "pendiente_ic95_alto": -0.09657714878422986,
-      "r_pearson": -0.8909751762924398,
-      "p_valor": 8.285628292012174e-125
+      "pendiente": -0.16627162118607644,
+      "pendiente_ic95_bajo": -0.17321398320014084,
+      "pendiente_ic95_alto": -0.15932925917201204,
+      "r_pearson": -0.9279287640514774,
+      "p_valor": 1.6891363875882804e-155
     },
     "visibility_ideal_rate": {
-      "pendiente": 236718.26601323707,
-      "pendiente_ic95_bajo": 224835.00924145564,
-      "pendiente_ic95_alto": 248601.5227850185,
-      "r_pearson": 0.9004746428385532,
-      "p_valor": 1.6458693374401158e-131
+      "pendiente": 166032.06984273967,
+      "pendiente_ic95_bajo": 159144.130490924,
+      "pendiente_ic95_alto": 172920.00919455534,
+      "r_pearson": 0.9287533886344658,
+      "p_valor": 2.3223449416108664e-156
     }
   },
   "source_sha256": {
-    "proyecto3_simulation.py": "c70a8381e7def0913db84503f46ae247593f1ba6377e4a9f1591e54714051124",
-    "sequence/components/interferometer.py": "fde06363e9b9b160ccec156fdb21770fdcfa7a974896ec5d5e3480b4cad3bd93",
+    "proyecto3_simulation.py": "aba64c646f69f5a1ce8a14b7f5cd59b4c3f0a3904da933be9c3a10c5050e7cb2",
+    "sequence/components/interferometer.py": "5eb7a18fc0e04e7c0a290356059c969b5e163be3a401b18a8b28abf4dcb2d076",
+    "sequence/topology/node.py": "e8bf0e8a0742ac1040ec198373e2e56fb1366d23413423d727562e9f41ba96a8",
+    "sequence/components/detector.py": "4c3dcd14cd70c9d11df0d5fae37ad310ba578946d08cf7873832aea67b306472",
+    "sequence/qkd/BB84.py": "474a2077c748998582451d90b7164364a8eafbc42b2b1648883034f7d62f565d",
     "pyproject.toml": "7cc4527a078b1aa764b56a88350bfb019d80d344495eb2439cb20ac6ad0bf9b3",
     "uv.lock": "d97d446352e746bcd8174abcf636605dea9981eacac13047ebc7078576f4c1d4"
   },
   "datasets": {
     "exp1_distance_data.csv": {
       "rows": 14,
-      "sha256": "96b24e5cbea1afb256fa4cd9cd02f4809868cd30fcdafd36900269b198b34be9"
+      "sha256": "4096ead87a3690b2cb31afcb38de4288e638b771b39be74dfce75fba7881360b"
     },
     "exp2_detector_data.csv": {
       "rows": 24,
-      "sha256": "3365bb0ed883e3bac8f19735d8545d4c0792cda704c3c1d0ee2ad1b5aea62e67"
+      "sha256": "8804d28144be08fe49d316d788cc83d5a72721a9a56d0e572f7768050ab6ff8f"
     },
     "exp3_visibility_data.csv": {
       "rows": 12,
-      "sha256": "8347498af8a49ce453d0fe157dc38065cd0dce812da2277165e994c67f735c7c"
+      "sha256": "1feaade3197975b36058eac025f85b5ca1a0b641c3c97fac7daad43d3df415fa"
     },
     "exp4_decoy_data.csv": {
       "rows": 10,
-      "sha256": "2dba34db415445caabeefe90b0ad4d25ed8499086c69e2e557b089cea7a44aa1"
+      "sha256": "52acb15df964c08ddb04e5c34993d836ab39d59d64daf5db69b6c9311b90451a"
     },
     "exp1_distance_runs.csv": {
       "rows": 420,
-      "sha256": "5fe15b6184fd482b43b364be745d09ff6ecdf1cf9e06eebac0505f27863d30df"
+      "sha256": "e41fc76fb9b7fd6b77fa8153970c2b8c56aefa1eb00a31f13156e1ec0778bec8"
     },
     "exp2_detector_runs.csv": {
       "rows": 720,
-      "sha256": "8ab5dfe5f66b1628880beaaafdac1509ff42e7aad0e326e97900c7155cf588d1"
+      "sha256": "c30e2510cfd777903a04e0ef9e7d11cd51100b80ff9468d951454dbc3a707bc8"
     },
     "exp3_visibility_runs.csv": {
       "rows": 360,
-      "sha256": "3004f61570957cc338d3d5d49c3701d53892925fa0b5f28aeae8ae4aa3e9fecc"
+      "sha256": "5cad73994e59cffb896ecdb0c77a3775761e56ef8f008850a0ce5e0ac1a3e6e2"
     },
     "exp4_decoy_runs.csv": {
       "rows": 300,
-      "sha256": "2aae90f6215a3feec789cd131bbd4d520d7c84848ef76edab660589701ea67f2"
+      "sha256": "974f45071ab10e4668871f999277d905a327d02a8f7c64e276d2377b961e74aa"
     }
   },
   "latex_results": {
     "filename": "proyecto3_results.tex",
-    "sha256": "002b3c02be03881e217606831f0fef8a810b1b77370cbec474a0b699f7817141"
+    "sha256": "ac9c9fedd2704a4d4e2b1a9f2ca70c091a16ee57d781aa6ad27503e6cfe8e746"
   }
 }

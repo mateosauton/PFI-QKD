@@ -42,7 +42,9 @@ independent deterministic seed pairs.
 - Every repetition exports seeds, completed keys, bits, errors, elapsed time,
   rates, and accepted clicks for all three detectors. Experiment 4 keeps those
   fields separately for the signal and decoy intensities.
-- Experiment 4 derives its vacuum yield from the same dark-count rate and
-  detection window. A nonpositive single-photon error numerator uses the
-  conservative fallback `e1=0.5`.
+- Experiment 4 derives its vacuum yield from the same dark-count rate and an
+  assumed 1 ns analytical gate. The SeQUeNCe receiver does not implement that
+  electronic gate, so the window belongs to the hybrid analytical estimator.
+  A nonpositive single-photon error numerator uses the conservative fallback
+  `e1=0.5`.
 - A small **bugfix** in `sequence/components/interferometer.py` corrects `phase_error` handling for `FreeQuantumState` (required for visibility &lt; 1).

@@ -137,6 +137,9 @@ class BB84(StackProtocol):
         self.key_lengths = []  # desired key lengths (from parent)
         self.keys_left_list = []
         self.end_run_times = []
+        # Per-round sifted bits, paired when Alice handles MATCHING_INDICES
+        self.sift_round_queue: list[list[int]] = []
+        self.sent_bits_round_queue: list[list[int]] = []
 
         # metrics
         self.latency = 0  # measured in seconds
@@ -200,6 +203,10 @@ class BB84(StackProtocol):
             self.another.bit_lists = []
             self.key_bits = []
             self.another.key_bits = []
+            self.sift_round_queue = []
+            self.another.sift_round_queue = []
+            self.sent_bits_round_queue = []
+            self.another.sent_bits_round_queue = []
             self.latency = 0
             self.another.latency = 0
 
@@ -307,7 +314,6 @@ class BB84(StackProtocol):
 
             # schedule another if necessary
             if self.owner.timeline.now() + self.light_time * 1e12 - 1 < self.end_run_times[0]:
-                # schedule another
                 process = Process(self, "end_photon_pulse", [])
                 event = Event(self.start_time + int(round(self.light_time * 1e12) - 1), process)
                 self.owner.timeline.schedule(event)
@@ -346,6 +352,8 @@ class BB84(StackProtocol):
             elif msg.msg_type is BB84MsgType.RECEIVED_QUBITS:  # (Current node is Alice): can send basis
                 log.logger.debug(self.name + " received RECEIVED_QUBITS message")
                 bases = self.basis_lists.pop(0)
+                sent_bits = self.bit_lists.pop(0)
+                self.sent_bits_round_queue.append(sent_bits)
                 message = BB84Message(BB84MsgType.BASIS_LIST, self.another.name, bases=bases)
                 self.owner.send_message(self.another.owner.name, message)
 
@@ -358,10 +366,14 @@ class BB84(StackProtocol):
                 indices = []
                 basis_list = self.basis_lists.pop(0)
                 bits = self.bit_lists.pop(0)
+                bob_sifted: list[int] = []
                 for i, b in enumerate(basis_list_alice):
                     if bits[i] != -1 and basis_list[i] == b:
                         indices.append(i)
-                        self.key_bits.append(bits[i])
+                        bob_sifted.append(bits[i])
+
+                # Hold Bob's sifted bits until Alice appends the matching block (same round)
+                self.sift_round_queue.append(bob_sifted)
 
                 # send to Alice list of matching indices
                 message = BB84Message(BB84MsgType.MATCHING_INDICES, self.another.name, indices=indices)
@@ -369,47 +381,65 @@ class BB84(StackProtocol):
 
             elif msg.msg_type is BB84MsgType.MATCHING_INDICES:  # (Current node is Alice): create key from matching indices
                 log.logger.debug(self.name + " received MATCHING_INDICES message")
-                # parse matching indices
                 indices = msg.indices
 
-                bits = self.bit_lists.pop(0)
+                if len(self.sent_bits_round_queue) < 1:
+                    raise AssertionError(
+                        f"{self.name}: no sent-bit round queued for MATCHING_INDICES"
+                    )
+                sent_bits = self.sent_bits_round_queue.pop(0)
+                alice_sifted = [sent_bits[i] for i in indices]
 
-                # set key equal to bits at received indices
-                for i in indices:
-                    self.key_bits.append(bits[i])
+                if len(self.another.sift_round_queue) < 1:
+                    raise AssertionError(
+                        f"{self.name}: Bob has no sifted round queued for MATCHING_INDICES"
+                    )
+                bob_sifted = self.another.sift_round_queue.pop(0)
+                if len(alice_sifted) != len(bob_sifted):
+                    raise AssertionError(
+                        f"{self.name}: sifted length mismatch alice={len(alice_sifted)} bob={len(bob_sifted)}"
+                    )
 
-                # check if key long enough. If it is, truncate if necessary and call cascade
+                self.key_bits.extend(alice_sifted)
+                self.another.key_bits.extend(bob_sifted)
+
                 if len(self.key_bits) >= self.key_lengths[0]:
                     throughput = self.key_lengths[0] * 1e12 / (self.owner.timeline.now() - self.last_key_time)
-
-                    while len(self.key_bits) >= self.key_lengths[0] and self.keys_left_list[0] > 0:
-                        log.logger.info(self.name + " generated a valid key")
-                        self.set_key()  # convert from binary list to int
-                        self._pop(info=self.key)
-                        self.another.set_key()
-                        self.another._pop(info=self.another.key)  # TODO: why access another node?
-
-                        # for metrics
-                        if self.latency == 0:
-                            self.latency = (self.owner.timeline.now() - self.last_key_time) * 1e-12
-
-                        self.throughputs.append(throughput)
-
-                        key_diff = self.key ^ self.another.key
-                        num_errors = 0
-                        while key_diff:
-                            key_diff &= key_diff - 1
-                            num_errors += 1
-                        self.error_rates.append(num_errors / self.key_lengths[0])
-
-                        self.keys_left_list[0] -= 1
-
+                    self._extract_aligned_keys(throughput)
                     self.last_key_time = self.owner.timeline.now()
 
                 # check if we're done
                 if self.keys_left_list[0] < 1:
                     self.working = False
                     self.another.working = False
+
+    def _extract_aligned_keys(self, throughput: float) -> None:
+        """Pop keys only when Alice and Bob buffers have the same length."""
+        key_len = self.key_lengths[0]
+        while (
+            self.keys_left_list[0] > 0
+            and len(self.key_bits) >= key_len
+            and len(self.key_bits) == len(self.another.key_bits)
+        ):
+            log.logger.info(self.name + " generated a valid key")
+            self.set_key()
+            self._pop(info=self.key)
+            self.another.set_key()
+            self.another._pop(info=self.another.key)
+
+            if self.latency == 0:
+                self.latency = (self.owner.timeline.now() - self.last_key_time) * 1e-12
+
+            self.throughputs.append(throughput)
+
+            key_diff = self.key ^ self.another.key
+            num_errors = 0
+            while key_diff:
+                key_diff &= key_diff - 1
+                num_errors += 1
+            self.error_rates.append(num_errors / key_len)
+
+            self.keys_left_list[0] -= 1
 
     def set_key(self):
         """Method to convert `bit_list` field (list[int]) to a single key (int)."""

@@ -1,50 +1,66 @@
 # QKD experiments
 
-## 2-node time-bin BB84 (`qkd_2node_simulation.py`)
+2-node time-bin BB84 simulations using SeQUeNCe `QKDNode` + `BB84`.
 
-Runs four sweeps using SeQUeNCe `QKDNode` + `BB84` with `time_bin` encoding:
+Shared code lives in `qkd_common.py`. Each experiment has its own script.
 
-1. **Distance** — QBER, analytic detection probability, and an ideal non-secret post-processing indicator vs fiber length.
-2. **Detector sensitivity** — efficiency and dark-count sweeps at 5 km.
-3. **Interferometer visibility** — maps visibility `V` to `Interferometer.phase_error = (1-V)/2` on Bob’s `QSDetectorTimeBin`.
-4. **Decoy impact** — compares no-decoy and decoy-state asymptotic estimators
-   at the same signal intensity using simulated QBER and analytic WCS gains.
-
-### Run
+## Run individually
 
 From the repository root:
 
 ```bash
-uv run python experiments/qkd_2node_simulation.py --repetitions 30 --workers 8
+uv run python experiments/exp1_distance_sweep.py
+uv run python experiments/exp3_visibility.py
+uv run python experiments/exp4_decoy_impact.py
 ```
 
-Figures, point-level CSV files, per-run CSV files, `proyecto3_results.tex`, and
-`experiment_summary.json` are written to `experiments/results/`. QBER uses a
-pooled Wilson 95% interval. Rates use a Student-t 95% interval across
-independent deterministic seed pairs.
+### Experiment 2 (detector sensitivity)
 
-### Notes
+Four cumulative improvement steps (run separately or all at once):
 
-- Simulation time is dominated by discrete-event scheduling; pulse rate is set to `80e6` Hz (not GHz) so sweeps finish in reasonable wall time.
-- **Decoy protocol is not implemented inside SeQUeNCe**; experiment 4 combines
-  **simulated QBER** at signal/decoy intensities with **analytic** gains that
-  include the background yield. The no-decoy and decoy cases use the same
-  signal intensity (`mu=0.1`).
-- Sifted rate is computed as total sifted bits divided by elapsed simulated time
-  to the final generated key. Arithmetic means of per-key instantaneous rates
-  are intentionally not used.
-- The plots for experiments 1–3 show an ideal single-photon post-processing
-  indicator, not a secret-key bound for the weak coherent source.
-- The analytical rate reference includes a 1 ns background window, BB84
-  sifting, and detector count-rate limits. It is an expected design reference,
-  not a deterministic physical upper bound. Points whose 95% interval reaches
-  it are marked for audit; neither outcome certifies validity.
-- Every repetition exports seeds, completed keys, bits, errors, elapsed time,
-  rates, and accepted clicks for all three detectors. Experiment 4 keeps those
-  fields separately for the signal and decoy intensities.
-- Experiment 4 derives its vacuum yield from the same dark-count rate and an
-  assumed 1 ns analytical gate. The SeQUeNCe receiver does not implement that
-  electronic gate, so the window belongs to the hybrid analytical estimator.
-  A nonpositive single-photon error numerator uses the conservative fallback
-  `e1=0.5`.
-- A small **bugfix** in `sequence/components/interferometer.py` corrects `phase_error` handling for `FreeQuantumState` (required for visibility &lt; 1).
+```bash
+# One step (1–4)
+uv run python experiments/exp2_detector_sensitivity.py --step 1
+
+# Steps 1–3 sequentially (default `all`; step 4 is separate)
+uv run python experiments/exp2_detector_sensitivity.py --step all
+```
+
+| Step | Changes (cumulative) | Output |
+|------|----------------------|--------|
+| 1 | `num_keys=100` | `exp2_detector_sensitivity_step1.png` |
+| 2 | + `runtime_ps=2e13` | `exp2_detector_sensitivity_step2.png` |
+| 3 | + 5 repeats/point, error bars | `exp2_detector_sensitivity_step3.png` |
+| 4 | + common seeds across sweep (run with `--step 4`) | `exp2_detector_sensitivity_step4.png` |
+
+## Run all (exp 1–4)
+
+```bash
+uv run python experiments/qkd_2node_simulation.py
+```
+
+Note: the combined runner uses experiment 2 **step 1 only** for speed. Use `exp2_detector_sensitivity.py --step all` for steps 1–3; add `--step 4` separately if needed.
+
+## Reproduce Proyecto 3
+
+The shortened Proyecto 3 document uses a frozen, auditable four-sweep pipeline
+with 30 deterministic repetitions per point, statistical intervals, per-run
+CSV exports, figures, LaTeX macros, and SHA-256 metadata:
+
+```bash
+uv run python experiments/proyecto3_simulation.py --repetitions 30 --workers 8
+```
+
+This pipeline treats the 1 ns gate as an analytical assumption; the SeQUeNCe
+receiver does not implement that electronic gate. Its outputs are written to
+`experiments/results/` and consumed by `paper/proyecto3.tex`.
+
+## Figures
+
+Written to `experiments/results/` (PNG).
+
+## Notes
+
+- Simulation time is dominated by discrete-event scheduling; pulse rate is `80e6` Hz.
+- Experiment 4 uses **analytic** decoy bounds (not a full decoy protocol in SeQUeNCe).
+- Visibility maps to `Interferometer.phase_error = (1-V)/2` on Bob’s `QSDetectorTimeBin`.

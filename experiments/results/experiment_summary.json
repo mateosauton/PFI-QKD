@@ -52,7 +52,7 @@
     }
   },
   "source_sha256": {
-    "qkd_2node_simulation.py": "1c5883e02846c90f7e48379b1e330384e2125f66a1f99bfc23c57467e5d26047",
+    "proyecto3_simulation.py": "c70a8381e7def0913db84503f46ae247593f1ba6377e4a9f1591e54714051124",
     "sequence/components/interferometer.py": "fde06363e9b9b160ccec156fdb21770fdcfa7a974896ec5d5e3480b4cad3bd93",
     "pyproject.toml": "7cc4527a078b1aa764b56a88350bfb019d80d344495eb2439cb20ac6ad0bf9b3",
     "uv.lock": "d97d446352e746bcd8174abcf636605dea9981eacac13047ebc7078576f4c1d4"
@@ -93,6 +93,6 @@
   },
   "latex_results": {
     "filename": "proyecto3_results.tex",
-    "sha256": "20317026c9df29dd1017937523ea2c9eb07dc0402f3c47c62dd429eaf419be53"
+    "sha256": "002b3c02be03881e217606831f0fef8a810b1b77370cbec474a0b699f7817141"
   }
 }

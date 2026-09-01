@@ -985,7 +985,7 @@ def plot_experiment_2(
         marker="x",
         s=70,
         zorder=5,
-        label="Sin holgura frente a la referencia",
+        label="Punto diagnóstico: IC 95 % supera referencia analítica",
     )
     _style_axes(
         axes[1, 0],
@@ -1036,7 +1036,7 @@ def plot_experiment_2(
         marker="x",
         s=70,
         zorder=5,
-        label="Sin holgura frente a la referencia",
+        label="Punto diagnóstico: IC 95 % supera referencia analítica",
     )
     axes[1, 1].set_xscale("log")
     _style_axes(

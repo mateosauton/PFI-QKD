@@ -173,6 +173,27 @@ def test_rigorous_defaults_use_long_keys_and_thirty_repetitions():
     assert DEFAULT_REPETITIONS == 30
 
 
+def test_public_experiment_wording_keeps_ids_and_diagnostic_legends():
+    readme = Path("experiments/README.md").read_text(encoding="utf-8")
+    simulation = Path("experiments/qkd_2node_simulation.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "**Experimento 2 — Control de temporización**" in readme
+    assert "**Experimento 3 — Visibilidad**" in readme
+    assert "**Experimento 4 — Señuelos**" in readme
+    assert "3. **Timing control**" not in readme
+    assert "4. **Visibility**" not in readme
+    assert "5. **Decoy**" not in readme
+    assert "sin señuelos de referencia" in readme
+    assert "sin señuelos pareada" in readme
+    assert "vacío+débil con señuelos" in readme
+    assert "Sin holgura frente a la referencia" not in simulation
+    assert simulation.count(
+        "Punto diagnóstico: IC 95 % supera referencia analítica"
+    ) >= 4
+
+
 def test_distance_summary_exports_monophoton_proxy_and_accounting_observables(
     monkeypatch, tmp_path
 ):

@@ -2,20 +2,23 @@
 
 ## 2-node time-bin BB84 (`qkd_2node_simulation.py`)
 
-The script runs five reproducible experiment functions with SeQUeNCe `QKDNode`
-and `BB84` in `time_bin` encoding:
+The script runs five reproducible functions grouped into four established
+experiment IDs, with SeQUeNCe `QKDNode` and `BB84` in `time_bin` encoding:
 
-1. **Distance** — QBER, analytic click-gain reference, observed click gain,
+1. **Experimento 1 — Distancia** — QBER, analytic click-gain reference, observed click gain,
    resolved sifting fraction, and the **proxy asintótico monofotónico** over
    fiber distance.
-2. **Detector** — detector-efficiency and dark-count sweeps at 5 km, reported
+2. **Experimento 2 — Detector** — detector-efficiency and dark-count sweeps at 5 km, reported
    with the same proxy asintótico monofotónico.
-3. **Timing control** — a 2 × 2 control over 128/2048-bit keys and 0/1 ms
+   **Experimento 2 — Control de temporización** — a 2 × 2 control over
+   128/2048-bit keys and 0/1 ms
    classical extra delay.
-4. **Visibility** — maps visibility `V` to
+3. **Experimento 3 — Visibilidad** — maps visibility `V` to
    `Interferometer.phase_error = (1-V)/2` at 30 km.
-5. **Decoy** — compares no-decoy and vacuum+weak-decoy asymptotic hybrid
-   security estimators using simulated QBER and analytic WCS gains.
+4. **Experimento 4 — Señuelos** — compares three exported asymptotic hybrid
+   security estimators using simulated QBER and analytic WCS gains:
+   **sin señuelos de referencia** (`mu=0.1`), **sin señuelos pareada**
+   (`mu=0.6`), and **vacío+débil con señuelos** (`mu=0.6`, `nu=0.2`).
 
 ### Reproduce the standard run
 

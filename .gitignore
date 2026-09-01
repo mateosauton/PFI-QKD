@@ -149,6 +149,9 @@ utils/json_config_generators/*.json
 
 .virtual_documents/
 
+# Local CORAL agent workspaces and experiment results
+.coral_workspace/
+
 # Local visual brainstorming sessions
 .superpowers/
 

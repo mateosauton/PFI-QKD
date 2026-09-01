@@ -97,10 +97,11 @@ def test_accounting_summary_enforces_monotonic_counts():
         click_events=800,
         click_slots=700,
         valid_detection_slots=650,
+        observed_basis_matched_bits=320,
     )
     result = summarize_accounting(
         accounting=accounting,
-        sifted_bits=320,
+        completed_key_bits=320,
         elapsed_s=0.02,
     )
     assert result["accounting_consistent"] is True
@@ -114,10 +115,29 @@ def test_accounting_summary_rejects_impossible_sifted_count():
         click_events=40,
         click_slots=30,
         valid_detection_slots=20,
+        observed_basis_matched_bits=20,
     )
     result = summarize_accounting(
         accounting=accounting,
-        sifted_bits=21,
+        completed_key_bits=21,
         elapsed_s=1.0,
     )
     assert result["accounting_consistent"] is False
+
+
+def test_accounting_summary_uses_all_observed_basis_matches_for_sifting():
+    accounting = RunAccounting(
+        pulses_sent=30_000,
+        click_events=20_000,
+        click_slots=15_000,
+        valid_detection_slots=14_026,
+        observed_basis_matched_bits=4_900,
+    )
+    result = summarize_accounting(
+        accounting=accounting,
+        completed_key_bits=8,
+        elapsed_s=1.0,
+    )
+
+    assert result["completed_key_bits"] == 8
+    assert result["sifting_fraction"] == pytest.approx(4_900 / 14_026)

@@ -34,7 +34,7 @@ from sequence.components.optical_channel import ClassicalChannel, QuantumChannel
 from sequence.kernel.event import Event  # noqa: E402
 from sequence.kernel.process import Process  # noqa: E402
 from sequence.kernel.timeline import Timeline  # noqa: E402
-from sequence.qkd.BB84 import pair_bb84_protocols  # noqa: E402
+from sequence.qkd.BB84 import BB84MsgType, pair_bb84_protocols  # noqa: E402
 from sequence.topology.node import QKDNode  # noqa: E402
 from sequence.utils.encoding import time_bin  # noqa: E402
 
@@ -222,6 +222,7 @@ class RunAccounting:
     click_events: int = 0
     click_slots: int = 0
     valid_detection_slots: int = 0
+    observed_basis_matched_bits: int = 0
     last_detection_times: list[list[int]] = field(default_factory=list)
 
 
@@ -248,11 +249,12 @@ def click_slot_indices(
 
 def summarize_accounting(
     accounting: RunAccounting,
-    sifted_bits: int,
+    completed_key_bits: int,
     elapsed_s: float,
 ) -> dict[str, float | int | bool]:
     consistent = (
-        0 <= sifted_bits <= accounting.valid_detection_slots
+        0 <= completed_key_bits <= accounting.observed_basis_matched_bits
+        <= accounting.valid_detection_slots
         <= accounting.click_slots <= accounting.click_events
         and accounting.pulses_sent >= accounting.click_slots
     )
@@ -261,8 +263,10 @@ def summarize_accounting(
         "click_events": accounting.click_events,
         "click_slots": accounting.click_slots,
         "valid_detection_slots": accounting.valid_detection_slots,
+        "observed_basis_matched_bits": accounting.observed_basis_matched_bits,
+        "completed_key_bits": completed_key_bits,
         "sifting_fraction": (
-            sifted_bits / accounting.valid_detection_slots
+            accounting.observed_basis_matched_bits / accounting.valid_detection_slots
             if accounting.valid_detection_slots else float("nan")
         ),
         "observed_click_gain": (
@@ -287,6 +291,8 @@ def attach_run_accounting(
     original_emit: Callable[[list[Any]], Any] = light_source.emit
     original_get_times: Callable[[], list[list[int]]] = qsd.get_photon_times
     original_get_bits: Callable[[int, int, float, str], list[int]] = bob.get_bits
+    bob_protocol = bob.protocol_stack[0]
+    original_received_message: Callable[[str, Any], Any] = bob_protocol.received_message
 
     def counted_emit(state_list):
         accounting.pulses_sent += len(state_list)
@@ -314,9 +320,25 @@ def attach_run_accounting(
         accounting.valid_detection_slots += sum(bit != -1 for bit in bits)
         return bits
 
+    def counted_received_message(src, msg):
+        if (
+            msg.msg_type is BB84MsgType.BASIS_LIST
+            and bob_protocol.working
+            and bob_protocol.end_run_times
+            and bob.timeline.now() < bob_protocol.end_run_times[0]
+        ):
+            basis_list = bob_protocol.basis_lists[0]
+            bits = bob_protocol.bit_lists[0]
+            accounting.observed_basis_matched_bits += sum(
+                bits[index] != -1 and basis_list[index] == basis
+                for index, basis in enumerate(msg.bases)
+            )
+        return original_received_message(src, msg)
+
     light_source.emit = counted_emit
     qsd.get_photon_times = captured_times
     bob.get_bits = counted_get_bits
+    bob_protocol.received_message = counted_received_message
     return accounting
 
 
@@ -428,7 +450,7 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
     aggregate_throughput = total_sifted_bits / elapsed_key_s if elapsed_key_s > 0 else 0.0
     accounting_summary = summarize_accounting(
         accounting=accounting,
-        sifted_bits=total_sifted_bits,
+        completed_key_bits=total_sifted_bits,
         elapsed_s=elapsed_key_s,
     )
 

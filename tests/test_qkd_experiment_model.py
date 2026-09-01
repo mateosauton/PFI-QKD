@@ -560,3 +560,30 @@ def test_decoy_raw_records_are_complete_and_intensity_specific(monkeypatch, tmp_
         <= record.keys()
         for record in signal_records
     )
+    summary_required = {
+        "e_reference_media",
+        "e_reference_ic95_bajo",
+        "e_reference_ic95_alto",
+        "e_mu_media",
+        "e_mu_ic95_bajo",
+        "e_mu_ic95_alto",
+        "e_nu_media",
+        "e_nu_ic95_bajo",
+        "e_nu_ic95_alto",
+        "q1_cota_inferior",
+        "q1_sin_senuelos_cota_inferior",
+    }
+    assert all(summary_required <= record.keys() for record in experiment["records"])
+    first_summary = experiment["records"][0]
+    assert first_summary["e_reference_media"] == pytest.approx(0.01)
+    assert first_summary["e_mu_media"] == pytest.approx(0.01)
+    assert first_summary["e_nu_media"] == pytest.approx(0.01)
+    assert first_summary["q1_cota_inferior"] == pytest.approx(
+        first_summary["mu_senal"]
+        * math.exp(-first_summary["mu_senal"])
+        * first_summary["y1_cota_inferior"]
+    )
+    assert (
+        first_summary["q1_cota_inferior"]
+        != first_summary["q1_sin_senuelos_cota_inferior"]
+    )

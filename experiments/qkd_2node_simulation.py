@@ -1849,6 +1849,9 @@ def experiment_4_decoy_distance(
         reference_values = []
         matched_values = []
         decoy_values = []
+        e_reference_values = []
+        e_signal_values = []
+        e_weak_values = []
         e1_values = []
         e1_fallbacks = []
         runs_reference = _run_replicates(
@@ -1909,6 +1912,9 @@ def experiment_4_decoy_distance(
                 reference_values.append(comparison["no_decoy_reference_bps"])
                 matched_values.append(comparison["no_decoy_matched_bps"])
                 decoy_values.append(comparison["decoy_bps"])
+                e_reference_values.append(e_reference)
+                e_signal_values.append(e_signal)
+                e_weak_values.append(e_weak)
                 e1_values.append(comparison["e1_upper"])
                 e1_fallbacks.append(e1_fallback)
             for experiment_name, intensity_name, intensity, run in (
@@ -1967,6 +1973,11 @@ def experiment_4_decoy_distance(
         reference_mean, reference_low, reference_high = _mean_t_ci(reference_values)
         matched_mean, matched_low, matched_high = _mean_t_ci(matched_values)
         de_mean, de_low, de_high = _mean_t_ci(decoy_values)
+        e_reference_mean, e_reference_low, e_reference_high = _mean_t_ci(
+            e_reference_values
+        )
+        e_mu_mean, e_mu_low, e_mu_high = _mean_t_ci(e_signal_values)
+        e_nu_mean, e_nu_low, e_nu_high = _mean_t_ci(e_weak_values)
         skr_reference.append(reference_mean)
         skr_reference_low.append(reference_low)
         skr_reference_high.append(reference_high)
@@ -1992,6 +2003,15 @@ def experiment_4_decoy_distance(
                 "q_reference": point_signal_records[0]["q_reference"],
                 "q_mu": point_signal_records[0]["q_mu"],
                 "q_nu": point_signal_records[0]["q_nu"],
+                "e_reference_media": e_reference_mean,
+                "e_reference_ic95_bajo": e_reference_low,
+                "e_reference_ic95_alto": e_reference_high,
+                "e_mu_media": e_mu_mean,
+                "e_mu_ic95_bajo": e_mu_low,
+                "e_mu_ic95_alto": e_mu_high,
+                "e_nu_media": e_nu_mean,
+                "e_nu_ic95_bajo": e_nu_low,
+                "e_nu_ic95_alto": e_nu_high,
                 "mu_sin_senuelos": mu_reference,
                 "q_sin_senuelos": point_signal_records[0]["q_reference"],
                 "p_multifoton_sin_senuelos": 1.0
@@ -2003,6 +2023,9 @@ def experiment_4_decoy_distance(
                     - math.exp(-mu_reference) * vacuum_yield,
                 ),
                 "y1_cota_inferior": point_signal_records[0]["y1_cota_inferior"],
+                "q1_cota_inferior": mu_signal
+                * math.exp(-mu_signal)
+                * point_signal_records[0]["y1_cota_inferior"],
                 "e1_media": float(np.mean(e1_values)) if e1_values else float("nan"),
                 "corridas_e1_fallback_conservador": int(sum(e1_fallbacks)),
                 "y0": vacuum_yield,

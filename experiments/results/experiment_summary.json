@@ -1,0 +1,124 @@
+{
+  "generated_at_utc": "2026-09-01T23:05:54.993792+00:00",
+  "sequence_version": "0.8.5",
+  "sequence_local_patch": "sequence/components/interferometer.py phase_error correction for FreeQuantumState",
+  "repetitions_per_point": 30,
+  "parallel_workers": 8,
+  "command": "uv run python experiments/qkd_2node_simulation.py --repetitions 30",
+  "pulse_rate_hz": 80000000.0,
+  "key_length_bits": 2048,
+  "keys_per_run": 3,
+  "run_level_dataset": "experiment_runs.csv",
+  "experiments": {
+    "timing_control": {
+      "design": "2x2 key_length_bits by classical_extra_delay_ps",
+      "key_lengths_bits": [
+        128,
+        2048
+      ],
+      "classical_extra_delays_ps": [
+        0,
+        1000000000
+      ],
+      "requested_repetitions_per_cell": 30,
+      "keys_per_run": 3,
+      "summary_dataset": "exp2_timing_control_data.csv",
+      "figure": "exp2_timing_control.png",
+      "raw_dataset": "experiment_runs.csv"
+    }
+  },
+  "formula_model": {
+    "wcs_gain": "1-(1-Y0)*exp(-mu*eta)",
+    "decoy_e1": "(E_nu*Q_nu*exp(nu)-e0*Y0)/(Y1L*nu)",
+    "experiments_1_to_3": "proxy asintótico monofotónico; no es una cota de seguridad de fuente WCS"
+  },
+  "accounting_control": {
+    "run_field": "contabilidad_consistente",
+    "point_fields": [
+      "corridas_contabilidad_consistente",
+      "corridas_punto_diagnostico"
+    ],
+    "reference_overlap": "diagnóstico analítico; no determina el control de contabilidad"
+  },
+  "detection_window_ps": 1000,
+  "bb84_sift_factor": 0.5,
+  "fiber_attenuation_db_km": 0.2,
+  "proxy_asintotico_monofotonico_f_ec": 1.16,
+  "proxy_asintotico_monofotonico_corte_qber": 0.09810603806878629,
+  "decoy_estimator": {
+    "scope": "asymptotic hybrid estimator; not a composable finite-key bound",
+    "phase_error_assumption": "basis-symmetric error, e_phase approximated from aggregate QBER",
+    "nonpositive_e1_numerator": "clamp al límite físico e1=0.5",
+    "vacuum_yield_model": "three detectors times accepted detection window and dark-count rate"
+  },
+  "seed_policy": "deterministic non-overlapping pairs documented in qkd_2node_simulation.py",
+  "statistical_methods": {
+    "qber": "pooled Wilson score interval, 95%",
+    "rates": "two-sided Student-t interval across independent runs, 95%",
+    "effects": "Welch difference interval or OLS slope interval, 95%"
+  },
+  "effects": {
+    "detector_efficiency": [
+      17612.832928717602,
+      -3819.058372435262,
+      39044.724229870466,
+      0.10509227675343019
+    ],
+    "dark_counts": [
+      -20769.743092966266,
+      -41277.154104145564,
+      -262.3320817869717,
+      0.04723552835105831
+    ],
+    "visibility_qber": {
+      "pendiente": -0.10128519411318818,
+      "pendiente_ic95_bajo": -0.10345012779020556,
+      "pendiente_ic95_alto": -0.0991202604361708,
+      "r_pearson": -0.9795026446493317,
+      "p_valor": 3.2440663346490177e-251
+    },
+    "visibility_monophoton_proxy": {
+      "pendiente": 580615.216959991,
+      "pendiente_ic95_bajo": 566739.4163147669,
+      "pendiente_ic95_alto": 594491.0176052152,
+      "r_pearson": 0.9745704571458285,
+      "p_valor": 1.2050939613534096e-234
+    }
+  },
+  "source_sha256": {
+    "qkd_2node_simulation.py": "45f368f23d9083c3b930c63b820d5582d7f4389f2fab0fc441a5ff8b9272fe0d",
+    "sequence/components/interferometer.py": "fde06363e9b9b160ccec156fdb21770fdcfa7a974896ec5d5e3480b4cad3bd93",
+    "pyproject.toml": "7cc4527a078b1aa764b56a88350bfb019d80d344495eb2439cb20ac6ad0bf9b3",
+    "uv.lock": "d97d446352e746bcd8174abcf636605dea9981eacac13047ebc7078576f4c1d4"
+  },
+  "datasets": {
+    "exp1_distance_data.csv": {
+      "rows": 14,
+      "sha256": "c040d1b3d7f5f8eeaf7ebb18199d17c4fe99cdbb1c7c30da687dbb99d5c66cf3"
+    },
+    "exp2_detector_data.csv": {
+      "rows": 24,
+      "sha256": "533311a3389b9ed01eda501f84f101d4ed40417d4bec46aad50c904b29bcdef8"
+    },
+    "exp2_timing_control_data.csv": {
+      "rows": 4,
+      "sha256": "6d65ede136d14fe3686e7673f3c514d6cbc317f0615cd4704cd90ca06e623254"
+    },
+    "exp3_visibility_data.csv": {
+      "rows": 12,
+      "sha256": "166e67c9d1e8620c17e74bfaafa27f3eab350cdd53122ce6f366b1818501b27c"
+    },
+    "exp4_decoy_data.csv": {
+      "rows": 10,
+      "sha256": "02659dbb4076551cc2389c720f08505f09813aacf8620ac25a8275e398536ec6"
+    },
+    "experiment_runs.csv": {
+      "rows": 2520,
+      "sha256": "d6386e3c2be69ff2ebe56fffdb6928070b56cb119db7e957a39a694bbb9d4bd5"
+    }
+  },
+  "latex_results": {
+    "filename": "proyecto3_results.tex",
+    "sha256": "e3aecd0cf7823167428f239423ca99b3204bf9dae916088162b948175838a865"
+  }
+}

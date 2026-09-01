@@ -7,9 +7,9 @@ El proyecto nace con una motivación aplicada: evaluar la viabilidad de una red 
 
 El Campus Miguelete combina edificios académicos, laboratorios, salas técnicas, espacios de circulación y servicios comunes dentro de un predio compacto. Para QKD, esa compacidad es favorable porque permite comenzar con tramos relativamente cortos, pero no elimina el problema de infraestructura: la distancia relevante es la longitud óptica real de la fibra, no la distancia lineal sobre el plano. Patch panels, ductos, bandejas, conectores y rutas indirectas pueden agregar pérdidas relevantes.
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \includegraphics[page=1,width=0.85\textwidth,height=0.55\textheight,keepaspectratio]{unsam-campus-map-2024.pdf}
+  \includegraphics[page=1,width=\textwidth,height=0.72\textheight,keepaspectratio]{unsam-campus-map-2024.pdf}
   \caption{Plano oficial del Campus Miguelete UNSAM usado como base para identificar rutas candidatas y edificios de interés \cite{unsamCampusMap2024}.}
   \label{fig:unsam_mapa_campus}
 \end{figure}
@@ -20,16 +20,10 @@ El plano permite plantear una primera hipótesis de implementación: ubicar Alic
 
 Las imágenes de edificios no definen por sí solas la ruta óptica, pero ayudan a ubicar el problema de ingeniería. Un enlace QKD de campus no se instala en un diagrama abstracto: se instala en salas, racks, bandejas, ductos y recorridos con restricciones de acceso. Los edificios de mayor actividad académica y técnica son candidatos naturales para alojar nodos, siempre que exista control físico y disponibilidad de fibra.
 
-\begin{figure}[H]
+\begin{figure}[p]
   \centering
-  \begin{minipage}{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{unsam-humanidades.jpg}
-  \end{minipage}\hfill
-  \begin{minipage}{0.48\textwidth}
-    \centering
-    \includegraphics[width=\textwidth]{unsam-tornavia.jpg}
-  \end{minipage}
+  \includegraphics[width=0.80\textwidth,height=0.42\textheight,keepaspectratio]{unsam-humanidades.jpg}\par\medskip
+  \includegraphics[width=\textwidth,height=0.20\textheight,keepaspectratio]{unsam-tornavia.jpg}
   \caption{Referencias visuales del Campus Miguelete: Escuela de Humanidades y edificio Corona del Tornavía. Fotografías publicadas en Wikimedia Commons bajo licencias Creative Commons \cite{unsamHumanidadesCommons,unsamTornaviaCommons}.}
   \label{fig:unsam_edificios}
 \end{figure}
@@ -40,21 +34,21 @@ Para una implementación inicial, la decisión más prudente es no distribuir eq
 
 Una maqueta QKD universitaria no tiene el mismo objetivo que una red comercial. Su función principal es permitir investigación, formación, validación de componentes y desarrollo de capacidades locales. Debe ser suficientemente realista para exponer problemas de fibra, sincronización, detección y operación, pero no necesita prometer disponibilidad productiva desde el inicio. Por eso la arquitectura propuesta se organiza en etapas.
 
-La primera etapa es un enlace punto a punto entre dos nodos controlados. Esta etapa permite medir QBER, tasa tamizada, estabilidad temporal, visibilidad y sensibilidad a pérdidas. La segunda etapa agrega un nodo intermedio o una segunda ruta para discutir administración de llaves y confianza en nodos. La tercera etapa conecta el material de clave a una aplicación de prueba mediante un KMS o una interfaz equivalente. Cada etapa agrega complejidad solo después de validar la anterior.
+La primera etapa es un enlace punto a punto entre dos nodos controlados. Esta etapa permite medir QBER, tasa tamizada, estabilidad temporal, visibilidad y sensibilidad a pérdidas. La segunda etapa agrega un nodo intermedio o una segunda ruta para discutir administración de claves y confianza en nodos. La tercera etapa conecta el material de clave a una aplicación de prueba mediante un KMS o una interfaz equivalente. Cada etapa agrega complejidad solo después de validar la anterior.
 
 \begin{figure}[H]
   \centering
   \begin{tikzpicture}[
     node distance=1.4cm,
-    fase/.style={draw, rounded corners, align=center, minimum width=3.7cm, minimum height=1.2cm, fill=blue!5},
+    fase/.style={draw, rounded corners, align=center, text width=3.25cm, minimum height=1.2cm, inner sep=3pt, fill=blue!5},
     arrow/.style={-{Latex[length=3mm]}, thick}
   ]
     \node[fase] (f1) {Etapa 1\\Enlace Alice--Bob};
-    \node[fase, right=1.2cm of f1] (f2) {Etapa 2\\Tres nodos / relay};
-    \node[fase, right=1.2cm of f2] (f3) {Etapa 3\\KMS y aplicación};
-    \node[fase, below=1.2cm of f1] (r1) {Métricas físicas\\QBER, SKR, visibilidad};
-    \node[fase, below=1.2cm of f2] (r2) {Confianza y ruteo\\llaves por enlace};
-    \node[fase, below=1.2cm of f3] (r3) {Consumo de llaves\\servicios de red};
+    \node[fase, right=1.45cm of f1] (f2) {Etapa 2\\Tres nodos / relevo};
+    \node[fase, right=1.45cm of f2] (f3) {Etapa 3\\KMS y aplicación};
+    \node[fase, below=1.2cm of f1] (r1) {Métricas del enlace\\QBER, tasa tamizada, visibilidad};
+    \node[fase, below=1.2cm of f2] (r2) {Confianza y ruteo\\claves por enlace};
+    \node[fase, below=1.2cm of f3] (r3) {Consumo de claves\\servicios de red};
     \draw[arrow] (f1) -- (f2);
     \draw[arrow] (f2) -- (f3);
     \draw[arrow] (f1) -- (r1);
@@ -78,7 +72,7 @@ Los nodos también deben ser accesibles. Un banco de pruebas requiere calibraci�
     Criterio & Relevancia para QKD & Dato a relevar \\
     \midrule
     Distancia óptica & Determina pérdida, tasa y margen de QBER & Longitud de fibra real, no solo distancia en plano \\
-    Seguridad física & Protege fuente, detector, KMS y llaves & Control de acceso, racks, sala, registro de ingreso \\
+    Seguridad física & Protege fuente, detector, KMS y claves & Control de acceso, racks, sala, registro de ingreso \\
     Infraestructura & Define costo de instalación & Fibra disponible, ductos, patch panels, energía \\
     Estabilidad ambiental & Afecta interferometría y detectores & Temperatura, vibración, ventilación, ruido eléctrico \\
     Operabilidad & Permite calibración y mantenimiento & Acceso a instrumentos, PC, red clásica y soporte técnico \\
@@ -112,11 +106,11 @@ Existen tres alternativas de infraestructura. La primera es usar dos fibras: una
 
 \section{Topologías candidatas}
 
-La topología recomendada para la primera entrega es punto a punto. Tiene menor cantidad de variables, permite validar el modelo de simulación y concentral trabajo en los componentes físicos. Una vez que Alice y Bob generan llaves con QBER bajo, se puede introducir un tercer nodo. Ese tercer nodo puede cumplir dos roles distintos: nodo receptor alternativo para comparar enlaces, o nodo confiable que participe en una arquitectura de distribución de llaves.
+La topología recomendada para la primera entrega es punto a punto. Tiene menos variables, permite validar el modelo y concentra el trabajo en los componentes físicos. Una vez caracterizado el enlace Alice--Bob, se puede introducir un tercer nodo. Ese nodo puede actuar como receptor alternativo para comparar enlaces o como nodo confiable dentro de una arquitectura de distribución de claves.
 
 La topología estrella tiene sentido si existe un sitio central seguro, por ejemplo una sala técnica con rack, energía y acceso controlado. En ese esquema, el nodo central se conecta a otros nodos mediante enlaces QKD independientes. La ventaja es operacional: el KMS puede ubicarse cerca del nodo central. La desventaja es que la confianza se concentra en ese punto.
 
-Una topología en línea A--B--C es útil para explicar trusted relay. Alice comparte una llave con B, y B comparte otra con C. Si B es confiable, puede ayudar a transportar material de clave o permitir aplicaciones entre extremos. Esta topología no ofrece seguridad extremo a extremo frente a un B comprometido, pero es realista para redes QKD actuales. Para una universidad, además, permite estudiar la diferencia entre seguridad protocolar y seguridad operacional.
+Una topología en línea A--B--C es útil para explicar el relevo mediante un nodo confiable. Alice comparte una clave con B, y B comparte otra con C. Si B es confiable, puede ayudar a transportar material de clave o permitir aplicaciones entre extremos. Esta topología no ofrece seguridad extremo a extremo frente a un B comprometido, pero es realista para redes QKD actuales. Para una universidad, además, permite estudiar la diferencia entre seguridad protocolar y seguridad operacional.
 
 \begin{figure}[H]
   \centering
@@ -146,7 +140,7 @@ Una topología en línea A--B--C es útil para explicar trusted relay. Alice com
     \node[nodo, right=2.4cm of a3] (b3) {B};
     \node[nodo, right=2.4cm of b3] (c3) {C};
     \node[kms, below=0.9cm of b3] (kms) {KMS};
-    \node[below=2.0cm of b3] {Relay confiable};
+    \node[below=2.0cm of b3] {Relevo confiable};
     \draw[q] (a3) -- (b3);
     \draw[q] (b3) -- (c3);
     \draw[c] (b3) -- (kms);
@@ -177,14 +171,14 @@ La salida esperada del relevamiento no es solo descriptiva. Debe traducirse en p
   Sala técnica & Rack, energía, UPS, ventilación & Instalación de emisor, receptor y control \\
   Seguridad & Acceso físico, cerraduras, registro & Validez de trusted node/KMS \\
   Ambiente & Temperatura, vibración, ruido eléctrico & Estabilidad de interferómetro y detectores \\
-  Red clásica & IP disponible, latencia, autenticación & Canal clásico BB84 y entrega de llaves \\
+  Red clásica & IP disponible, latencia, autenticación & Canal clásico BB84 y entrega de claves \\
   Operación & Acceso a instrumentos y personal & Mantenimiento, calibración y pruebas \\
   \bottomrule
 \end{longtable}
 
 \section{Relación entre simulación y diseño físico}
 
-El valor de la simulación es que permite anticipar sensibilidad. Si el barrido de distancia muestra que el enlace pierde margen cerca de cierto rango, el relevamiento debe priorizar rutas con menor pérdida. Si el barrido de detectores indica que la eficiencia tiene fuerte impacto, la selección de hardware debe ponderar detectores mejores aunque sean más costosos. Si la visibilidad domina el QBER, la instalación debe privilegiar estabilidad mecánica y térmica.
+El valor de la simulación es que permite anticipar qué debe verificarse. El barrido de distancia localiza un intervalo donde la tasa pierde holgura frente a una referencia, por lo que una ruta real debe medirse antes de extrapolar. El experimento de detector no resuelve diferencias de eficiencia ni fondo y, por eso, no permite ordenar equipos. El barrido de visibilidad confirma la sensibilidad lógica de QBER, pero no una prestación física. El relevamiento debe aportar los datos que faltan: pérdida total, ventana efectiva, eficiencia, fondo y estabilidad.
 
 Esta relación evita que el trabajo sea una colección de capítulos desconectados. La teoría define variables, la simulación las barre, el diseño de campus busca dónde aparecen en la infraestructura real y el hardware ofrece maneras de controlarlas. El entregable final esperado no es una orden de compra cerrada, sino una guía técnica para decidir qué banco construir primero y qué datos faltan para sostener la decisión.
 
@@ -208,7 +202,7 @@ La primera etapa requiere un conjunto mínimo de equipos que permita preparar pu
     Modulación & Modulador de intensidad LiNbO\(_3\) y modulador/fase equivalente & Permite codificar bits, bases e intensidades señuelo \\
     Atenuación & Atenuadores ópticos variables y fijos & Ajustan \(\mu\) hasta régimen de pocos fotones por pulso \\
     Canal & Fibra monomodo, patch cords y conectores FC/PC o FC/APC & Representa el enlace de campus y el presupuesto de pérdida \\
-    Receptor & Interferómetro desbalanceado, detector de fotón único y time tagger & Mide bins temporales, fase relativa y eventos con resolución temporal \\
+    Receptor & Interferómetro desbalanceado, detector de fotón único y registrador temporal & Mide bins temporales, fase relativa y eventos con resolución temporal \\
     Control & PC/FPGA o generador de patrones, software BB84 y registro de datos & Coordina pulsos, bases, semillas, medición y postprocesamiento \\
     \bottomrule
   \end{tabularx}
@@ -218,24 +212,26 @@ La primera etapa requiere un conjunto mínimo de equipos que permita preparar pu
 
 \section{Presupuesto preliminar de implementación}
 
-El presupuesto debe leerse como orden de magnitud. Los precios reales dependen de cotizaciones, impuestos, importación, soporte, accesorios, disponibilidad local y decisiones de laboratorio. Aun así, construir una tabla preliminar es útil porque muestra qué componentes dominan el costo y dónde conviene invertir esfuerzo de selección.
+El presupuesto debe leerse como un supuesto interno de planificación expresado en dólares estadounidenses de 2026. Los rangos no se extrajeron de cotizaciones vigentes y no habilitan una compra. Su función es identificar rubros dominantes y preparar pedidos de cotización. Los precios reales dependen de modelo exacto, impuestos, importación, soporte, accesorios y disponibilidad.
 
 \begin{table}[H]
   \centering
-  \begin{tabularx}{\textwidth}{p{0.30\textwidth}p{0.20\textwidth}X}
+  \small
+  \begin{tabularx}{\textwidth}{p{0.08\textwidth}p{0.27\textwidth}p{0.18\textwidth}X}
     \toprule
-    Rubro & Rango orientativo & Comentario \\
+    Cant. & Rubro & Rango interno & Comentario \\
     \midrule
-    Fuente láser 1550 nm y driver & USD 4k--12k & Puede crecer si se exige ancho de línea bajo o pulsado integrado \\
-    Moduladores LiNbO\(_3\), drivers y bias control & USD 10k--30k & Bloque crítico para time-bin y decoy; depende de ancho de banda \\
-    Atenuadores, acopladores, aisladores y patch cords & USD 3k--10k & Costo moderado, pero impacto directo en pérdida y estabilidad \\
-    Fibra, bandejas, conectores e instalación en campus & USD 5k--25k & Muy dependiente del relevamiento y de si existe fibra disponible \\
-    Detector de fotón único en telecom & USD 25k--80k & Uno de los rubros dominantes; APD y SNSPD tienen costos muy distintos \\
-    Time tagger / TDC multicanal & USD 8k--35k & Relevante para registrar bins y caracterizar sincronización \\
-    Mesa óptica, racks, energía, PC/FPGA y seguridad física & USD 8k--30k & Necesario para operación estable y repetible \\
-    Contingencia, importación, repuestos y calibración & 15--30\% & Margen necesario para compras científicas importadas \\
+    1 & Fuente láser 1550 nm y driver & USD 4k--12k & Depende de ancho de línea y pulsado \\
+    2 & Moduladores, drivers y control de bias & USD 10k--30k & Intensidad, fase y señuelos \\
+    1 lote & Atenuadores y pasivos & USD 3k--10k & Incluye aisladores y patch cords \\
+    1 ruta & Fibra e instalación en campus & USD 5k--25k & Requiere relevamiento previo \\
+    3 canales & Detección de fotón único & USD 25k--80k & APD y SNSPD no son equivalentes \\
+    1 & Registrador temporal multicanal & USD 8k--35k & Registro de bins y sincronización \\
+    1 lote & Mesa, racks, PC/FPGA y seguridad & USD 8k--30k & Infraestructura de operación \\
+    \multicolumn{2}{r}{Subtotal de planificación} & USD 63k--222k & Suma de rubros, sin cotización \\
+    \multicolumn{2}{r}{Total con 15--30\%} & USD 72,5k--288,6k & Extremos con contingencia aplicada \\
     \bottomrule
   \end{tabularx}
-  \caption{Presupuesto preliminar para una implementación de banco QKD en Campus Miguelete. Los rangos son orientativos y deben reemplazarse por cotizaciones formales antes de cualquier compra.}
+  \caption{Presupuesto de planificación para una implementación QKD. Los rangos son supuestos internos y deben reemplazarse por cotizaciones con proveedor, modelo, fecha y condiciones de importación.}
   \label{tab:presupuesto_unsam}
 \end{table}

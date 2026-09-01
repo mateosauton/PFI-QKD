@@ -23,9 +23,9 @@ En la práctica, los estados no se implementan como qubits abstractos perfectos.
 
 El trabajo combina tres planos que deben mantenerse separados para no mezclar conclusiones. El plano físico describe cómo se preparan, transmiten y detectan pulsos ópticos débiles. Allí aparecen la longitud de onda de telecomunicaciones, la atenuación de fibra, el número medio de fotones por pulso, la separación temporal entre bins, la visibilidad del interferómetro y las características de los detectores. En este plano, una mejora de hardware no se expresa primero como ``más seguridad'', sino como menor pérdida, menor ruido, mejor sincronización o mayor estabilidad.
 
-El plano computacional describe cómo esos fenómenos se representan dentro de un simulador. SeQUeNCe no es un cálculo simbólico de BB84: es un simulador de eventos discretos. La línea temporal agenda emisiones, propagaciones, recepciones, clicks y mensajes clásicos; cada evento modifica el estado de un nodo o de un componente. Esta elección es importante porque el experimento no solo pregunta por una fórmula de tasa, sino por el comportamiento de una arquitectura Alice--Bob compuesta por objetos, canales y protocolos.
+El plano computacional describe cómo esos fenómenos se representan dentro de un simulador. SeQUeNCe no es un cálculo simbólico de BB84: es un simulador de eventos discretos. La línea temporal agenda emisiones, propagaciones, recepciones, clics y mensajes clásicos; cada evento modifica el estado de un nodo o de un componente. Esta elección es importante porque el experimento no sólo pregunta por una fórmula de tasa, sino por el comportamiento de una arquitectura Alice--Bob compuesta por objetos, canales y protocolos.
 
-El plano criptográfico describe qué se puede afirmar sobre los bits generados. BB84 produce correlaciones entre Alice y Bob, pero una clave final requiere estimación de error, reconciliación, contabilización de fuga de información y amplificación de privacidad. En este trabajo, la simulación ejecuta la transmisión, medición y tamizado, mientras que la tasa secreta se estima con expresiones analíticas. Por eso una curva de SKR debe leerse como una cota de diseño bajo supuestos, no como evidencia de que se ejecutó un sistema completo de llave final.
+El plano criptográfico describe qué se puede afirmar sobre los bits generados. BB84 produce correlaciones entre Alice y Bob, pero una clave final requiere estimación de error, reconciliación, contabilización de fuga y amplificación de privacidad. En este trabajo, la simulación ejecuta transmisión, medición y tamizado. Los barridos 1 a 3 producen un indicador ideal; el cuarto agrega estimadores asintóticos con y sin señuelos. Ninguno equivale a ejecutar un sistema completo de clave final.
 
 \begin{table}[H]
   \centering
@@ -33,9 +33,9 @@ El plano criptográfico describe qué se puede afirmar sobre los bits generados.
     \toprule
     Plano & Pregunta central & Variables del trabajo & Evidencia usada \\
     \midrule
-    Física & Qué llega a Bob y con qué calidad & Atenuación, \(\mu\), eficiencia, dark counts, visibilidad & Modelo de fibra, detector e interferómetro \\
+    Física & Qué llega a Bob y con qué calidad & Atenuación, \(\mu\), eficiencia, conteos oscuros, visibilidad & Modelo de fibra, detector e interferómetro \\
     Computación & Cómo se representa el enlace & \texttt{Timeline}, canales, nodos, eventos, semillas & Código SeQUeNCe y barridos reproducibles \\
-    Criptografía & Qué tasa puede defenderse & QBER, throughput, SKR simple, cotas decoy & Fórmulas BB84/decoy y límites del modelo \\
+    Criptografía & Qué tasa puede defenderse & QBER, tasa tamizada, indicador ideal, cotas señuelo & Fórmulas BB84/señuelo y límites del modelo \\
     Protocolos & Qué secuencia ejecutan Alice y Bob & BB84, tamizado, decoy analítico & Implementación BB84 y postprocesamiento de métricas \\
     \bottomrule
   \end{tabularx}
@@ -54,7 +54,7 @@ Un sistema QKD completo puede separarse en cuatro etapas:
   \item \textbf{Amplificación de privacidad}: se comprime la clave reconciliada para reducir información potencialmente conocida por un adversario.
 \end{enumerate}
 
-Este proyecto simula con detalle la transmisión, detección y tamizado implementados por BB84 en SeQUeNCe. La corrección de errores y la amplificación de privacidad no se ejecutan como protocolos completos; se incorporan mediante una cota de tasa secreta. Esta decisión define el alcance del trabajo: se estudia la factibilidad de un banco de pruebas y la sensibilidad de sus componentes, no la certificación de una llave final lista para producción.
+Este proyecto simula con detalle la transmisión, detección y tamizado implementados por BB84 en SeQUeNCe. La corrección de errores y la amplificación de privacidad no se ejecutan como protocolos completos. En los tres primeros experimentos sólo se resume su efecto mediante un indicador ideal; el cuarto usa estimadores asintóticos con y sin estados señuelo. Esta decisión define el alcance del trabajo: se evalúan el comportamiento lógico del modelo y la sensibilidad de sus componentes, no la factibilidad física ni la certificación de una clave final lista para producción.
 
 \section{Canal clásico, corrección de errores y privacidad}
 
@@ -81,7 +81,7 @@ El protocolo se puede resumir así:
   \item Se estima el QBER y se decide si la clave puede procesarse.
 \end{enumerate}
 
-La prueba de Shor y Preskill conecta BB84 con códigos correctores y amplificación de privacidad, y da soporte formal a umbrales de error usados como criterio práctico \cite{shorPreskill2000}. En este trabajo se usa el umbral de aproximadamente \SI{11}{\percent} como referencia para anular la cota simple de SKR cuando el error es demasiado alto.
+La prueba de Shor y Preskill conecta BB84 con códigos correctores y amplificación de privacidad y da soporte formal al umbral asintótico cercano al \SI{11}{\percent} para el caso ideal \cite{shorPreskill2000}. Ese valor no es el corte numérico del indicador usado en los barridos 1 a 3. Al incluir \(f_\mathrm{EC}=1{,}16\), el factor ideal definido en la Ecuación~\ref{eq:indicador_ideal} se anula en \(Q\simeq0{,}0981\), es decir, cerca de \SI{9.81}{\percent}. Ninguno de los dos números es un umbral universal para el banco físico.
 
 \subsection{Ejemplo operativo de BB84}
 
@@ -111,26 +111,25 @@ El ejemplo también muestra por qué el canal clásico puede ser público. Al pu
 
 \begin{figure}[H]
   \centering
-  \resizebox{\textwidth}{!}{%
   \begin{tikzpicture}[
-    node distance=0.85cm,
-    box/.style={draw, rounded corners, align=center, text width=3.05cm, minimum height=0.95cm, fill=blue!5},
-    proc/.style={draw, rounded corners, align=center, text width=3.05cm, minimum height=0.95cm, fill=green!7},
-    arrow/.style={-{Latex[length=2.8mm]}, thick}
+    node distance=8mm and 10mm,
+    box/.style={draw, rounded corners=2pt, align=center, text width=3.6cm, minimum height=1.05cm, fill=blue!5},
+    proc/.style={draw, rounded corners=2pt, align=center, text width=3.6cm, minimum height=1.05cm, fill=green!7},
+    arrow/.style={-{Latex[length=2.6mm]}, thick}
   ]
-    \node[box] (bits) {1. Alice genera\\bits y bases};
-    \node[box, right=1.05cm of bits] (prep) {2. Alice prepara\\pulsos ópticos};
-    \node[box, right=1.05cm of prep] (med) {3. Bob mide con\\base aleatoria};
-    \node[proc, below=1.15cm of med] (sift) {4. Comparación\\pública de bases};
-    \node[proc, left=1.05cm of sift] (qber) {5. Tamizado y\\estimación QBER};
-    \node[proc, left=1.05cm of qber] (post) {6. Reconciliación y\\privacidad};
+    \node[box] (bits) {1. Alice genera bits y bases};
+    \node[box, right=of bits] (prep) {2. Alice prepara y envía pulsos};
+    \node[box, right=of prep] (med) {3. Bob mide con base aleatoria};
+    \node[proc, below=of med] (sift) {4. Publicación de bases por canal clásico autenticado};
+    \node[proc, left=of sift] (qber) {5. Tamizado y estimación de QBER};
+    \node[proc, left=of qber] (post) {6. Reconciliación y privacidad};
     \draw[arrow] (bits) -- (prep);
-    \draw[arrow, blue] (prep) -- node[above, align=center] {canal\\cuántico} (med);
+    \draw[arrow, blue!70!black] (prep) -- (med);
     \draw[arrow] (med) -- (sift);
-    \draw[arrow, dashed] (sift) -- node[below, align=center] {canal clásico\\autenticado} (qber);
+    \draw[arrow, dashed] (sift) -- (qber);
     \draw[arrow] (qber) -- (post);
-  \end{tikzpicture}}
-  \caption{Secuencia funcional de BB84 desde preparación hasta postprocesamiento.}
+  \end{tikzpicture}
+  \caption{Secuencia funcional de BB84. Los pasos 2--3 usan el canal cuántico; los pasos 4--6 usan el canal clásico autenticado.}
   \label{fig:secuencia_bb84}
 \end{figure}
 
@@ -138,7 +137,7 @@ El ejemplo también muestra por qué el canal clásico puede ser público. Al pu
 
 El protocolo principal es BB84 prepare-and-measure. Alice prepara estados asociados a bases \(Z\) y \(X\), Bob mide con bases aleatorias y ambos conservan los eventos compatibles. La implementación de SeQUeNCe ya contiene esta lógica de protocolo, por lo que el trabajo la reutiliza en lugar de escribir un BB84 nuevo. Esto mejora trazabilidad: los cambios del PFI se concentran en parametrizar el experimento, no en alterar la pila base del simulador.
 
-El segundo elemento protocolar es la codificación \textit{time-bin}. En la base \(Z\), el bit se asocia al bin temprano o tardío. En la base \(X\), el bit se asocia a una superposición de bins que debe medirse mediante interferencia. Esta elección vincula directamente el protocolo con el hardware: no alcanza con detectar clicks; Bob debe mantener resolución temporal y visibilidad para discriminar correctamente la base de superposición.
+El segundo elemento protocolar es la codificación \textit{time-bin}. En la base \(Z\), el bit se asocia al bin temprano o tardío. En la base \(X\), el bit se asocia a una superposición de bins que debe medirse mediante interferencia. Esta elección vincula directamente el protocolo con el hardware: no alcanza con detectar clics; Bob debe mantener resolución temporal y visibilidad para discriminar correctamente la base de superposición.
 
 El tercer elemento es el análisis con estados señuelo. En esta versión no se implementa una selección aleatoria de intensidades dentro del protocolo de SeQUeNCe. En cambio, se ejecutan corridas separadas con intensidades de señal y señuelo y luego se aplican cotas analíticas asintóticas. Esta decisión conserva el alcance del trabajo, pero también fija una limitación: la comparación decoy/no-decoy es una evaluación de diseño, no una implementación completa del protocolo decoy con tamaño finito.
 
@@ -148,9 +147,9 @@ El ataque más didáctico contra BB84 es intercept-resend. Eve intercepta cada e
 
 La intuición del error es la siguiente. Eve acierta la base con probabilidad \(1/2\). En la mitad restante, prepara un estado que, cuando Bob mide en la base correcta de Alice, tiene probabilidad \(1/2\) de dar el bit equivocado. Como Alice y Bob solo conservan posiciones donde sus bases coinciden, el ataque introduce una tasa de error esperada de aproximadamente \(1/2 \times 1/2 = 1/4\), es decir \SI{25}{\percent}, en las posiciones tamizadas atacadas. Ese valor supera ampliamente el umbral práctico usado en este trabajo.
 
-En enlaces reales, un QBER alto no prueba automáticamente la presencia de Eve. Puede deberse a ruido, mala visibilidad, sincronización, conteos oscuros o errores de calibración. Sin embargo, desde el punto de vista de seguridad, Alice y Bob no necesitan distinguir la causa exacta para tomar una decisión conservadora: si el QBER excede el límite compatible con extracción de llave, la llave debe descartarse.
+En enlaces reales, un QBER alto no prueba automáticamente la presencia de Eve. Puede deberse a ruido, mala visibilidad, sincronización, conteos oscuros o errores de calibración. Sin embargo, desde el punto de vista de seguridad, Alice y Bob no necesitan distinguir la causa exacta para tomar una decisión conservadora: si el QBER excede el límite compatible con extracción de clave, la clave debe descartarse.
 
-\section{QBER y tasa de llave secreta}
+\section{QBER, indicador ideal y tasa con estados señuelo}
 
 El QBER se define como la fracción de bits distintos entre las claves tamizadas de Alice y Bob:
 
@@ -161,15 +160,15 @@ El QBER se define como la fracción de bits distintos entre las claves tamizadas
 
 El QBER concentra varios efectos: errores de preparación, mediciones en estados degradados, conteos oscuros, mala sincronización, visibilidad interferométrica insuficiente y potencial intervención de un adversario. En un simulador, el QBER permite comparar configuraciones. En un banco real, además, funciona como alarma de que el enlace no puede usarse sin reducir tasa o mejorar componentes.
 
-La tasa de llave secreta (SKR) estima cuántos bits secretos por segundo pueden extraerse después del postprocesamiento. En el script se usa una cota simple tipo Shor--Preskill:
+Para los experimentos 1 a 3 se calcula un indicador de posprocesamiento monofotónico ideal:
 
 \begin{equation}
-  R_\text{simple} = R_\text{tamizada}
+  I_\text{ideal} = R_\text{tamizada}
   \max\left(0, 1 - f_\text{EC} h_2(Q) - h_2(Q)\right),
-  \label{eq:skr_simple}
+  \label{eq:indicador_ideal}
 \end{equation}
 
-donde \(R_\text{tamizada}\) es el throughput de bits tamizados, \(Q\) es el QBER, \(f_\text{EC}\) modela la ineficiencia de corrección de errores y \(h_2\) es la entropía binaria. Esta expresión tiene un uso concreto en el proyecto: convertir los eventos simulados por BB84 en una métrica de desempeño comparable entre barridos. No equivale a implementar todo el postprocesamiento clásico.
+donde \(R_\text{tamizada}\) es la tasa de bits tamizados, \(Q\) es el QBER, \(f_\text{EC}=1{,}16\) modela la ineficiencia de reconciliación y \(h_2\) es la entropía binaria. La expresión convierte la salida BB84 en una métrica comparable entre barridos, pero no es una tasa secreta para la fuente coherente débil: no descuenta pulsos multifotónicos ni ejecuta estimación señuelo. Las tasas del cuarto experimento sí incorporan estimadores monofotónicos, aunque siguen siendo asintóticas e híbridas.
 
 \section{Fuentes coherentes débiles y estados señuelo}
 
@@ -217,7 +216,26 @@ Para una intensidad media \(\mu\), una transmitancia total \(\eta\) y una eficie
   \label{eq:pdet}
 \end{equation}
 
-En este proyecto, los estados señuelo se incorporan de manera analítica. El script calcula cotas asintóticas para \(Y_1\), la probabilidad de detección condicionada a un fotón, y \(e_1\), la tasa de error de eventos monofotónicos. Con esas cotas se estima una tasa secreta asintótica:
+En este proyecto, los estados señuelo se incorporan de manera analítica. El script calcula cotas asintóticas para \(Y_1\), la probabilidad de detección condicionada a un fotón, y \(e_1\), la tasa de error de eventos monofotónicos. Para dos intensidades \(\mu>\nu>0\), el estimador implementado utiliza \cite{maQiZhaoLo2005}
+
+\begin{align}
+  Y_1^L &= \max\!\left\{0,
+  \frac{\mu}{\mu\nu-\nu^2}
+  \left[
+    Q_\nu e^\nu
+    -Q_\mu e^\mu\left(\frac{\nu}{\mu}\right)^2
+    -\frac{\mu^2-\nu^2}{\mu^2}Y_0
+  \right]\right\},
+  \label{eq:y1_decoy}\\
+  e_1^U &= \min\!\left\{\frac{1}{2},
+  \frac{E_\nu Q_\nu e^\nu-e_0Y_0}{Y_1^L\nu}
+  \right\},
+  \label{eq:e1_decoy}\\
+  Q_1^L &= \mu e^{-\mu}Y_1^L.
+  \label{eq:q1_decoy}
+\end{align}
+
+donde \(Q_\mu\) y \(Q_\nu\) son las ganancias de señal y señuelo, \(E_\mu\) y \(E_\nu\) sus QBER, \(Y_0\) el rendimiento de fondo y \(e_0=1/2\) el error asociado al fondo aleatorio. Si la expresión del numerador de \(e_1^U\) no es positiva, o si \(Y_1^L=0\), el código adopta el valor conservador \(e_1^U=1/2\). Con esas cotas se estima una tasa secreta asintótica:
 
 \begin{equation}
   R_\text{decoy} \geq q f_\text{rep}
@@ -225,39 +243,55 @@ En este proyecto, los estados señuelo se incorporan de manera analítica. El sc
   \label{eq:skr_decoy}
 \end{equation}
 
-donde \(q=1/2\) representa el factor de tamizado BB84, \(f_\text{rep}\) es la tasa de repetición de pulsos, \(Q_\mu\) y \(E_\mu\) son ganancia y error para la intensidad de señal, y \(Q_1^L\), \(e_1^U\) son cotas inferior y superior para eventos de un fotón.
+donde \(q=1/2\) representa el factor de tamizado BB84 y \(f_\text{rep}\) es la tasa de repetición de pulsos. Las ecuaciones~\eqref{eq:y1_decoy}--\eqref{eq:skr_decoy} especifican exactamente el estimador usado en el cuarto experimento. Es asintótico: no incorpora correcciones de tamaño finito ni constituye por sí solo una prueba componible de seguridad.
 
 \section{Codificación time-bin}
 
-En codificación \textit{time-bin}, la información se codifica en modos temporales discretos de un pulso óptico. La base computacional puede asociarse a un pulso temprano y uno tardío. La base conjugada se obtiene preparando o midiendo superposiciones de esos modos, lo que requiere interferencia estable. Esta codificación es atractiva para fibra óptica porque los modos temporales pueden ser menos sensibles a perturbaciones de polarización que una codificación puramente polarimétrica.
+En codificación \textit{time-bin}, la información se codifica en dos modos temporales ortogonales: temprano, \(\lvert e\rangle\), y tardío, \(\lvert l\rangle\). Los cuatro estados BB84 usados por el modelo son
+
+\begin{equation}
+  \lvert 0_Z\rangle=\lvert e\rangle,\qquad
+  \lvert 1_Z\rangle=\lvert l\rangle,\qquad
+  \lvert 0_X\rangle=\frac{\lvert e\rangle+\lvert l\rangle}{\sqrt{2}},\qquad
+  \lvert 1_X\rangle=\frac{\lvert e\rangle-\lvert l\rangle}{\sqrt{2}}.
+  \label{eq:bb84_timebin_states}
+\end{equation}
+
+En la base Z, el bit queda determinado por el instante de llegada. En la base X, ambos bins están ocupados y el bit se codifica en la fase relativa: \(0\) para \(\lvert 0_X\rangle\) y \(\pi\) para \(\lvert 1_X\rangle\). Preparar y medir esa superposición exige coherencia e interferencia estable. Esta codificación es atractiva para fibra óptica porque los modos temporales pueden ser menos sensibles a perturbaciones de polarización que una codificación puramente polarimétrica.
 
 \begin{figure}[H]
   \centering
-  \resizebox{0.92\textwidth}{!}{%
   \begin{tikzpicture}[
-    pulse/.style={draw=blue!70, fill=blue!20, minimum width=0.55cm, minimum height=1.15cm, rounded corners=1pt},
-    axis/.style={-{Latex[length=2.5mm]}, thick},
-    title/.style={font=\bfseries, align=left},
+    x=0.82cm,y=0.82cm,
+    pulse/.style={draw=blue!70!black, fill=blue!18, rounded corners=1pt},
+    axis/.style={-{Latex[length=2.3mm]}, thick},
+    title/.style={font=\bfseries},
     lab/.style={align=center, font=\small}
   ]
-    \node[title] at (-0.2,1.9) {Base Z};
-    \draw[axis] (0,0) -- (7.0,0) node[right] {tiempo};
-    \node[pulse] at (1.4,0.6) {};
-    \draw[dashed] (4.6,0) -- (4.6,1.25);
-    \node[lab] at (1.4,-0.42) {bin\\temprano};
-    \node[lab] at (4.6,-0.42) {bin\\tardío};
-    \node[lab] at (3.0,1.45) {un solo bin define el bit};
+    \draw[black!20, rounded corners=2pt] (-0.3,-1.45) rectangle (7.1,3.2);
+    \node[title] at (3.35,2.8) {Base Z};
+    \draw[axis] (0.2,0) -- (6.6,0) node[right] {tiempo};
+    \draw[pulse] (1.2,0) rectangle (1.75,1.25);
+    \draw[dashed] (4.8,0) -- (4.8,1.25);
+    \node[lab] at (1.48,-0.45) {temprano};
+    \node[lab] at (4.8,-0.45) {tardío};
+    \node[lab] at (3.35,-1.05) {\(\lvert 0_Z\rangle=\lvert e\rangle\); \(\lvert 1_Z\rangle=\lvert l\rangle\)};
+    \node[lab] at (3.35,1.75) {un bin ocupado define el bit};
 
-    \begin{scope}[yshift=-3.0cm]
-      \node[title] at (-0.2,1.9) {Base X};
-      \draw[axis] (0,0) -- (7.0,0) node[right] {tiempo};
-      \node[pulse] at (1.4,0.6) {};
-      \node[pulse] at (4.6,0.6) {};
-      \draw[{Latex[length=2mm]}-{Latex[length=2mm]}] (1.4,1.35) -- node[above] {\(\Delta t\)} (4.6,1.35);
-      \node[lab] at (3.0,1.75) {superposición de bins con fase relativa};
+    \begin{scope}[xshift=8.1cm]
+      \draw[black!20, rounded corners=2pt] (-0.3,-1.45) rectangle (7.1,3.2);
+      \node[title] at (3.35,2.8) {Base X};
+      \draw[axis] (0.2,0) -- (6.6,0) node[right] {tiempo};
+      \draw[pulse] (1.2,0) rectangle (1.75,1.25);
+      \draw[pulse] (4.5,0) rectangle (5.05,1.25);
+      \draw[{Latex[length=2mm]}-{Latex[length=2mm]}] (1.48,1.65) -- node[above] {\(\Delta t\)} (4.78,1.65);
+      \node[lab] at (3.35,2.25) {superposición coherente};
+      \node[lab] at (1.48,-0.45) {temprano};
+      \node[lab] at (4.78,-0.45) {tardío};
+      \node[lab] at (3.35,-1.05) {\(\Delta\phi=0\): bit 0; \(\Delta\phi=\pi\): bit 1};
     \end{scope}
-  \end{tikzpicture}}
-  \caption{Representación esquemática de codificación \textit{time-bin}.}
+  \end{tikzpicture}
+  \caption{Codificación \textit{time-bin}: ocupación temporal en base Z y fase relativa entre bins en base X.}
   \label{fig:timebin_bins}
 \end{figure}
 
@@ -278,7 +312,7 @@ La tesis de López Grande presenta implementaciones de DCC en fibra tanto con po
     arrow/.style={-{Latex[length=2.5mm]}, thick}
   ]
     \node[comp] (in) {entrada\\fotón};
-    \node[comp, right=1.5cm of in] (sw) {switch\\base};
+    \node[comp, right=1.5cm of in] (sw) {selector\\de base};
     \node[comp, above right=1.0cm and 1.5cm of sw] (direct) {camino\\directo};
     \node[comp, below right=1.0cm and 1.5cm of sw] (mzi) {MZI\\desbalanceado};
     \node[det, right=1.8cm of direct] (d0) {D0};
@@ -304,14 +338,14 @@ La fibra introduce atenuación aproximadamente exponencial con la distancia. En 
   \label{eq:fiber_loss}
 \end{equation}
 
-Esta expresión conecta directamente teoría y experimento: al aumentar la distancia, disminuye la probabilidad de detección, se acumulan menos bits tamizados por unidad de tiempo y la tasa secreta esperada cae. El primer barrido del proyecto existe para observar esa transición.
+Esta expresión conecta directamente teoría y experimento: al aumentar la distancia, disminuye la probabilidad de detección y se esperan menos bits tamizados por unidad de tiempo. Cualquier estimador de tasa secreta físicamente consistente también debe reflejar esa pérdida, pero el primer barrido observa de manera directa ganancia analítica, QBER, tasa tamizada e indicador ideal; no produce una clave secreta final.
 
-Los detectores agregan eficiencia finita, tasa máxima de conteo, resolución temporal y conteos oscuros. La eficiencia determina qué fracción de fotones incidentes produce clicks válidos. Los conteos oscuros son clicks no asociados a un fotón de señal y pueden introducir bits erróneos. La resolución temporal define cuán bien puede discriminarse una ventana \textit{time-bin}. En un banco de pruebas real, estos parámetros interactúan con sincronización, jitter, pérdidas de acoplamiento y estabilidad interferométrica.
+Los detectores agregan eficiencia finita, tasa máxima de conteo, resolución temporal y conteos oscuros. La eficiencia determina qué fracción de fotones incidentes produce clics válidos. Los conteos oscuros son clics no asociados a un fotón de señal y pueden introducir bits erróneos. La resolución temporal define cuán bien puede discriminarse una ventana \textit{time-bin}. En un banco de pruebas real, estos parámetros interactúan con sincronización, fluctuación temporal (\textit{jitter}), pérdidas de acoplamiento y estabilidad interferométrica.
 
 \subsection{Componentes físicos de un banco time-bin}
 
 Un enlace QKD \textit{time-bin} de laboratorio puede descomponerse en emisor, canal, receptor y control clásico. En el emisor, una implementación práctica puede usar un láser DFB atenuado, moduladores de fase o amplitud y electrónica de disparo de alta velocidad. Para que una fuente coherente débil sea compatible con estados señuelo, el sistema debe controlar la intensidad media de cada pulso y, en una implementación rigurosa, randomizar la fase entre símbolos para no revelar información adicional.
 
-En el receptor, Bob necesita separar o seleccionar bases y medir eventos temporales. Una arquitectura típica incluye un conmutador o divisor, un interferómetro Mach--Zehnder desbalanceado para la base de superposición y detectores de fotón único en ventanas temporales bien definidas. Las tecnologías de detección relevantes en 1550 nm incluyen fotodiodos de avalancha y detectores superconductores. Para un PFI orientado a ingeniería de telecomunicaciones, las variables más importantes para seleccionar detectores son eficiencia, cuentas de oscuridad, tiempo muerto, jitter, tasa máxima de conteo, facilidad de operación y costo de mantenimiento.
+En el receptor, Bob necesita separar o seleccionar bases y medir eventos temporales. Una arquitectura típica incluye un conmutador o divisor, un interferómetro Mach--Zehnder desbalanceado para la base de superposición y detectores de fotón único en ventanas temporales bien definidas. Las tecnologías de detección relevantes en 1550 nm incluyen fotodiodos de avalancha y detectores superconductores. Para un PFI orientado a ingeniería de telecomunicaciones, las variables más importantes para seleccionar detectores son eficiencia, cuentas de oscuridad, tiempo muerto, fluctuación temporal, tasa máxima de conteo, facilidad de operación y costo de mantenimiento.
 
 El canal puede implementarse con fibra óptica estándar de telecomunicaciones. El diseño debe decidir si se usa fibra oscura dedicada para el canal cuántico, si el canal clásico viaja por una fibra separada o si se multiplexa con suficiente aislamiento. También deben contabilizarse conectores, empalmes, splitters, moduladores y pérdidas de acoplamiento. En las notas de trabajo aparece un valor orientativo de \SI{0.5}{\decibel} por conector FC/PC; en un trabajo final con relevamiento físico, esas pérdidas deberían sumarse al presupuesto de enlace o absorberse en la eficiencia efectiva del receptor.

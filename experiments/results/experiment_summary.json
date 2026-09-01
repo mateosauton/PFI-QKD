@@ -17,7 +17,7 @@
     "nonpositive_e1_numerator": "conservative fallback e1=0.5",
     "vacuum_yield_model": "three detectors times assumed analytic gate and dark-count rate"
   },
-  "seed_policy": "deterministic non-overlapping pairs documented in qkd_2node_simulation.py",
+  "seed_policy": "deterministic non-overlapping pairs documented in proyecto3_simulation.py",
   "statistical_methods": {
     "qber": "pooled Wilson score interval, 95%",
     "rates": "two-sided Student-t interval across independent runs, 95%",

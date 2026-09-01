@@ -1,11 +1,11 @@
 \chapter{Fragmentos de código relevantes}
 \label{app:codigo}
 
-Este apéndice documenta los fragmentos del script que hacen posible la simulación. No reemplaza al archivo completo \path{experiments/qkd_2node_simulation.py}; selecciona las partes que conectan directamente el modelo físico con los resultados del trabajo.
+Este apéndice selecciona fragmentos de \path{experiments/proyecto3_simulation.py}. El objetivo es mostrar cómo las decisiones metodológicas se traducen a código. Los recortes no reemplazan el archivo ejecutable ni sus validaciones.
 
-\section{Parámetros de simulación}
+\section{Parámetros y semillas}
 
-\begin{lstlisting}[language=Python, caption={Estructura de parámetros usada por cada punto de barrido.}]
+\begin{lstlisting}[language=Python, caption={Contrato de parámetros de una corrida.}]
 @dataclass
 class SimParams:
     distance_km: float
@@ -20,120 +20,168 @@ class SimParams:
     runtime_ps: float = DEFAULT_RUNTIME_PS
     alice_seed: int = 0
     bob_seed: int = 1
-    polarization_fidelity: float = 1.0
     count_rate_hz: float = 50e6
     time_resolution_ps: int = 10
+    detection_window_ps: int = DEFAULT_DETECTION_WINDOW_PS
+    classical_extra_delay_ps: int = DEFAULT_CLASSICAL_EXTRA_DELAY_PS
 \end{lstlisting}
 
-\texttt{SimParams} es el contrato entre la pregunta experimental y el simulador. Cada barrido modifica uno o dos campos y deja el resto fijo. Esto evita que las curvas mezclen efectos: si se estudia distancia, la eficiencia del detector no cambia; si se estudia visibilidad, la fibra se mantiene fija. La estructura también permite registrar semillas independientes para Alice y Bob, lo cual hace reproducible cada punto sin eliminar la naturaleza estocástica del protocolo.
+\texttt{SimParams} separa la configuración del motor de simulación. Cada barrido crea una instancia y modifica sólo los campos definidos por su diseño. La ventana de detección aparece en la misma estructura, pero se usa en la referencia analítica de fondo; no configura una compuerta física de SeQUeNCe. Esta diferencia evita atribuir al receptor una función que no implementa.
 
-Los campos tienen una interpretación física directa. La distancia y la atenuación definen el presupuesto de pérdida de canal. La eficiencia, los conteos oscuros, la tasa máxima y la resolución temporal resumen el receptor. El número medio de fotones y la frecuencia resumen la fuente. La visibilidad resume la calidad interferométrica. Por eso la tabla de parámetros del Capítulo~\ref{chap:metodologia} puede leerse como una versión documental de esta clase.
-
-\section{Creación del enlace Alice--Bob}
-
-\begin{lstlisting}[language=Python, caption={Estructura central de una corrida en SeQUeNCe.}]
-def run_single_simulation(p: SimParams) -> dict[str, Any]:
-    distance_m = p.distance_km * 1000.0
-    attenuation_db_m = p.attenuation_db_km / 1000.0
-    eta_ch = channel_transmittance(distance_m, attenuation_db_m)
-
-    tl = Timeline(p.runtime_ps)
-    qc0 = QuantumChannel("qc0", tl, distance=distance_m,
-                         attenuation=attenuation_db_m,
-                         frequency=p.frequency_hz)
-    cc0 = ClassicalChannel("cc0", tl, distance=distance_m)
-    cc0.delay += DEFAULT_CLASSICAL_EXTRA_DELAY_PS
-
-    alice = QKDNode("alice", tl, encoding=time_bin, stack_size=1)
-    bob = QKDNode("bob", tl, encoding=time_bin, stack_size=1)
-
-    alice.update_lightsource_params("frequency", p.frequency_hz)
-    alice.update_lightsource_params("mean_photon_num",
-                                    p.mean_photon_num)
-
-    phase_error = max(0.0, min(1.0, (1.0 - p.visibility) / 2.0))
-    qsd = bob.components["bob.qsdetector"]
-    qsd.update_interferometer_params("phase_error", phase_error)
-
-    qc0.set_ends(alice, bob.name)
-    cc0.set_ends(alice, bob.name)
-    pair_bb84_protocols(alice.protocol_stack[0],
-                        bob.protocol_stack[0])
-
-    proc = Process(alice.protocol_stack[0], "push",
-                   [p.key_length, p.num_keys, p.runtime_ps - 1e6])
-    tl.schedule(Event(0, proc))
-    tl.init()
-    tl.run()
+\begin{lstlisting}[language=Python, caption={Semilla común para las fuentes aleatorias del modelo.}]
+def _seed_simulation(alice_seed: int, bob_seed: int) -> int:
+    simulation_seed = (
+        (alice_seed * 1_000_003) ^ bob_seed
+    ) & 0xFFFFFFFF
+    np.random.seed(simulation_seed)
+    random.seed(simulation_seed)
+    Timeline.seed(simulation_seed)
+    return simulation_seed
 \end{lstlisting}
 
-Este fragmento muestra la lógica de eventos discretos. La simulación no calcula una tasa en una sola expresión; arma una línea temporal, crea objetos que pueden agendar eventos y deja que el protocolo avance. El canal cuántico recibe distancia, atenuación y frecuencia; el canal clásico recibe distancia y retardo extra; los nodos QKD reciben la codificación \textit{time-bin}; y el protocolo BB84 se agenda como un proceso futuro.
+La corrida usa varias fuentes de aleatoriedad. Sembrar sólo NumPy no alcanza: también se fijan el módulo estándar y la línea temporal. Alice y Bob reciben, además, sus semillas de nodo. El flujo asigna pares no superpuestos por punto y repetición. Así puede reconstruirse una observación sin hacer idénticas todas las corridas.
 
-La línea \texttt{phase\_error = (1 - visibility) / 2} es una simplificación clave. En vez de modelar todos los detalles mecánicos y térmicos del interferómetro, el experimento traduce la visibilidad óptica a una probabilidad de error de fase. Esto permite responder una pregunta de ingeniería concreta: si el montaje óptico pierde contraste, cuánto se degrada QBER/SKR en el modelo.
+\section{Enlace y parche de visibilidad}
 
-\section{Detector, fuente coherente y probabilidad de detección}
+\begin{lstlisting}[language=Python, caption={Creación abreviada del enlace y configuración del receptor.}]
+tl = Timeline(p.runtime_ps)
+qc0 = QuantumChannel(
+    "qc0", tl, distance=distance_m,
+    attenuation=attenuation_db_m,
+    frequency=p.frequency_hz,
+)
+cc0 = ClassicalChannel("cc0", tl, distance=distance_m)
+cc0.delay += p.classical_extra_delay_ps
 
-\begin{lstlisting}[language=Python, caption={Modelo analítico de detección para fuente coherente débil.}]
-def channel_transmittance(distance_m: float,
-                          attenuation_db_per_m: float) -> float:
-    return float(10 ** (distance_m * attenuation_db_per_m / -10))
+alice = QKDNode("alice", tl, encoding=time_bin, stack_size=1)
+bob = QKDNode("bob", tl, encoding=time_bin, stack_size=1)
 
-
-def wcs_detection_prob(mean_photon: float,
-                       eta_channel: float,
-                       eta_det: float) -> float:
-    eta = max(0.0, min(1.0, eta_channel * eta_det))
-    if mean_photon <= 0:
-        return 0.0
-    return float(1.0 - math.exp(-mean_photon * eta))
+phase_error = max(0.0, min(1.0, (1.0 - p.visibility) / 2.0))
+qsd = bob.components["bob.qsdetector"]
+qsd.update_interferometer_params("phase_error", phase_error)
 \end{lstlisting}
 
-La primera función convierte pérdida en dB a transmitancia de potencia. Si la atenuación es \(\alpha\) dB/m y la distancia es \(L\), la transmitancia se calcula como \(10^{-\alpha L/10}\). Esta es la razón por la que la curva de detección del Experimento 1 cae exponencialmente con la distancia.
+La distancia y atenuación se aplican al canal cuántico, mientras el retardo adicional pertenece al canal clásico. El experimento de detector fija este último en cero para reducir su influencia sobre la tasa. La visibilidad se transforma en error de fase y llega al interferómetro.
 
-La segunda función usa una propiedad de las fuentes coherentes débiles: el número de fotones por pulso sigue una distribución de Poisson. Si el número medio efectivo de fotones que llega al detector es \(\mu \eta_\text{canal}\eta_\text{det}\), la probabilidad de que haya al menos un evento detectable se aproxima por \(1-\exp(-\mu\eta)\). En el script, esta probabilidad es una métrica analítica complementaria. No reemplaza al QBER simulado; ayuda a explicar por qué, al aumentar distancia, cada vez hay menos oportunidades de generar bits útiles.
+La versión base de SeQUeNCe 0.8.5 no aplicaba correctamente ese error a \texttt{FreeQuantumState}. El repositorio corrige \path{sequence/components/interferometer.py}. Sin el parche, barrer \(V\) no produciría la respuesta documentada; por eso su hash forma parte del manifiesto.
 
-\section{Tasa secreta simple}
+\section{Tasa agregada y referencia}
 
-\begin{lstlisting}[language=Python, caption={Cota simple de tasa secreta usada en los primeros barridos.}]
-def secret_key_rate_bb84_simple(qber: float,
-                                r_sifted_bps: float,
-                                f_ec: float = 1.16) -> float:
-    if not math.isfinite(qber) or qber >= 0.11:
+\begin{lstlisting}[language=Python, caption={Cálculo de la tasa tamizada de una repetición.}]
+bb_a = alice.protocol_stack[0]
+errs = list(getattr(bb_a, "error_rates", []) or [])
+n_keys = len(errs)
+total_sifted_bits = n_keys * p.key_length
+total_errors = int(round(sum(errs) * p.key_length))
+mean_qber = (
+    total_errors / total_sifted_bits
+    if total_sifted_bits else float("nan")
+)
+
+elapsed_key_ps = float(getattr(bb_a, "last_key_time", 0.0))
+elapsed_key_s = elapsed_key_ps * 1e-12
+aggregate_throughput = (
+    total_sifted_bits / elapsed_key_s
+    if elapsed_key_s > 0 else 0.0
+)
+\end{lstlisting}
+
+SeQUeNCe expone una tasa de error por clave completada en \texttt{error\_rates}; no expone aquí las claves tamizadas como atributos públicos. El script reconstruye el conteo total de errores multiplicando la suma de esas tasas por la longitud de clave y redondeando al entero más cercano. Luego calcula QBER con los conteos agregados, no promediando porcentajes por clave. La tasa divide todos los bits tamizados por el tiempo simulado hasta la última clave. Promediar tasas instantáneas asignaría el mismo peso a intervalos de distinta duración y podría sesgar la salida.
+
+\begin{lstlisting}[language=Python, caption={Fondo, ganancia y referencia de clics tamizados.}]
+def background_yield(dark_count_hz, detection_window_ps,
+                     detectors=3):
+    exposure_s = detectors * detection_window_ps * 1e-12
+    return 1.0 - math.exp(-dark_count_hz * exposure_s)
+
+def wcs_gain(mu, eta_channel, eta_det, y0):
+    no_signal_click = math.exp(-mu * eta_channel * eta_det)
+    return 1.0 - (1.0 - y0) * no_signal_click
+
+y0 = background_yield(p.dark_count_hz, p.detection_window_ps)
+q_mu = wcs_gain(p.mean_photon_num, eta_ch,
+                p.detector_efficiency, y0)
+sifted_rate_reference = 0.5 * min(
+    p.frequency_hz * q_mu,
+    3 * p.count_rate_hz,
+)
+\end{lstlisting}
+
+\texttt{background\_yield} convierte tasa oscura y ventana supuesta en probabilidad por pulso para tres detectores. \texttt{wcs\_gain} combina ese fondo con la probabilidad de no recibir señal. El factor \(1/2\) representa tamizado por bases y el mínimo impone disponibilidad de pulsos o límite agregado de conteo. La referencia es un control medio; no se programa como tope de cada corrida.
+
+\section{Indicador ideal}
+
+\begin{lstlisting}[language=Python, caption={Indicador de posprocesamiento monofotónico ideal.}]
+def ideal_postprocessing_rate(qber, r_sifted_bps,
+                              f_ec=1.16):
+    if (not math.isfinite(qber)
+            or qber < 0 or qber >= 0.5):
         return 0.0
     h = _binary_entropy(qber)
     factor = max(0.0, 1.0 - f_ec * h - h)
     return r_sifted_bps * factor
 \end{lstlisting}
 
-Esta función resume el postprocesamiento clásico en un factor de tasa. La tasa tamizada proviene del protocolo BB84 de SeQUeNCe. El factor \(1-f_\text{EC}h_2(Q)-h_2(Q)\) descuenta información necesaria para corrección de errores y amplificación de privacidad. El parámetro \(f_\text{EC}\) representa la ineficiencia práctica de la corrección de errores frente al límite ideal.
+La función no fija un corte manual en 11\%. El factor se anula por su propia entropía cerca de 9,81\% cuando \(f_\mathrm{EC}=1{,}16\). Su nombre evita una afirmación que el cálculo no sostiene: para una fuente coherente débil sin estimación monofotónica, el resultado no es una tasa secreta.
 
-El corte en \(QBER \geq 0,11\) hace que la tasa se anule cuando el error supera el umbral de referencia usado para BB84. Esta decisión es útil para graficar un límite operativo, pero introduce una discontinuidad. Por eso, cuando la curva de SKR cae abruptamente en los resultados, una parte de esa caída es física (pérdida y ruido) y otra parte es el criterio discreto implementado en esta función.
+\section{Intervalos y contrastes}
 
-\section{Cotas con estados señuelo}
-
-\begin{lstlisting}[language=Python, caption={Núcleo del cálculo decoy asintótico.}]
-def decoy_yield_y1_lower(mu, nu, q_mu, q_nu, y0):
-    denom = mu * nu - nu * nu
-    term = q_nu * math.exp(nu)
-    term -= q_mu * math.exp(mu) * (nu / mu) ** 2
-    term -= ((mu * mu - nu * nu) / (mu * mu)) * y0
-    y1 = (mu / denom) * term
-    return max(0.0, y1)
-
-
-def secret_key_rate_asymptotic_decoy(mu, q_mu, e_mu,
-                                     y1, e1, pulse_rate,
-                                     f_ec=1.16):
-    if y1 <= 0:
-        return 0.0
-    q1 = mu * math.exp(-mu) * y1
-    r_pulse = 0.5 * (
-        -q_mu * f_ec * _binary_entropy(e_mu)
-        + q1 * (1.0 - _binary_entropy(e1))
+\begin{lstlisting}[language=Python, caption={Intervalo de Wilson para QBER agrupada.}]
+def _wilson_qber_ci(runs, confidence=0.95):
+    errors = sum(run["total_errors"] for run in runs)
+    bits = sum(run["total_sifted_bits"] for run in runs)
+    p = errors / bits
+    z = stats.norm.ppf((1.0 + confidence) / 2.0)
+    denom = 1.0 + z * z / bits
+    center = (p + z * z / (2.0 * bits)) / denom
+    half = (
+        z * math.sqrt(
+            p * (1.0 - p) / bits
+            + z * z / (4.0 * bits * bits)
+        ) / denom
     )
-    return max(0.0, r_pulse) * pulse_rate
+    return p, max(0.0, center-half), min(1.0, center+half)
 \end{lstlisting}
 
-El cálculo decoy intenta separar qué parte de los clicks puede atribuirse a pulsos de un solo fotón, que son los eventos útiles para una interpretación de seguridad más fuerte. \texttt{decoy\_yield\_y1\_lower} combina ganancias asociadas a intensidad de señal \(\mu\), intensidad señuelo \(\nu\) y vacío \(Y_0\) para estimar una cota inferior del rendimiento monofotónico \(Y_1\). La tasa final usa \(Q_1^L=\mu e^{-\mu}Y_1^L\) y descuenta el costo de corrección de errores sobre la ganancia total observada.
+QBER es una proporción y puede estar cerca de cero. Wilson conserva mejor comportamiento que la aproximación normal simple en ese régimen, siempre que los bits agrupados puedan tratarse como intercambiables. No captura dependencia dentro de una clave ni heterogeneidad entre repeticiones. Las tasas usan intervalos t porque cada repetición produce una observación continua; las diferencias de detector usan Welch para no imponer varianzas iguales.
 
-En la versión actual, \texttt{q\_mu} y \texttt{q\_nu} se calculan con el modelo analítico de detección, mientras que \texttt{e\_mu} y \texttt{e\_nu} provienen de simulaciones BB84 separadas. Esta mezcla es deliberada y debe quedar documentada: permite comparar tendencias con y sin decoy, pero todavía no equivale a un protocolo decoy completo dentro de SeQUeNCe.
+Como control posterior, las medias señuelo se remuestrean a nivel de repetición:
+
+\begin{lstlisting}[language=Python, caption={Bootstrap percentil usado como análisis de sensibilidad.}]
+rng = np.random.default_rng(20260901)
+indices = rng.integers(
+    0, rates.size, size=(100_000, rates.size)
+)
+bootstrap_means = rates[indices].mean(axis=1)
+ci_bootstrap = np.quantile(
+    bootstrap_means, [0.025, 0.975]
+)
+\end{lstlisting}
+
+Este cálculo usa las 30 tasas ya exportadas y no vuelve a ejecutar SeQUeNCe. El remuestreo conserva como unidad la repetición completa, por lo que tolera asimetría y valores nulos mejor que una justificación puramente normal. Para visibilidad se usa además HC3, que pondera cada residuo por \((1-h_{ii})^{-2}\) y reduce la dependencia del intervalo respecto de homoscedasticidad. Ninguno de estos controles convierte los resultados en cotas de clave finita.
+
+\section{Cota señuelo y caso conservador}
+
+\begin{lstlisting}[language=Python, caption={Cota de error monofotónico con reemplazo conservador.}]
+def decoy_e1_upper(e_nu, q_nu, e0, y0, y1, nu):
+    if y1 <= 0 or nu <= 0:
+        return 0.5
+    numerator = e_nu * q_nu * math.exp(nu) - e0 * y0
+    if numerator <= 0:
+        return 0.5
+    return min(0.5, numerator / (y1 * nu))
+\end{lstlisting}
+
+Un numerador no positivo aparece cuando la combinación de error simulado, ganancia analítica y muestra finita no sostiene una cota positiva. Truncarlo a cero supondría ausencia de error y aumentaría la tasa. El código adopta \(1/2\), que anula la contribución secreta de esos eventos. El flujo cuenta cada activación para que la media no oculte esta decisión.
+
+\section{Validaciones y manifiesto}
+
+\begin{lstlisting}[language=Python, caption={Ejemplos de invariantes verificados antes de exportar.}]
+assert 0.0 <= qber <= 0.5
+assert qber_low <= qber <= qber_high
+assert 0.0 <= ideal_rate <= sifted_rate
+assert 0.0 <= q_nu <= q_mu <= 1.0
+assert detector_sum == total_detector_clicks
+\end{lstlisting}
+
+Las aserciones detienen la generación si una salida viola las definiciones implementadas. No comprueban todavía que cada ejecución complete exactamente el número de claves solicitado. Después, el script calcula SHA-256 del flujo, el parche, las dependencias, cada CSV y las macros numéricas. Los hashes no prueban corrección científica ni cubren las fuentes LaTeX, las figuras o el PDF; prueban identidad de la evidencia computacional registrada.

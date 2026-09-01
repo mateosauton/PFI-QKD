@@ -17,10 +17,10 @@ import os
 import random
 import sys
 from concurrent.futures import ProcessPoolExecutor
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 from scipy import stats
@@ -216,6 +216,110 @@ class SimParams:
     classical_extra_delay_ps: int = DEFAULT_CLASSICAL_EXTRA_DELAY_PS
 
 
+@dataclass
+class RunAccounting:
+    pulses_sent: int = 0
+    click_events: int = 0
+    click_slots: int = 0
+    valid_detection_slots: int = 0
+    last_detection_times: list[list[int]] = field(default_factory=list)
+
+
+def click_slot_indices(
+    detection_times: list[list[int]],
+    start_time_ps: int,
+    frequency_hz: float,
+    bin_separation_ps: int,
+    pulse_count: int,
+) -> set[int]:
+    slots: set[int] = set()
+    for detector_index, times in enumerate(detection_times):
+        for detection_time in times:
+            adjusted = detection_time
+            if detector_index in (1, 2):
+                adjusted -= bin_separation_ps
+            slot = int(round(
+                (adjusted - start_time_ps) * frequency_hz * 1e-12
+            ))
+            if 0 <= slot < pulse_count:
+                slots.add(slot)
+    return slots
+
+
+def summarize_accounting(
+    accounting: RunAccounting,
+    sifted_bits: int,
+    elapsed_s: float,
+) -> dict[str, float | int | bool]:
+    consistent = (
+        0 <= sifted_bits <= accounting.valid_detection_slots
+        <= accounting.click_slots <= accounting.click_events
+        and accounting.pulses_sent >= accounting.click_slots
+    )
+    return {
+        "pulses_sent": accounting.pulses_sent,
+        "click_events": accounting.click_events,
+        "click_slots": accounting.click_slots,
+        "valid_detection_slots": accounting.valid_detection_slots,
+        "sifting_fraction": (
+            sifted_bits / accounting.valid_detection_slots
+            if accounting.valid_detection_slots else float("nan")
+        ),
+        "observed_click_gain": (
+            accounting.click_slots / accounting.pulses_sent
+            if accounting.pulses_sent else float("nan")
+        ),
+        "click_rate_bps": (
+            accounting.click_slots / elapsed_s if elapsed_s > 0 else 0.0
+        ),
+        "accounting_consistent": consistent,
+    }
+
+
+def attach_run_accounting(
+    alice: QKDNode,
+    bob: QKDNode,
+    qsd: Any,
+) -> RunAccounting:
+    """Instrument one run's source, detector buffers, and extracted bit slots."""
+    accounting = RunAccounting()
+    light_source = alice.components["alice.lightsource"]
+    original_emit: Callable[[list[Any]], Any] = light_source.emit
+    original_get_times: Callable[[], list[list[int]]] = qsd.get_photon_times
+    original_get_bits: Callable[[int, int, float, str], list[int]] = bob.get_bits
+
+    def counted_emit(state_list):
+        accounting.pulses_sent += len(state_list)
+        return original_emit(state_list)
+
+    def captured_times():
+        times = original_get_times()
+        accounting.last_detection_times = [list(values) for values in times]
+        accounting.click_events += sum(len(values) for values in times)
+        return times
+
+    def counted_get_bits(light_time, start_time, frequency, detector_name):
+        bits = original_get_bits(
+            light_time, start_time, frequency, detector_name
+        )
+        pulse_count = int(round(light_time * frequency))
+        slots = click_slot_indices(
+            accounting.last_detection_times,
+            start_time,
+            frequency,
+            bob.encoding["bin_separation"],
+            pulse_count,
+        )
+        accounting.click_slots += len(slots)
+        accounting.valid_detection_slots += sum(bit != -1 for bit in bits)
+        return bits
+
+    light_source.emit = counted_emit
+    qsd.get_photon_times = captured_times
+    bob.get_bits = counted_get_bits
+    return accounting
+
+
 class _DetectionCounter:
     """Observer that persists accepted detector clicks after SeQUeNCe clears time buffers."""
 
@@ -290,6 +394,7 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
         bob.update_detector_params(i, "time_resolution", p.time_resolution_ps)
         qsd.detectors[i].attach(detection_counter)
     qsd.update_interferometer_params("phase_error", phase_error)
+    accounting = attach_run_accounting(alice, bob, qsd)
 
     qc0.set_ends(alice, bob.name)
     qc1.set_ends(bob, alice.name)
@@ -321,6 +426,11 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
     elapsed_key_ps = float(getattr(bb_a, "last_key_time", 0.0))
     elapsed_key_s = elapsed_key_ps * 1e-12
     aggregate_throughput = total_sifted_bits / elapsed_key_s if elapsed_key_s > 0 else 0.0
+    accounting_summary = summarize_accounting(
+        accounting=accounting,
+        sifted_bits=total_sifted_bits,
+        elapsed_s=elapsed_key_s,
+    )
 
     signal_detection_probability = wcs_detection_prob(
         p.mean_photon_num, eta_ch, p.detector_efficiency
@@ -357,6 +467,7 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
         "detector_clicks": detector_clicks,
         "total_detector_clicks": sum(detector_clicks),
         "params": p,
+        **accounting_summary,
     }
 
 

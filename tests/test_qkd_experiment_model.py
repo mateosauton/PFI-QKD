@@ -3,8 +3,11 @@ import math
 import pytest
 
 from experiments.qkd_2node_simulation import (
+    RunAccounting,
+    click_slot_indices,
     decoy_e1_upper,
     decoy_yield_y1_lower,
+    summarize_accounting,
     wcs_detection_prob,
 )
 
@@ -71,3 +74,50 @@ def test_decoy_e1_upper_is_clamped_to_physical_error_bounds():
 
     assert negative_numerator == pytest.approx(0.0)
     assert above_half == pytest.approx(0.5)
+
+
+def test_click_slot_indices_maps_time_bin_detectors_to_pulse_slots():
+    indices = click_slot_indices(
+        detection_times=[
+            [1_000, 2_000],
+            [1_400],
+            [2_400],
+        ],
+        start_time_ps=1_000,
+        frequency_hz=1e9,
+        bin_separation_ps=400,
+        pulse_count=3,
+    )
+    assert indices == {0, 1}
+
+
+def test_accounting_summary_enforces_monotonic_counts():
+    accounting = RunAccounting(
+        pulses_sent=10_000,
+        click_events=800,
+        click_slots=700,
+        valid_detection_slots=650,
+    )
+    result = summarize_accounting(
+        accounting=accounting,
+        sifted_bits=320,
+        elapsed_s=0.02,
+    )
+    assert result["accounting_consistent"] is True
+    assert result["sifting_fraction"] == pytest.approx(320 / 650)
+    assert result["observed_click_gain"] == pytest.approx(700 / 10_000)
+
+
+def test_accounting_summary_rejects_impossible_sifted_count():
+    accounting = RunAccounting(
+        pulses_sent=100,
+        click_events=40,
+        click_slots=30,
+        valid_detection_slots=20,
+    )
+    result = summarize_accounting(
+        accounting=accounting,
+        sifted_bits=21,
+        elapsed_s=1.0,
+    )
+    assert result["accounting_consistent"] is False

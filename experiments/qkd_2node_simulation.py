@@ -45,8 +45,8 @@ from sequence.utils.encoding import time_bin  # noqa: E402
 
 DEFAULT_ALPHA_DB_KM = 0.2  # fiber loss coefficient (dB/km)
 DEFAULT_FREQUENCY_HZ = 80e6
-DEFAULT_KEY_LENGTH = 256
-DEFAULT_NUM_KEYS = 5
+DEFAULT_KEY_LENGTH = 2048
+DEFAULT_NUM_KEYS = 3
 DEFAULT_RUNTIME_PS = 5e12  # simulation horizon (ps)
 DEFAULT_CLASSICAL_EXTRA_DELAY_PS = int(1e9)  # 1 ms for processing (like bb84_logging)
 DEFAULT_REPETITIONS = 30
@@ -60,9 +60,13 @@ def _binary_entropy(p: float) -> float:
     return -(p * math.log2(p) + (1 - p) * math.log2(1 - p))
 
 
-def _mean_t_ci(samples: list[float], confidence: float = 0.95) -> tuple[float, float, float]:
+def _mean_t_ci(
+    samples: list[float], confidence: float = 0.95
+) -> tuple[float, float, float]:
     """Return the sample mean and two-sided Student-t interval across runs."""
-    finite = np.asarray([value for value in samples if math.isfinite(value)], dtype=float)
+    finite = np.asarray(
+        [value for value in samples if math.isfinite(value)], dtype=float
+    )
     if finite.size == 0:
         return float("nan"), float("nan"), float("nan")
     mean = float(np.mean(finite))
@@ -73,8 +77,19 @@ def _mean_t_ci(samples: list[float], confidence: float = 0.95) -> tuple[float, f
     return mean, max(0.0, mean - half_width), mean + half_width
 
 
-def _wilson_qber_ci(runs: list[dict[str, Any]], confidence: float = 0.95) -> tuple[float, float, float]:
+def _completed_runs(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return only runs that completed every requested key."""
+    return [run for run in runs if run["completed_requested_keys"]]
+
+
+def _wilson_qber_ci(
+    runs: list[dict[str, Any]],
+    confidence: float = 0.95,
+    completed_only: bool = False,
+) -> tuple[float, float, float]:
     """Pool error counts and return a Wilson score interval for the QBER."""
+    if completed_only:
+        runs = _completed_runs(runs)
     errors = sum(int(run["total_errors"]) for run in runs)
     bits = sum(int(run["total_sifted_bits"]) for run in runs)
     if bits == 0:
@@ -83,7 +98,11 @@ def _wilson_qber_ci(runs: list[dict[str, Any]], confidence: float = 0.95) -> tup
     z = float(stats.norm.ppf((1.0 + confidence) / 2.0))
     denominator = 1.0 + z * z / bits
     center = (estimate + z * z / (2.0 * bits)) / denominator
-    half_width = z * math.sqrt(estimate * (1.0 - estimate) / bits + z * z / (4.0 * bits * bits)) / denominator
+    half_width = (
+        z
+        * math.sqrt(estimate * (1.0 - estimate) / bits + z * z / (4.0 * bits * bits))
+        / denominator
+    )
     return estimate, max(0.0, center - half_width), min(1.0, center + half_width)
 
 
@@ -108,7 +127,12 @@ def _difference_t_ci(
     )
     critical = float(stats.t.ppf((1.0 + confidence) / 2.0, degrees))
     p_value = float(2.0 * stats.t.sf(abs(difference / standard_error), degrees))
-    return difference, difference - critical * standard_error, difference + critical * standard_error, p_value
+    return (
+        difference,
+        difference - critical * standard_error,
+        difference + critical * standard_error,
+        p_value,
+    )
 
 
 def _linear_effect_ci(x: list[float], y: list[float]) -> dict[str, float]:
@@ -134,10 +158,10 @@ def _run_replicates(
     parameters = [
         replace(
             base,
-            alice_seed=seed_base + 2 * repetition,
-            bob_seed=seed_base + 2 * repetition + 1,
+            alice_seed=alice_seed,
+            bob_seed=bob_seed,
         )
-        for repetition in range(repetitions)
+        for alice_seed, bob_seed in replicate_seed_pairs(seed_base, repetitions)
     ]
     if executor is None:
         return [run_single_simulation(parameter) for parameter in parameters]
@@ -145,19 +169,36 @@ def _run_replicates(
 
 
 def _stats_from_runs(
-    runs: list[dict[str, Any]], metric: str, seed: int
+    runs: list[dict[str, Any]], metric: str, seed: int, completed_only: bool = False
 ) -> tuple[float, float, float]:
     del seed
+    if completed_only:
+        runs = _completed_runs(runs)
     return _mean_t_ci([float(run[metric]) for run in runs])
 
 
-def _ideal_rate_stats_from_runs(runs: list[dict[str, Any]], seed: int) -> tuple[float, float, float]:
+def _ideal_rate_stats_from_runs(
+    runs: list[dict[str, Any]], seed: int, completed_only: bool = False
+) -> tuple[float, float, float]:
     del seed
+    if completed_only:
+        runs = _completed_runs(runs)
     values = [
         ideal_postprocessing_rate(run["mean_qber"], run["aggregate_sifted_rate_bps"])
         for run in runs
     ]
     return _mean_t_ci(values)
+
+
+def replicate_seed_pairs(
+    seed_base: int,
+    repetitions: int,
+) -> list[tuple[int, int]]:
+    """Return deterministic, non-overlapping Alice/Bob seed pairs."""
+    return [
+        (seed_base + 2 * repetition, seed_base + 2 * repetition + 1)
+        for repetition in range(repetitions)
+    ]
 
 
 def channel_transmittance(distance_m: float, attenuation_db_per_m: float) -> float:
@@ -179,13 +220,17 @@ def wcs_detection_prob(
     return float(1.0 - (1.0 - y0) * math.exp(-mean_photon * eta))
 
 
-def background_yield(dark_count_hz: float, detection_window_ps: float, detectors: int = 3) -> float:
+def background_yield(
+    dark_count_hz: float, detection_window_ps: float, detectors: int = 3
+) -> float:
     """Probability of at least one dark click in the accepted windows of one pulse."""
     exposure_s = detectors * detection_window_ps * 1e-12
     return float(1.0 - math.exp(-max(0.0, dark_count_hz) * exposure_s))
 
 
-def wcs_gain(mean_photon: float, eta_channel: float, eta_det: float, y0: float) -> float:
+def wcs_gain(
+    mean_photon: float, eta_channel: float, eta_det: float, y0: float
+) -> float:
     """Observed WCS gain including independent signal loss and background yield."""
     return wcs_detection_prob(
         mean_photon,
@@ -240,9 +285,7 @@ def click_slot_indices(
             adjusted = detection_time
             if detector_index in (1, 2):
                 adjusted -= bin_separation_ps
-            slot = int(round(
-                (adjusted - start_time_ps) * frequency_hz * 1e-12
-            ))
+            slot = int(round((adjusted - start_time_ps) * frequency_hz * 1e-12))
             if 0 <= slot < pulse_count:
                 slots.add(slot)
     return slots
@@ -254,10 +297,13 @@ def summarize_accounting(
     elapsed_s: float,
 ) -> dict[str, float | int | bool]:
     consistent = (
-        0 <= completed_key_bits <= accounting.observed_basis_matched_bits
+        0
+        <= completed_key_bits
+        <= accounting.observed_basis_matched_bits
         <= accounting.basis_compared_valid_slots
         <= accounting.valid_detection_slots
-        <= accounting.click_slots <= accounting.click_events
+        <= accounting.click_slots
+        <= accounting.click_events
         and accounting.pulses_sent >= accounting.click_slots
     )
     return {
@@ -269,12 +315,15 @@ def summarize_accounting(
         "observed_basis_matched_bits": accounting.observed_basis_matched_bits,
         "completed_key_bits": completed_key_bits,
         "sifting_fraction": (
-            accounting.observed_basis_matched_bits / accounting.basis_compared_valid_slots
-            if accounting.basis_compared_valid_slots else float("nan")
+            accounting.observed_basis_matched_bits
+            / accounting.basis_compared_valid_slots
+            if accounting.basis_compared_valid_slots
+            else float("nan")
         ),
         "observed_click_gain": (
             accounting.click_slots / accounting.pulses_sent
-            if accounting.pulses_sent else float("nan")
+            if accounting.pulses_sent
+            else float("nan")
         ),
         "click_rate_bps": (
             accounting.click_slots / elapsed_s if elapsed_s > 0 else 0.0
@@ -308,9 +357,7 @@ def attach_run_accounting(
         return times
 
     def counted_get_bits(light_time, start_time, frequency, detector_name):
-        bits = original_get_bits(
-            light_time, start_time, frequency, detector_name
-        )
+        bits = original_get_bits(light_time, start_time, frequency, detector_name)
         pulse_count = int(round(light_time * frequency))
         slots = click_slot_indices(
             accounting.last_detection_times,
@@ -430,7 +477,9 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
     pair_bb84_protocols(alice.protocol_stack[0], bob.protocol_stack[0])
 
     run_time = p.runtime_ps - 1e6  # leave margin before timeline stop
-    proc = Process(alice.protocol_stack[0], "push", [p.key_length, p.num_keys, run_time])
+    proc = Process(
+        alice.protocol_stack[0], "push", [p.key_length, p.num_keys, run_time]
+    )
     tl.schedule(Event(0, proc))
 
     tl.init()
@@ -451,7 +500,9 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
     # rate uses all sifted bits and the simulated time of the last completed key.
     elapsed_key_ps = float(getattr(bb_a, "last_key_time", 0.0))
     elapsed_key_s = elapsed_key_ps * 1e-12
-    aggregate_throughput = total_sifted_bits / elapsed_key_s if elapsed_key_s > 0 else 0.0
+    aggregate_throughput = (
+        total_sifted_bits / elapsed_key_s if elapsed_key_s > 0 else 0.0
+    )
     accounting_summary = summarize_accounting(
         accounting=accounting,
         completed_key_bits=total_sifted_bits,
@@ -470,7 +521,9 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
         3.0 * p.count_rate_hz,
     )
     sifted_rate_reference_bps = BB84_SIFT_FACTOR * raw_click_rate_reference_bps
-    detector_clicks = [detection_counter.counts.get(detector.name, 0) for detector in qsd.detectors]
+    detector_clicks = [
+        detection_counter.counts.get(detector.name, 0) for detector in qsd.detectors
+    ]
 
     return {
         "mean_qber": mean_qber,
@@ -480,6 +533,7 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
         "error_rates": errs,
         "throughputs": thr,
         "n_keys": n_keys,
+        "completed_requested_keys": n_keys == p.num_keys,
         "total_sifted_bits": total_sifted_bits,
         "total_errors": total_errors,
         "elapsed_key_s": elapsed_key_s,
@@ -497,7 +551,56 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
     }
 
 
-def ideal_postprocessing_rate(qber: float, r_sifted_bps: float, f_ec: float = 1.16) -> float:
+def build_run_record(
+    experiment: str,
+    point_index: int,
+    repetition: int,
+    variable: float | str,
+    params: SimParams,
+    run: dict[str, Any],
+) -> dict[str, Any]:
+    """Build an auditable raw record for one simulation repetition."""
+    return {
+        "experimento": experiment,
+        "indice_punto": point_index,
+        "repeticion": repetition,
+        "variable": variable,
+        "semilla_alice": params.alice_seed,
+        "semilla_bob": params.bob_seed,
+        "distancia_km": params.distance_km,
+        "atenuacion_db_km": params.attenuation_db_km,
+        "eficiencia_detector": params.detector_efficiency,
+        "conteos_oscuros_hz": params.dark_count_hz,
+        "mu": params.mean_photon_num,
+        "frecuencia_hz": params.frequency_hz,
+        "visibilidad": params.visibility,
+        "longitud_clave_bits": params.key_length,
+        "claves_solicitadas": params.num_keys,
+        "claves_completadas": run["n_keys"],
+        "horizonte_s": params.runtime_ps * 1e-12,
+        "retardo_clasico_extra_s": params.classical_extra_delay_ps * 1e-12,
+        "corrida_completa": run["completed_requested_keys"],
+        "pulsos_emitidos": run["pulses_sent"],
+        "clics": run["click_events"],
+        "slots_con_clic": run["click_slots"],
+        "slots_validos": run["valid_detection_slots"],
+        "slots_validos_con_bases_comparadas": run["basis_compared_valid_slots"],
+        "bits_observados_con_bases_coincidentes": run["observed_basis_matched_bits"],
+        "bits_tamizados": run["total_sifted_bits"],
+        "errores": run["total_errors"],
+        "qber": run["mean_qber"],
+        "tasa_tamizada_bps": run["aggregate_sifted_rate_bps"],
+        "tiempo_hasta_ultima_clave_s": run["elapsed_key_s"],
+        "fraccion_tamizado": run["sifting_fraction"],
+        "ganancia_clic_observada": run["observed_click_gain"],
+        "tasa_clics_bps": run["click_rate_bps"],
+        "contabilidad_consistente": run["accounting_consistent"],
+    }
+
+
+def ideal_postprocessing_rate(
+    qber: float, r_sifted_bps: float, f_ec: float = 1.16
+) -> float:
     """Ideal single-photon post-processing indicator; not a WCS secret-key bound."""
     if not math.isfinite(qber) or qber < 0 or qber >= 0.5:
         return 0.0
@@ -519,7 +622,9 @@ def simple_rate_qber_cutoff(f_ec: float = 1.16) -> float:
     return (low + high) / 2.0
 
 
-def decoy_yield_y1_lower(mu: float, nu: float, q_mu: float, q_nu: float, y0: float) -> float:
+def decoy_yield_y1_lower(
+    mu: float, nu: float, q_mu: float, q_nu: float, y0: float
+) -> float:
     """Ma–Qi / Lo–Ma–Chen lower bound on single-photon yield Y_1 (see decoy-state literature)."""
     if mu <= nu or nu <= 0 or mu <= 0:
         return 0.0
@@ -603,6 +708,7 @@ def secret_key_rate_asymptotic_no_decoy(
 # Plotting (matplotlib)
 # ---------------------------------------------------------------------------
 
+
 def _ensure_results_dir() -> Path:
     out = Path(__file__).resolve().parent / "results"
     out.mkdir(parents=True, exist_ok=True)
@@ -611,6 +717,7 @@ def _ensure_results_dir() -> Path:
 
 def _raw_run_record(
     experiment: str,
+    point_index: int,
     variable_name: str,
     variable_value: float,
     repetition: int,
@@ -618,33 +725,29 @@ def _raw_run_record(
 ) -> dict[str, Any]:
     """Flatten the audit-relevant output of one independent simulation."""
     params: SimParams = run["params"]
-    return {
-        "experimento": experiment,
-        variable_name: variable_value,
-        "repeticion": repetition,
-        "semilla_alice": params.alice_seed,
-        "semilla_bob": params.bob_seed,
-        "distancia_km": params.distance_km,
-        "mu": params.mean_photon_num,
-        "eficiencia_detector": params.detector_efficiency,
-        "conteos_oscuros_hz": params.dark_count_hz,
-        "visibilidad": params.visibility,
-        "claves_completadas": run["n_keys"],
-        "bits_tamizados": run["total_sifted_bits"],
-        "errores": run["total_errors"],
-        "qber": run["mean_qber"],
-        "tiempo_hasta_ultima_clave_s": run["elapsed_key_s"],
-        "tasa_tamizada_bps": run["aggregate_sifted_rate_bps"],
-        "indicador_ideal_bps": ideal_postprocessing_rate(
-            run["mean_qber"], run["aggregate_sifted_rate_bps"]
-        ),
-        "clics_detector_0": run["detector_clicks"][0],
-        "clics_detector_1": run["detector_clicks"][1],
-        "clics_detector_2": run["detector_clicks"][2],
-        "clics_detector_total": run["total_detector_clicks"],
-        "rendimiento_fondo_pulso": run["background_yield_per_pulse"],
-        "referencia_tasa_tamizada_bps": run["sifted_rate_reference_bps"],
-    }
+    record = build_run_record(
+        experiment=experiment,
+        point_index=point_index,
+        repetition=repetition,
+        variable=variable_value,
+        params=params,
+        run=run,
+    )
+    record.update(
+        {
+            variable_name: variable_value,
+            "indicador_ideal_bps": ideal_postprocessing_rate(
+                run["mean_qber"], run["aggregate_sifted_rate_bps"]
+            ),
+            "clics_detector_0": run["detector_clicks"][0],
+            "clics_detector_1": run["detector_clicks"][1],
+            "clics_detector_2": run["detector_clicks"][2],
+            "clics_detector_total": run["total_detector_clicks"],
+            "rendimiento_fondo_pulso": run["background_yield_per_pulse"],
+            "referencia_tasa_tamizada_bps": run["sifted_rate_reference_bps"],
+        }
+    )
+    return record
 
 
 def _style_axes(ax, xlabel: str, ylabel: str, title: str) -> None:
@@ -654,7 +757,9 @@ def _style_axes(ax, xlabel: str, ylabel: str, title: str) -> None:
     ax.grid(True, linestyle="--", alpha=0.35)
 
 
-def _plot_mean_ci(ax, x: np.ndarray, mean: np.ndarray, low: np.ndarray, high: np.ndarray, **kwargs) -> None:
+def _plot_mean_ci(
+    ax, x: np.ndarray, mean: np.ndarray, low: np.ndarray, high: np.ndarray, **kwargs
+) -> None:
     color = kwargs.get("color")
     ax.plot(x, mean, **kwargs)
     ax.fill_between(x, low, high, color=color, alpha=0.18, linewidth=0)
@@ -708,7 +813,9 @@ def plot_experiment_1(
         lw=1,
         label="Último punto con holgura confirmada",
     )
-    ax1.axvspan(reference_overlap_start_distance, distances_km[-1], color="red", alpha=0.06)
+    ax1.axvspan(
+        reference_overlap_start_distance, distances_km[-1], color="red", alpha=0.06
+    )
     ax1.legend(loc="upper left")
     ax1.grid(True, linestyle="--", alpha=0.35)
 
@@ -718,7 +825,9 @@ def plot_experiment_1(
     ax1b.set_ylabel("Ganancia total analítica por pulso")
     ax1b.set_title("Señal y fondo en la ventana aceptada")
     ax1b.axvline(reference_margin_max_distance, color="black", ls=":", lw=1)
-    ax1b.axvspan(reference_overlap_start_distance, distances_km[-1], color="red", alpha=0.06)
+    ax1b.axvspan(
+        reference_overlap_start_distance, distances_km[-1], color="red", alpha=0.06
+    )
     ax1b.grid(True, linestyle="--", alpha=0.35)
     ax1b.set_yscale("log")
 
@@ -791,8 +900,14 @@ def plot_experiment_2(
 
     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
     _plot_mean_ci(
-        axes[0, 0], efficiencies, qber_eff * 100, qber_eff_low * 100, qber_eff_high * 100,
-        color="tab:blue", marker="o", label="QBER agrupada e IC Wilson 95 %"
+        axes[0, 0],
+        efficiencies,
+        qber_eff * 100,
+        qber_eff_low * 100,
+        qber_eff_high * 100,
+        color="tab:blue",
+        marker="o",
+        label="QBER agrupada e IC Wilson 95 %",
     )
     axes[0, 0].scatter(
         efficiencies[~valid_eff],
@@ -803,11 +918,19 @@ def plot_experiment_2(
         zorder=5,
         label="Sin holgura frente a la referencia",
     )
-    _style_axes(axes[0, 0], "Eficiencia del detector", "QBER (%)", "QBER según eficiencia")
+    _style_axes(
+        axes[0, 0], "Eficiencia del detector", "QBER (%)", "QBER según eficiencia"
+    )
     axes[0, 0].legend(fontsize=8)
     _plot_mean_ci(
-        axes[1, 0], efficiencies, skr_eff, skr_eff_low, skr_eff_high,
-        color="tab:green", marker="s", label="Media e IC t 95 %"
+        axes[1, 0],
+        efficiencies,
+        skr_eff,
+        skr_eff_low,
+        skr_eff_high,
+        color="tab:green",
+        marker="s",
+        label="Media e IC t 95 %",
     )
     axes[1, 0].scatter(
         efficiencies[~valid_eff],
@@ -818,12 +941,23 @@ def plot_experiment_2(
         zorder=5,
         label="Sin holgura frente a la referencia",
     )
-    _style_axes(axes[1, 0], "Eficiencia del detector", "Indicador ideal (bit/s)", "Indicador según eficiencia")
+    _style_axes(
+        axes[1, 0],
+        "Eficiencia del detector",
+        "Indicador ideal (bit/s)",
+        "Indicador según eficiencia",
+    )
     axes[1, 0].legend(fontsize=8)
 
     _plot_mean_ci(
-        axes[0, 1], darks, qber_dark * 100, qber_dark_low * 100, qber_dark_high * 100,
-        color="tab:purple", marker="o", label="QBER agrupada e IC Wilson 95 %"
+        axes[0, 1],
+        darks,
+        qber_dark * 100,
+        qber_dark_low * 100,
+        qber_dark_high * 100,
+        color="tab:purple",
+        marker="o",
+        label="QBER agrupada e IC Wilson 95 %",
     )
     axes[0, 1].scatter(
         darks[~valid_dark],
@@ -835,11 +969,19 @@ def plot_experiment_2(
         label="Sin holgura frente a la referencia",
     )
     axes[0, 1].set_xscale("log")
-    _style_axes(axes[0, 1], "Conteos oscuros (Hz)", "QBER (%)", "QBER según conteos oscuros")
+    _style_axes(
+        axes[0, 1], "Conteos oscuros (Hz)", "QBER (%)", "QBER según conteos oscuros"
+    )
     axes[0, 1].legend(fontsize=8)
     _plot_mean_ci(
-        axes[1, 1], darks, skr_dark, skr_dark_low, skr_dark_high,
-        color="tab:olive", marker="s", label="Media e IC t 95 %"
+        axes[1, 1],
+        darks,
+        skr_dark,
+        skr_dark_low,
+        skr_dark_high,
+        color="tab:olive",
+        marker="s",
+        label="Media e IC t 95 %",
     )
     axes[1, 1].scatter(
         darks[~valid_dark],
@@ -851,7 +993,12 @@ def plot_experiment_2(
         label="Sin holgura frente a la referencia",
     )
     axes[1, 1].set_xscale("log")
-    _style_axes(axes[1, 1], "Conteos oscuros (Hz)", "Indicador ideal (bit/s)", "Indicador según conteos oscuros")
+    _style_axes(
+        axes[1, 1],
+        "Conteos oscuros (Hz)",
+        "Indicador ideal (bit/s)",
+        "Indicador según conteos oscuros",
+    )
     axes[1, 1].legend(fontsize=8)
 
     fig.suptitle("Experimento 2: sensibilidad del detector a 5 km")
@@ -875,8 +1022,14 @@ def plot_experiment_3(
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
     _plot_mean_ci(
-        axes[0], vis, qbers * 100, qber_low * 100, qber_high * 100,
-        color="tab:brown", marker="o", label="QBER agrupada e IC Wilson 95 %"
+        axes[0],
+        vis,
+        qbers * 100,
+        qber_low * 100,
+        qber_high * 100,
+        color="tab:brown",
+        marker="o",
+        label="QBER agrupada e IC Wilson 95 %",
     )
     axes[0].scatter(
         vis[~reference_margin],
@@ -887,11 +1040,19 @@ def plot_experiment_3(
         zorder=5,
         label="Sin holgura frente a la referencia",
     )
-    _style_axes(axes[0], "Visibilidad interferométrica", "QBER (%)", "QBER según visibilidad")
+    _style_axes(
+        axes[0], "Visibilidad interferométrica", "QBER (%)", "QBER según visibilidad"
+    )
     axes[0].legend(fontsize=8)
     _plot_mean_ci(
-        axes[1], vis, skrs, skr_low, skr_high,
-        color="tab:cyan", marker="s", label="Media e IC t 95 %"
+        axes[1],
+        vis,
+        skrs,
+        skr_low,
+        skr_high,
+        color="tab:cyan",
+        marker="s",
+        label="Media e IC t 95 %",
     )
     axes[1].scatter(
         vis[~reference_margin],
@@ -902,7 +1063,12 @@ def plot_experiment_3(
         zorder=5,
         label="Sin holgura frente a la referencia",
     )
-    _style_axes(axes[1], "Visibilidad interferométrica", "Indicador ideal (bit/s)", "Indicador según visibilidad")
+    _style_axes(
+        axes[1],
+        "Visibilidad interferométrica",
+        "Indicador ideal (bit/s)",
+        "Indicador según visibilidad",
+    )
     axes[1].legend(fontsize=8)
     fig.suptitle("Experimento 3: visibilidad interferométrica a 30 km")
     fig.tight_layout()
@@ -924,15 +1090,34 @@ def plot_experiment_4(
 
     fig, ax = plt.subplots(figsize=(8, 4.5))
     _plot_mean_ci(
-        ax, distances_km, skr_no_decoy, skr_no_decoy_low, skr_no_decoy_high,
-        color="tab:blue", marker="o", label=r"Sin señuelos ($\mu=0{,}1$)", lw=1.5
+        ax,
+        distances_km,
+        skr_no_decoy,
+        skr_no_decoy_low,
+        skr_no_decoy_high,
+        color="tab:blue",
+        marker="o",
+        label=r"Sin señuelos ($\mu=0{,}1$)",
+        lw=1.5,
     )
     _plot_mean_ci(
-        ax, distances_km, skr_decoy, skr_decoy_low, skr_decoy_high,
-        color="tab:orange", marker="s", label=r"Con señuelos ($\mu=0{,}1$, $\nu=0{,}05$)", lw=1.5
+        ax,
+        distances_km,
+        skr_decoy,
+        skr_decoy_low,
+        skr_decoy_high,
+        color="tab:orange",
+        marker="s",
+        label=r"Con señuelos ($\mu=0{,}1$, $\nu=0{,}05$)",
+        lw=1.5,
     )
     ax.set_yscale("symlog", linthresh=1.0)
-    _style_axes(ax, "Distancia (km)", "Tasa secreta estimada (bit/s)", "Experimento 4: comparación de modelos")
+    _style_axes(
+        ax,
+        "Distancia (km)",
+        "Tasa secreta estimada (bit/s)",
+        "Experimento 4: comparación de modelos",
+    )
     ax.legend()
     fig.tight_layout()
     fig.savefig(out_dir / "exp4_decoy_impact.png", dpi=150)
@@ -942,6 +1127,7 @@ def plot_experiment_4(
 # ---------------------------------------------------------------------------
 # Experiments
 # ---------------------------------------------------------------------------
+
 
 def experiment_1_distance_sweep(
     out_dir: Path,
@@ -968,12 +1154,16 @@ def experiment_1_distance_sweep(
             runtime_ps=2e12,
             num_keys=3,
         )
-        runs = _run_replicates(base, repetitions, seed_base=10_000 + i * 100, executor=executor)
-        q_mean, q_low, q_high = _wilson_qber_ci(runs)
-        r_mean, r_low, r_high = _stats_from_runs(
-            runs, "aggregate_sifted_rate_bps", seed=11_500 + i
+        runs = _run_replicates(
+            base, repetitions, seed_base=10_000 + i * 100, executor=executor
         )
-        s_mean, s_low, s_high = _ideal_rate_stats_from_runs(runs, seed=12_000 + i)
+        q_mean, q_low, q_high = _wilson_qber_ci(runs, completed_only=True)
+        r_mean, r_low, r_high = _stats_from_runs(
+            runs, "aggregate_sifted_rate_bps", seed=11_500 + i, completed_only=True
+        )
+        s_mean, s_low, s_high = _ideal_rate_stats_from_runs(
+            runs, seed=12_000 + i, completed_only=True
+        )
         qbers.append(q_mean)
         qber_low.append(q_low)
         qber_high.append(q_high)
@@ -985,7 +1175,9 @@ def experiment_1_distance_sweep(
         sifted_rate_bounds.append(runs[0]["sifted_rate_reference_bps"])
         reference_margin_confirmed = r_high <= runs[0]["sifted_rate_reference_bps"]
         run_records.extend(
-            _raw_run_record("distancia", "distancia_km_barrida", float(d), repetition, run)
+            _raw_run_record(
+                "distancia", i, "distancia_km_barrida", float(d), repetition, run
+            )
             for repetition, run in enumerate(runs)
         )
         records.append(
@@ -1006,6 +1198,12 @@ def experiment_1_distance_sweep(
                 "referencia_tasa_tamizada_bps": runs[0]["sifted_rate_reference_bps"],
                 "margen_referencia_confirmado": reference_margin_confirmed,
                 "repeticiones": repetitions,
+                "corridas_completas": sum(
+                    run["completed_requested_keys"] for run in runs
+                ),
+                "corridas_incompletas": sum(
+                    not run["completed_requested_keys"] for run in runs
+                ),
                 "claves_por_repeticion": base.num_keys,
                 "horizonte_s": base.runtime_ps * 1e-12,
                 "eficiencia_detector": base.detector_efficiency,
@@ -1018,7 +1216,9 @@ def experiment_1_distance_sweep(
     valid_max_distance = float(distances_km[np.where(valid_mask)[0][-1]])
     first_invalid = np.where(~valid_mask)[0]
     invalid_start_distance = (
-        float(distances_km[first_invalid[0]]) if first_invalid.size else float(distances_km[-1])
+        float(distances_km[first_invalid[0]])
+        if first_invalid.size
+        else float(distances_km[-1])
     )
     return {
         "distances_km": distances_km,
@@ -1071,13 +1271,17 @@ def experiment_2_detector_sweep(
             runtime_ps=2.5e12,
             num_keys=4,
         )
-        runs = _run_replicates(base, repetitions, seed_base=20_000 + i * 100, executor=executor)
-        eff_runs_by_point.append(runs)
-        q_mean, q_low, q_high = _wilson_qber_ci(runs)
-        r_mean, r_low, r_high = _stats_from_runs(
-            runs, "aggregate_sifted_rate_bps", seed=21_500 + i
+        runs = _run_replicates(
+            base, repetitions, seed_base=20_000 + i * 100, executor=executor
         )
-        s_mean, s_low, s_high = _ideal_rate_stats_from_runs(runs, seed=22_000 + i)
+        eff_runs_by_point.append(_completed_runs(runs))
+        q_mean, q_low, q_high = _wilson_qber_ci(runs, completed_only=True)
+        r_mean, r_low, r_high = _stats_from_runs(
+            runs, "aggregate_sifted_rate_bps", seed=21_500 + i, completed_only=True
+        )
+        s_mean, s_low, s_high = _ideal_rate_stats_from_runs(
+            runs, seed=22_000 + i, completed_only=True
+        )
         qber_eff.append(q_mean)
         qber_eff_low.append(q_low)
         qber_eff_high.append(q_high)
@@ -1088,7 +1292,14 @@ def experiment_2_detector_sweep(
         eff_raw_bounds.append(runs[0]["sifted_rate_reference_bps"])
         reference_margin_confirmed = r_high <= runs[0]["sifted_rate_reference_bps"]
         run_records.extend(
-            _raw_run_record("eficiencia_detector", "eficiencia_barrida", float(eff), repetition, run)
+            _raw_run_record(
+                "eficiencia_detector",
+                i,
+                "eficiencia_barrida",
+                float(eff),
+                repetition,
+                run,
+            )
             for repetition, run in enumerate(runs)
         )
         records.append(
@@ -1108,6 +1319,12 @@ def experiment_2_detector_sweep(
                 "referencia_tasa_tamizada_bps": runs[0]["sifted_rate_reference_bps"],
                 "margen_referencia_confirmado": reference_margin_confirmed,
                 "repeticiones": repetitions,
+                "corridas_completas": sum(
+                    run["completed_requested_keys"] for run in runs
+                ),
+                "corridas_incompletas": sum(
+                    not run["completed_requested_keys"] for run in runs
+                ),
                 "claves_por_repeticion": base.num_keys,
                 "horizonte_s": base.runtime_ps * 1e-12,
                 "parametro_fijo": "conteos_oscuros_hz=100",
@@ -1128,13 +1345,17 @@ def experiment_2_detector_sweep(
             runtime_ps=2.5e12,
             num_keys=4,
         )
-        runs = _run_replicates(base, repetitions, seed_base=30_000 + i * 100, executor=executor)
-        dark_runs_by_point.append(runs)
-        q_mean, q_low, q_high = _wilson_qber_ci(runs)
-        r_mean, r_low, r_high = _stats_from_runs(
-            runs, "aggregate_sifted_rate_bps", seed=31_500 + i
+        runs = _run_replicates(
+            base, repetitions, seed_base=30_000 + i * 100, executor=executor
         )
-        s_mean, s_low, s_high = _ideal_rate_stats_from_runs(runs, seed=32_000 + i)
+        dark_runs_by_point.append(_completed_runs(runs))
+        q_mean, q_low, q_high = _wilson_qber_ci(runs, completed_only=True)
+        r_mean, r_low, r_high = _stats_from_runs(
+            runs, "aggregate_sifted_rate_bps", seed=31_500 + i, completed_only=True
+        )
+        s_mean, s_low, s_high = _ideal_rate_stats_from_runs(
+            runs, seed=32_000 + i, completed_only=True
+        )
         qber_dark.append(q_mean)
         qber_dark_low.append(q_low)
         qber_dark_high.append(q_high)
@@ -1145,7 +1366,14 @@ def experiment_2_detector_sweep(
         dark_rate_bounds.append(runs[0]["sifted_rate_reference_bps"])
         dark_reference_margin = r_high <= runs[0]["sifted_rate_reference_bps"]
         run_records.extend(
-            _raw_run_record("conteos_oscuros", "conteos_oscuros_barridos_hz", float(dc), repetition, run)
+            _raw_run_record(
+                "conteos_oscuros",
+                i,
+                "conteos_oscuros_barridos_hz",
+                float(dc),
+                repetition,
+                run,
+            )
             for repetition, run in enumerate(runs)
         )
         records.append(
@@ -1165,6 +1393,12 @@ def experiment_2_detector_sweep(
                 "referencia_tasa_tamizada_bps": runs[0]["sifted_rate_reference_bps"],
                 "margen_referencia_confirmado": dark_reference_margin,
                 "repeticiones": repetitions,
+                "corridas_completas": sum(
+                    run["completed_requested_keys"] for run in runs
+                ),
+                "corridas_incompletas": sum(
+                    not run["completed_requested_keys"] for run in runs
+                ),
                 "claves_por_repeticion": base.num_keys,
                 "horizonte_s": base.runtime_ps * 1e-12,
                 "parametro_fijo": "eficiencia_detector=0.85",
@@ -1177,21 +1411,29 @@ def experiment_2_detector_sweep(
     first_valid, last_valid = int(valid_indices[0]), int(valid_indices[-1])
     efficiency_effect = _difference_t_ci(
         [
-            ideal_postprocessing_rate(run["mean_qber"], run["aggregate_sifted_rate_bps"])
+            ideal_postprocessing_rate(
+                run["mean_qber"], run["aggregate_sifted_rate_bps"]
+            )
             for run in eff_runs_by_point[first_valid]
         ],
         [
-            ideal_postprocessing_rate(run["mean_qber"], run["aggregate_sifted_rate_bps"])
+            ideal_postprocessing_rate(
+                run["mean_qber"], run["aggregate_sifted_rate_bps"]
+            )
             for run in eff_runs_by_point[last_valid]
         ],
     )
     dark_effect = _difference_t_ci(
         [
-            ideal_postprocessing_rate(run["mean_qber"], run["aggregate_sifted_rate_bps"])
+            ideal_postprocessing_rate(
+                run["mean_qber"], run["aggregate_sifted_rate_bps"]
+            )
             for run in dark_runs_by_point[0]
         ],
         [
-            ideal_postprocessing_rate(run["mean_qber"], run["aggregate_sifted_rate_bps"])
+            ideal_postprocessing_rate(
+                run["mean_qber"], run["aggregate_sifted_rate_bps"]
+            )
             for run in dark_runs_by_point[-1]
         ],
     )
@@ -1258,12 +1500,16 @@ def experiment_3_visibility_sweep(
             runtime_ps=2.5e12,
             num_keys=4,
         )
-        runs = _run_replicates(base, repetitions, seed_base=40_000 + i * 100, executor=executor)
-        q_mean, q_low, q_high = _wilson_qber_ci(runs)
-        r_mean, r_low, r_high = _stats_from_runs(
-            runs, "aggregate_sifted_rate_bps", seed=41_500 + i
+        runs = _run_replicates(
+            base, repetitions, seed_base=40_000 + i * 100, executor=executor
         )
-        s_mean, s_low, s_high = _ideal_rate_stats_from_runs(runs, seed=42_000 + i)
+        q_mean, q_low, q_high = _wilson_qber_ci(runs, completed_only=True)
+        r_mean, r_low, r_high = _stats_from_runs(
+            runs, "aggregate_sifted_rate_bps", seed=41_500 + i, completed_only=True
+        )
+        s_mean, s_low, s_high = _ideal_rate_stats_from_runs(
+            runs, seed=42_000 + i, completed_only=True
+        )
         qbers.append(q_mean)
         qber_low.append(q_low)
         qber_high.append(q_high)
@@ -1274,7 +1520,9 @@ def experiment_3_visibility_sweep(
         sifted_rate_references.append(runs[0]["sifted_rate_reference_bps"])
         reference_margin_confirmed = r_high <= runs[0]["sifted_rate_reference_bps"]
         run_records.extend(
-            _raw_run_record("visibilidad", "visibilidad_barrida", float(v), repetition, run)
+            _raw_run_record(
+                "visibilidad", i, "visibilidad_barrida", float(v), repetition, run
+            )
             for repetition, run in enumerate(runs)
         )
         records.append(
@@ -1295,21 +1543,32 @@ def experiment_3_visibility_sweep(
                 "referencia_tasa_tamizada_bps": runs[0]["sifted_rate_reference_bps"],
                 "margen_referencia_confirmado": reference_margin_confirmed,
                 "repeticiones": repetitions,
+                "corridas_completas": sum(
+                    run["completed_requested_keys"] for run in runs
+                ),
+                "corridas_incompletas": sum(
+                    not run["completed_requested_keys"] for run in runs
+                ),
                 "claves_por_repeticion": base.num_keys,
                 "horizonte_s": base.runtime_ps * 1e-12,
                 "eficiencia_detector": base.detector_efficiency,
                 "conteos_oscuros_hz": base.dark_count_hz,
             }
         )
+    completed_run_records = [
+        record for record in run_records if record["corrida_completa"]
+    ]
     qber_trend = _linear_effect_ci(
-        [float(record["visibilidad_barrida"]) for record in run_records],
-        [float(record["qber"]) for record in run_records],
+        [float(record["visibilidad_barrida"]) for record in completed_run_records],
+        [float(record["qber"]) for record in completed_run_records],
     )
     ideal_rate_trend = _linear_effect_ci(
-        [float(record["visibilidad_barrida"]) for record in run_records],
-        [float(record["indicador_ideal_bps"]) for record in run_records],
+        [float(record["visibilidad_barrida"]) for record in completed_run_records],
+        [float(record["indicador_ideal_bps"]) for record in completed_run_records],
     )
-    reference_margin = np.asarray(sifted_rate_high) <= np.asarray(sifted_rate_references)
+    reference_margin = np.asarray(sifted_rate_high) <= np.asarray(
+        sifted_rate_references
+    )
     return {
         "visibility": vis,
         "qbers": np.array(qbers),
@@ -1399,25 +1658,28 @@ def experiment_4_decoy_distance(
             e1_numerator = e_nu * q_nu * math.exp(nu) - e0 * vacuum_yield
             e1_fallback = e1_numerator <= 0
             e1 = decoy_e1_upper(e_nu, q_nu, e0, vacuum_yield, y1, nu)
-            no_values.append(
-                secret_key_rate_asymptotic_no_decoy(
-                    mu,
-                    q_mu,
-                    e_mu,
-                    vacuum_yield,
-                    base_mu.frequency_hz,
-                )
+            no_rate = secret_key_rate_asymptotic_no_decoy(
+                mu,
+                q_mu,
+                e_mu,
+                vacuum_yield,
+                base_mu.frequency_hz,
             )
-            decoy_values.append(
-                secret_key_rate_asymptotic_decoy(
-                    mu, q_mu, e_mu, y1, e1, base_mu.frequency_hz
-                )
+            decoy_rate = secret_key_rate_asymptotic_decoy(
+                mu, q_mu, e_mu, y1, e1, base_mu.frequency_hz
             )
-            e1_values.append(e1)
-            e1_fallbacks.append(e1_fallback)
+            completed_pair = (
+                r_mu["completed_requested_keys"] and r_nu["completed_requested_keys"]
+            )
+            if completed_pair:
+                no_values.append(no_rate)
+                decoy_values.append(decoy_rate)
+                e1_values.append(e1)
+                e1_fallbacks.append(e1_fallback)
             run_records.append(
                 {
                     "experimento": "estados_senuelo",
+                    "indice_punto": i,
                     "distancia_km": float(d_km),
                     "repeticion": repetition,
                     "mu": mu,
@@ -1431,6 +1693,7 @@ def experiment_4_decoy_distance(
                     "errores_mu": r_mu["total_errors"],
                     "qber_mu": e_mu,
                     "claves_completadas_mu": r_mu["n_keys"],
+                    "corrida_completa_mu": r_mu["completed_requested_keys"],
                     "tiempo_hasta_ultima_clave_s_mu": r_mu["elapsed_key_s"],
                     "clics_detector_0_mu": r_mu["detector_clicks"][0],
                     "clics_detector_1_mu": r_mu["detector_clicks"][1],
@@ -1439,14 +1702,16 @@ def experiment_4_decoy_distance(
                     "errores_nu": r_nu["total_errors"],
                     "qber_nu": e_nu,
                     "claves_completadas_nu": r_nu["n_keys"],
+                    "corrida_completa_nu": r_nu["completed_requested_keys"],
+                    "corrida_completa": completed_pair,
                     "tiempo_hasta_ultima_clave_s_nu": r_nu["elapsed_key_s"],
                     "clics_detector_0_nu": r_nu["detector_clicks"][0],
                     "clics_detector_1_nu": r_nu["detector_clicks"][1],
                     "clics_detector_2_nu": r_nu["detector_clicks"][2],
                     "e1_cota_superior": e1,
                     "e1_fallback_conservador": e1_fallback,
-                    "tasa_sin_senuelos_bps": no_values[-1],
-                    "tasa_con_senuelos_bps": decoy_values[-1],
+                    "tasa_sin_senuelos_bps": no_rate,
+                    "tasa_con_senuelos_bps": decoy_rate,
                     "clics_mu": r_mu["total_detector_clicks"],
                     "clics_nu": r_nu["total_detector_clicks"],
                 }
@@ -1474,8 +1739,7 @@ def experiment_4_decoy_distance(
                 "q_nu": q_nu,
                 "mu_sin_senuelos": mu,
                 "q_sin_senuelos": q_mu,
-                "p_multifoton_sin_senuelos": 1.0
-                - math.exp(-mu) * (1.0 + mu),
+                "p_multifoton_sin_senuelos": 1.0 - math.exp(-mu) * (1.0 + mu),
                 "q1_sin_senuelos_cota_inferior": max(
                     0.0,
                     q_mu
@@ -1483,12 +1747,19 @@ def experiment_4_decoy_distance(
                     - math.exp(-mu) * vacuum_yield,
                 ),
                 "y1_cota_inferior": y1,
-                "e1_media": float(np.mean(e1_values)),
+                "e1_media": float(np.mean(e1_values)) if e1_values else float("nan"),
                 "corridas_e1_fallback_conservador": int(sum(e1_fallbacks)),
                 "y0": vacuum_yield,
                 "mu": mu,
                 "nu": nu,
                 "repeticiones": repetitions,
+                "corridas_completas": sum(
+                    record["corrida_completa"] for record in run_records[-repetitions:]
+                ),
+                "corridas_incompletas": sum(
+                    not record["corrida_completa"]
+                    for record in run_records[-repetitions:]
+                ),
                 "claves_por_repeticion": base_mu.num_keys,
                 "horizonte_s": base_mu.runtime_ps * 1e-12,
             }
@@ -1520,12 +1791,14 @@ def experiment_4_decoy_distance(
     }
 
 
-def summarize_max_distance(distances_km: np.ndarray, qbers: np.ndarray, threshold: float = 0.11) -> str:
+def summarize_max_distance(
+    distances_km: np.ndarray, qbers: np.ndarray, threshold: float = 0.11
+) -> str:
     ok = np.isfinite(qbers) & (qbers < threshold)
     if not np.any(ok):
         return "No distance in sweep stayed below QBER threshold in this run."
     idx = np.where(ok)[0][-1]
-    return f"For the modeled sweep, QBER stays below ~{threshold*100:.0f}% out to ~{distances_km[idx]:.0f} km (last compliant point)."
+    return f"For the modeled sweep, QBER stays below ~{threshold * 100:.0f}% out to ~{distances_km[idx]:.0f} km (last compliant point)."
 
 
 def _write_records(path: Path, records: list[dict[str, Any]]) -> None:
@@ -1560,12 +1833,17 @@ def _validate_outputs(*experiments: dict[str, Any]) -> None:
             ideal = float(record["indicador_ideal_media_bps"])
             assert 0.0 <= ideal <= sifted + 1e-9
             if record.get("margen_referencia_confirmado"):
-                assert float(record["tasa_tamizada_ic95_alto_bps"]) <= float(
-                    record["referencia_tasa_tamizada_bps"]
-                ) + 1e-9
+                assert (
+                    float(record["tasa_tamizada_ic95_alto_bps"])
+                    <= float(record["referencia_tasa_tamizada_bps"]) + 1e-9
+                )
         for run in experiment["run_records"]:
             assert int(run["bits_tamizados"]) >= int(run["errores"]) >= 0
-            assert 0.0 <= float(run["indicador_ideal_bps"]) <= float(run["tasa_tamizada_bps"]) + 1e-9
+            assert (
+                0.0
+                <= float(run["indicador_ideal_bps"])
+                <= float(run["tasa_tamizada_bps"]) + 1e-9
+            )
             assert int(run["clics_detector_total"]) >= 0
 
     for record in experiments[3]["records"]:
@@ -1573,15 +1851,22 @@ def _validate_outputs(*experiments: dict[str, Any]) -> None:
         assert float(record["mu_sin_senuelos"]) == float(record["mu"])
         assert float(record["tasa_sin_senuelos_media_bps"]) >= 0.0
         assert float(record["tasa_con_senuelos_media_bps"]) >= 0.0
-        assert float(record["tasa_con_senuelos_media_bps"]) <= (
-            0.5 * DEFAULT_FREQUENCY_HZ * float(record["q_mu"])
-        ) + 1e-9
+        assert (
+            float(record["tasa_con_senuelos_media_bps"])
+            <= (0.5 * DEFAULT_FREQUENCY_HZ * float(record["q_mu"])) + 1e-9
+        )
     for run in experiments[3]["run_records"]:
         for suffix in ("mu", "nu"):
-            assert int(run[f"bits_tamizados_{suffix}"]) >= int(run[f"errores_{suffix}"]) >= 0
+            assert (
+                int(run[f"bits_tamizados_{suffix}"])
+                >= int(run[f"errores_{suffix}"])
+                >= 0
+            )
             assert int(run[f"claves_completadas_{suffix}"]) >= 0
             assert float(run[f"tiempo_hasta_ultima_clave_s_{suffix}"]) >= 0.0
-            detector_sum = sum(int(run[f"clics_detector_{index}_{suffix}"]) for index in range(3))
+            detector_sum = sum(
+                int(run[f"clics_detector_{index}_{suffix}"]) for index in range(3)
+            )
             assert detector_sum == int(run[f"clics_{suffix}"])
 
 
@@ -1595,13 +1880,17 @@ def _write_latex_results(
 ) -> None:
     """Write the numerical values cited by Proyecto 3 from the same run."""
     valid_index = int(np.where(e1["distances_km"] == e1["valid_max_distance"])[0][0])
-    invalid_index = int(np.where(e1["distances_km"] == e1["invalid_start_distance"])[0][0])
+    invalid_index = int(
+        np.where(e1["distances_km"] == e1["invalid_start_distance"])[0][0]
+    )
     distance_valid = e1["records"][valid_index]
     distance_invalid = e1["records"][invalid_index]
     valid_efficiency_indices = np.where(e2["valid_eff"])[0]
     efficiency_first = e2["records"][int(valid_efficiency_indices[0])]
     efficiency_last = e2["records"][int(valid_efficiency_indices[-1])]
-    dark_records = [record for record in e2["records"] if record["experimento"] == "conteos_oscuros"]
+    dark_records = [
+        record for record in e2["records"] if record["experimento"] == "conteos_oscuros"
+    ]
     visibility_first = e3["records"][0]
     visibility_last = e3["records"][-1]
     decoy_first = e4["records"][0]
@@ -1617,12 +1906,17 @@ def _write_latex_results(
         "PThreeDistanceQberLowPct": 100.0 * distance_valid["qber_ic95_bajo"],
         "PThreeDistanceQberHighPct": 100.0 * distance_valid["qber_ic95_alto"],
         "PThreeDistanceSiftKbps": distance_valid["tasa_tamizada_media_bps"] / 1e3,
-        "PThreeDistanceSiftLowKbps": distance_valid["tasa_tamizada_ic95_bajo_bps"] / 1e3,
-        "PThreeDistanceSiftHighKbps": distance_valid["tasa_tamizada_ic95_alto_bps"] / 1e3,
-        "PThreeDistanceReferenceKbps": distance_valid["referencia_tasa_tamizada_bps"] / 1e3,
+        "PThreeDistanceSiftLowKbps": distance_valid["tasa_tamizada_ic95_bajo_bps"]
+        / 1e3,
+        "PThreeDistanceSiftHighKbps": distance_valid["tasa_tamizada_ic95_alto_bps"]
+        / 1e3,
+        "PThreeDistanceReferenceKbps": distance_valid["referencia_tasa_tamizada_bps"]
+        / 1e3,
         "PThreeDistanceIdealKbps": distance_valid["indicador_ideal_media_bps"] / 1e3,
-        "PThreeOverlapSiftHighKbps": distance_invalid["tasa_tamizada_ic95_alto_bps"] / 1e3,
-        "PThreeOverlapReferenceKbps": distance_invalid["referencia_tasa_tamizada_bps"] / 1e3,
+        "PThreeOverlapSiftHighKbps": distance_invalid["tasa_tamizada_ic95_alto_bps"]
+        / 1e3,
+        "PThreeOverlapReferenceKbps": distance_invalid["referencia_tasa_tamizada_bps"]
+        / 1e3,
         "PThreeEffFirst": efficiency_first["variable"],
         "PThreeEffLast": efficiency_last["variable"],
         "PThreeEffFirstKbps": efficiency_first["indicador_ideal_media_bps"] / 1e3,
@@ -1639,14 +1933,18 @@ def _write_latex_results(
         "PThreeDarkPValue": e2["dark_effect"][3],
         "PThreeVisibilityFirstQberPct": 100.0 * visibility_first["qber_media"],
         "PThreeVisibilityLastQberPct": 100.0 * visibility_last["qber_media"],
-        "PThreeVisibilityFirstIdealKbps": visibility_first["indicador_ideal_media_bps"] / 1e3,
-        "PThreeVisibilityLastIdealKbps": visibility_last["indicador_ideal_media_bps"] / 1e3,
+        "PThreeVisibilityFirstIdealKbps": visibility_first["indicador_ideal_media_bps"]
+        / 1e3,
+        "PThreeVisibilityLastIdealKbps": visibility_last["indicador_ideal_media_bps"]
+        / 1e3,
         "PThreeVisibilityQberSlope": e3["qber_trend"]["pendiente"],
         "PThreeVisibilityQberSlopeLow": e3["qber_trend"]["pendiente_ic95_bajo"],
         "PThreeVisibilityQberSlopeHigh": e3["qber_trend"]["pendiente_ic95_alto"],
         "PThreeVisibilityQberPValue": e3["qber_trend"]["p_valor"],
         "PThreeVisibilityCorrelation": e3["qber_trend"]["r_pearson"],
-        "PThreeVisibilityNoMarginPoints": int(np.count_nonzero(~e3["reference_margin"])),
+        "PThreeVisibilityNoMarginPoints": int(
+            np.count_nonzero(~e3["reference_margin"])
+        ),
         "PThreeDecoyVacuumYield": decoy_first["y0"],
         "PThreeNoDecoyFiveKbps": decoy_first["tasa_sin_senuelos_media_bps"] / 1e3,
         "PThreeDecoyFiveKbps": decoy_first["tasa_con_senuelos_media_bps"] / 1e3,

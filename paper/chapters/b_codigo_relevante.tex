@@ -160,7 +160,7 @@ def _wilson_qber_ci(runs, confidence=0.95):
     return p, max(0.0, center-half), min(1.0, center+half)
 \end{lstlisting}
 
-QBER es una proporción y puede estar cerca de cero. Wilson conserva mejor comportamiento que la aproximación normal simple en ese régimen, siempre que los bits agrupados puedan tratarse como intercambiables. No captura dependencia dentro de una clave ni heterogeneidad entre repeticiones. Las tasas usan intervalos t porque cada repetición produce una observación continua; las diferencias de detector usan Welch para no imponer varianzas iguales.
+QBER es una proporción y puede estar cerca de cero. Wilson conserva mejor comportamiento que la aproximación normal simple en ese régimen, siempre que los bits agrupados puedan tratarse como intercambiables. No captura dependencia dentro de una clave ni heterogeneidad entre repeticiones. Las tasas de los experimentos 1 a 3 usan intervalos t porque cada repetición produce una observación continua; las diferencias de detector usan Welch para no imponer varianzas iguales. El experimento 4 usa en cambio el bootstrap pareado descrito a continuación.
 
 Para el cuarto experimento se remuestrean pares de repeticiones y se vuelven a agrupar sus conteos:
 

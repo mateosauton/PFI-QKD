@@ -130,6 +130,7 @@ dmypy.json
 
 # csv files
 *.csv
+!experiments/results/*.csv
 
 # vscode-workspace
 sequence_gui_testing.code-workspace

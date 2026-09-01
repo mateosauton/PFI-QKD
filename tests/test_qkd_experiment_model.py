@@ -1,4 +1,6 @@
+import csv
 import math
+from pathlib import Path
 
 import pytest
 
@@ -9,12 +11,14 @@ from experiments.qkd_2node_simulation import (
     RunAccounting,
     SimParams,
     _stats_from_runs,
+    _write_records,
     build_run_record,
     click_slot_indices,
     decoy_e1_upper,
     decoy_yield_y1_lower,
     experiment_2_detector_sweep,
     experiment_3_visibility_sweep,
+    experiment_4_decoy_distance,
     replicate_seed_pairs,
     summarize_accounting,
     wcs_detection_prob,
@@ -291,3 +295,66 @@ def test_detector_and_visibility_sweeps_request_the_rigorous_key_count(
     assert {record["claves_por_repeticion"] for record in visibility["records"]} == {
         DEFAULT_NUM_KEYS
     }
+
+
+def test_experiment_csv_files_are_not_ignored():
+    gitignore = Path(".gitignore").read_text(encoding="utf-8")
+    assert "!experiments/results/*.csv" in gitignore
+
+
+def test_write_records_keeps_union_of_fields(tmp_path):
+    path = tmp_path / "records.csv"
+    _write_records(path, [{"a": 1}, {"a": 2, "b": 3}])
+    rows = list(csv.DictReader(path.open(encoding="utf-8")))
+    assert rows == [{"a": "1", "b": ""}, {"a": "2", "b": "3"}]
+
+
+def test_decoy_raw_records_are_complete_and_intensity_specific(monkeypatch, tmp_path):
+    def fake_run_replicates(base, repetitions, seed_base, executor):
+        del seed_base, executor
+        return [
+            {
+                "mean_qber": 0.01,
+                "aggregate_sifted_rate_bps": 100.0,
+                "n_keys": base.num_keys,
+                "completed_requested_keys": True,
+                "total_sifted_bits": base.num_keys * base.key_length,
+                "total_errors": 1,
+                "elapsed_key_s": 1.0,
+                "pulses_sent": 10_000,
+                "click_events": 100,
+                "click_slots": 100,
+                "valid_detection_slots": 100,
+                "basis_compared_valid_slots": 100,
+                "observed_basis_matched_bits": 100,
+                "sifting_fraction": 1.0,
+                "observed_click_gain": 0.01,
+                "click_rate_bps": 100.0,
+                "accounting_consistent": True,
+                "params": base,
+                "detector_clicks": [1, 2, 3],
+                "total_detector_clicks": 6,
+                "background_yield_per_pulse": 1e-6,
+                "sifted_rate_reference_bps": 1_000.0,
+                "p_detection_model": 0.01,
+            }
+            for _ in range(repetitions)
+        ]
+
+    monkeypatch.setattr(
+        "experiments.qkd_2node_simulation._run_replicates", fake_run_replicates
+    )
+
+    experiment = experiment_4_decoy_distance(tmp_path, repetitions=1)
+
+    raw_records = experiment["raw_records"]
+    assert len(raw_records) == 20
+    assert {record["experimento"] for record in raw_records} == {
+        "decoy_signal_mu",
+        "decoy_weak_nu",
+    }
+    assert all(
+        {"semilla_alice", "semilla_bob", "bits_tamizados", "qber"}
+        <= record.keys()
+        for record in raw_records
+    )

@@ -1142,7 +1142,7 @@ def experiment_1_distance_sweep(
     sifted_rate_high = []
     sifted_rate_bounds = []
     records = []
-    run_records = []
+    raw_records = []
     for i, d in enumerate(distances_km):
         base = SimParams(
             distance_km=float(d),
@@ -1174,7 +1174,7 @@ def experiment_1_distance_sweep(
         sifted_rate_high.append(r_high)
         sifted_rate_bounds.append(runs[0]["sifted_rate_reference_bps"])
         reference_margin_confirmed = r_high <= runs[0]["sifted_rate_reference_bps"]
-        run_records.extend(
+        raw_records.extend(
             _raw_run_record(
                 "distancia", i, "distancia_km_barrida", float(d), repetition, run
             )
@@ -1232,7 +1232,7 @@ def experiment_1_distance_sweep(
         "valid_max_distance": valid_max_distance,
         "invalid_start_distance": invalid_start_distance,
         "records": records,
-        "run_records": run_records,
+        "raw_records": raw_records,
         "plot": lambda: plot_experiment_1(
             distances_km,
             np.array(qbers),
@@ -1260,7 +1260,7 @@ def experiment_2_detector_sweep(
     skr_eff, skr_eff_low, skr_eff_high = [], [], []
     eff_sifted_high, eff_raw_bounds = [], []
     records = []
-    run_records = []
+    raw_records = []
     eff_runs_by_point: list[list[dict[str, Any]]] = []
     for i, eff in enumerate(efficiencies):
         base = SimParams(
@@ -1291,7 +1291,7 @@ def experiment_2_detector_sweep(
         eff_sifted_high.append(r_high)
         eff_raw_bounds.append(runs[0]["sifted_rate_reference_bps"])
         reference_margin_confirmed = r_high <= runs[0]["sifted_rate_reference_bps"]
-        run_records.extend(
+        raw_records.extend(
             _raw_run_record(
                 "eficiencia_detector",
                 i,
@@ -1365,7 +1365,7 @@ def experiment_2_detector_sweep(
         dark_sifted_high.append(r_high)
         dark_rate_bounds.append(runs[0]["sifted_rate_reference_bps"])
         dark_reference_margin = r_high <= runs[0]["sifted_rate_reference_bps"]
-        run_records.extend(
+        raw_records.extend(
             _raw_run_record(
                 "conteos_oscuros",
                 i,
@@ -1455,7 +1455,7 @@ def experiment_2_detector_sweep(
         "skr_dark_low": np.array(skr_dark_low),
         "skr_dark_high": np.array(skr_dark_high),
         "records": records,
-        "run_records": run_records,
+        "raw_records": raw_records,
         "efficiency_effect": efficiency_effect,
         "dark_effect": dark_effect,
         "plot": lambda: plot_experiment_2(
@@ -1490,7 +1490,7 @@ def experiment_3_visibility_sweep(
     skrs, skr_low, skr_high = [], [], []
     sifted_rate_high, sifted_rate_references = [], []
     records = []
-    run_records = []
+    raw_records = []
     for i, v in enumerate(vis):
         base = SimParams(
             distance_km=30.0,
@@ -1519,7 +1519,7 @@ def experiment_3_visibility_sweep(
         sifted_rate_high.append(r_high)
         sifted_rate_references.append(runs[0]["sifted_rate_reference_bps"])
         reference_margin_confirmed = r_high <= runs[0]["sifted_rate_reference_bps"]
-        run_records.extend(
+        raw_records.extend(
             _raw_run_record(
                 "visibilidad", i, "visibilidad_barrida", float(v), repetition, run
             )
@@ -1555,16 +1555,16 @@ def experiment_3_visibility_sweep(
                 "conteos_oscuros_hz": base.dark_count_hz,
             }
         )
-    completed_run_records = [
-        record for record in run_records if record["corrida_completa"]
+    completed_raw_records = [
+        record for record in raw_records if record["corrida_completa"]
     ]
     qber_trend = _linear_effect_ci(
-        [float(record["visibilidad_barrida"]) for record in completed_run_records],
-        [float(record["qber"]) for record in completed_run_records],
+        [float(record["visibilidad_barrida"]) for record in completed_raw_records],
+        [float(record["qber"]) for record in completed_raw_records],
     )
     ideal_rate_trend = _linear_effect_ci(
-        [float(record["visibilidad_barrida"]) for record in completed_run_records],
-        [float(record["indicador_ideal_bps"]) for record in completed_run_records],
+        [float(record["visibilidad_barrida"]) for record in completed_raw_records],
+        [float(record["indicador_ideal_bps"]) for record in completed_raw_records],
     )
     reference_margin = np.asarray(sifted_rate_high) <= np.asarray(
         sifted_rate_references
@@ -1579,7 +1579,7 @@ def experiment_3_visibility_sweep(
         "skr_high": np.array(skr_high),
         "reference_margin": reference_margin,
         "records": records,
-        "run_records": run_records,
+        "raw_records": raw_records,
         "qber_trend": qber_trend,
         "ideal_rate_trend": ideal_rate_trend,
         "plot": lambda: plot_experiment_3(
@@ -1613,7 +1613,7 @@ def experiment_4_decoy_distance(
     alpha = DEFAULT_ALPHA_DB_KM
     e0 = 0.5
     records = []
-    run_records = []
+    raw_records = []
 
     for i, d_km in enumerate(distances_km):
         d_m = float(d_km) * 1000.0
@@ -1676,46 +1676,35 @@ def experiment_4_decoy_distance(
                 decoy_values.append(decoy_rate)
                 e1_values.append(e1)
                 e1_fallbacks.append(e1_fallback)
-            run_records.append(
-                {
-                    "experimento": "estados_senuelo",
-                    "indice_punto": i,
-                    "distancia_km": float(d_km),
-                    "repeticion": repetition,
-                    "mu": mu,
-                    "nu": nu,
-                    "y0": vacuum_yield,
-                    "semilla_alice_mu": r_mu["params"].alice_seed,
-                    "semilla_bob_mu": r_mu["params"].bob_seed,
-                    "semilla_alice_nu": r_nu["params"].alice_seed,
-                    "semilla_bob_nu": r_nu["params"].bob_seed,
-                    "bits_tamizados_mu": r_mu["total_sifted_bits"],
-                    "errores_mu": r_mu["total_errors"],
-                    "qber_mu": e_mu,
-                    "claves_completadas_mu": r_mu["n_keys"],
-                    "corrida_completa_mu": r_mu["completed_requested_keys"],
-                    "tiempo_hasta_ultima_clave_s_mu": r_mu["elapsed_key_s"],
-                    "clics_detector_0_mu": r_mu["detector_clicks"][0],
-                    "clics_detector_1_mu": r_mu["detector_clicks"][1],
-                    "clics_detector_2_mu": r_mu["detector_clicks"][2],
-                    "bits_tamizados_nu": r_nu["total_sifted_bits"],
-                    "errores_nu": r_nu["total_errors"],
-                    "qber_nu": e_nu,
-                    "claves_completadas_nu": r_nu["n_keys"],
-                    "corrida_completa_nu": r_nu["completed_requested_keys"],
-                    "corrida_completa": completed_pair,
-                    "tiempo_hasta_ultima_clave_s_nu": r_nu["elapsed_key_s"],
-                    "clics_detector_0_nu": r_nu["detector_clicks"][0],
-                    "clics_detector_1_nu": r_nu["detector_clicks"][1],
-                    "clics_detector_2_nu": r_nu["detector_clicks"][2],
-                    "e1_cota_superior": e1,
-                    "e1_fallback_conservador": e1_fallback,
-                    "tasa_sin_senuelos_bps": no_rate,
-                    "tasa_con_senuelos_bps": decoy_rate,
-                    "clics_mu": r_mu["total_detector_clicks"],
-                    "clics_nu": r_nu["total_detector_clicks"],
-                }
-            )
+            for experiment_name, intensity_name, intensity, run in (
+                ("decoy_signal_mu", "mu", mu, r_mu),
+                ("decoy_weak_nu", "nu", nu, r_nu),
+            ):
+                record = _raw_run_record(
+                    experiment_name,
+                    i,
+                    "intensidad_media_fotones",
+                    intensity,
+                    repetition,
+                    run,
+                )
+                record.update(
+                    {
+                        "intensidad_senuelo": intensity_name,
+                        "mu_senal": mu,
+                        "nu_debil": nu,
+                        "y0": vacuum_yield,
+                        "q_mu": q_mu,
+                        "q_nu": q_nu,
+                        "y1_cota_inferior": y1,
+                        "corrida_pareada_completa": completed_pair,
+                        "e1_cota_superior": e1,
+                        "e1_fallback_conservador": e1_fallback,
+                        "tasa_sin_senuelos_bps": no_rate,
+                        "tasa_con_senuelos_bps": decoy_rate,
+                    }
+                )
+                raw_records.append(record)
 
         no_mean, no_low, no_high = _mean_t_ci(no_values)
         de_mean, de_low, de_high = _mean_t_ci(decoy_values)
@@ -1754,11 +1743,14 @@ def experiment_4_decoy_distance(
                 "nu": nu,
                 "repeticiones": repetitions,
                 "corridas_completas": sum(
-                    record["corrida_completa"] for record in run_records[-repetitions:]
+                    record["corrida_pareada_completa"]
+                    for record in raw_records[-2 * repetitions :]
+                    if record["intensidad_senuelo"] == "mu"
                 ),
                 "corridas_incompletas": sum(
-                    not record["corrida_completa"]
-                    for record in run_records[-repetitions:]
+                    not record["corrida_pareada_completa"]
+                    for record in raw_records[-2 * repetitions :]
+                    if record["intensidad_senuelo"] == "mu"
                 ),
                 "claves_por_repeticion": base_mu.num_keys,
                 "horizonte_s": base_mu.runtime_ps * 1e-12,
@@ -1777,7 +1769,7 @@ def experiment_4_decoy_distance(
         "skr_decoy_low": np.array(skr_de_low),
         "skr_decoy_high": np.array(skr_de_high),
         "records": records,
-        "run_records": run_records,
+        "raw_records": raw_records,
         "plot": lambda: plot_experiment_4(
             arr_d,
             arr_no,
@@ -1837,7 +1829,7 @@ def _validate_outputs(*experiments: dict[str, Any]) -> None:
                     float(record["tasa_tamizada_ic95_alto_bps"])
                     <= float(record["referencia_tasa_tamizada_bps"]) + 1e-9
                 )
-        for run in experiment["run_records"]:
+        for run in experiment["raw_records"]:
             assert int(run["bits_tamizados"]) >= int(run["errores"]) >= 0
             assert (
                 0.0
@@ -1855,19 +1847,13 @@ def _validate_outputs(*experiments: dict[str, Any]) -> None:
             float(record["tasa_con_senuelos_media_bps"])
             <= (0.5 * DEFAULT_FREQUENCY_HZ * float(record["q_mu"])) + 1e-9
         )
-    for run in experiments[3]["run_records"]:
-        for suffix in ("mu", "nu"):
-            assert (
-                int(run[f"bits_tamizados_{suffix}"])
-                >= int(run[f"errores_{suffix}"])
-                >= 0
-            )
-            assert int(run[f"claves_completadas_{suffix}"]) >= 0
-            assert float(run[f"tiempo_hasta_ultima_clave_s_{suffix}"]) >= 0.0
-            detector_sum = sum(
-                int(run[f"clics_detector_{index}_{suffix}"]) for index in range(3)
-            )
-            assert detector_sum == int(run[f"clics_{suffix}"])
+    for run in experiments[3]["raw_records"]:
+        assert run["experimento"] in {"decoy_signal_mu", "decoy_weak_nu"}
+        assert run["intensidad_senuelo"] in {"mu", "nu"}
+        assert int(run["bits_tamizados"]) >= int(run["errores"]) >= 0
+        assert int(run["claves_completadas"]) >= 0
+        assert float(run["tiempo_hasta_ultima_clave_s"]) >= 0.0
+        assert int(run["clics_detector_total"]) >= 0
 
 
 def _write_latex_results(
@@ -2018,15 +2004,17 @@ def main() -> None:
     e3["plot"]()
     e4["plot"]()
 
+    raw_records = [
+        record
+        for experiment in (e1, e2, e3, e4)
+        for record in experiment["raw_records"]
+    ]
     datasets = {
         "exp1_distance_data.csv": e1["records"],
         "exp2_detector_data.csv": e2["records"],
         "exp3_visibility_data.csv": e3["records"],
         "exp4_decoy_data.csv": e4["records"],
-        "exp1_distance_runs.csv": e1["run_records"],
-        "exp2_detector_runs.csv": e2["run_records"],
-        "exp3_visibility_runs.csv": e3["run_records"],
-        "exp4_decoy_runs.csv": e4["run_records"],
+        "experiment_runs.csv": raw_records,
     }
     for filename, records in datasets.items():
         _write_records(out_dir / filename, records)
@@ -2039,8 +2027,19 @@ def main() -> None:
         "sequence_local_patch": "sequence/components/interferometer.py phase_error correction for FreeQuantumState",
         "repetitions_per_point": args.repetitions,
         "parallel_workers": args.workers,
+        "command": (
+            "uv run python experiments/qkd_2node_simulation.py "
+            f"--repetitions {args.repetitions}"
+        ),
         "pulse_rate_hz": DEFAULT_FREQUENCY_HZ,
         "key_length_bits": DEFAULT_KEY_LENGTH,
+        "keys_per_run": DEFAULT_NUM_KEYS,
+        "run_level_dataset": "experiment_runs.csv",
+        "formula_model": {
+            "wcs_gain": "1-(1-Y0)*exp(-mu*eta)",
+            "decoy_e1": "(E_nu*Q_nu*exp(nu)-e0*Y0)/(Y1L*nu)",
+            "experiments_1_to_3": "asymptotic single-photon proxy",
+        },
         "detection_window_ps": DEFAULT_DETECTION_WINDOW_PS,
         "bb84_sift_factor": BB84_SIFT_FACTOR,
         "fiber_attenuation_db_km": DEFAULT_ALPHA_DB_KM,

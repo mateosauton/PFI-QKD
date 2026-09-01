@@ -165,12 +165,18 @@ def channel_transmittance(distance_m: float, attenuation_db_per_m: float) -> flo
     return float(10 ** (distance_m * attenuation_db_per_m / -10))
 
 
-def wcs_detection_prob(mean_photon: float, eta_channel: float, eta_det: float) -> float:
+def wcs_detection_prob(
+    mean_photon: float,
+    eta_channel: float,
+    eta_det: float,
+    background_yield: float = 0.0,
+) -> float:
     """Approximate probability of >=1 click per pulse (WCS, independent loss + detection)."""
     eta = max(0.0, min(1.0, eta_channel * eta_det))
+    y0 = max(0.0, min(1.0, background_yield))
     if mean_photon <= 0:
-        return 0.0
-    return float(1.0 - math.exp(-mean_photon * eta))
+        return y0
+    return float(1.0 - (1.0 - y0) * math.exp(-mean_photon * eta))
 
 
 def background_yield(dark_count_hz: float, detection_window_ps: float, detectors: int = 3) -> float:
@@ -181,8 +187,12 @@ def background_yield(dark_count_hz: float, detection_window_ps: float, detectors
 
 def wcs_gain(mean_photon: float, eta_channel: float, eta_det: float, y0: float) -> float:
     """Observed WCS gain including independent signal loss and background yield."""
-    signal_no_click = math.exp(-max(0.0, mean_photon) * eta_channel * eta_det)
-    return float(1.0 - (1.0 - y0) * signal_no_click)
+    return wcs_detection_prob(
+        mean_photon,
+        eta_channel,
+        eta_det,
+        background_yield=y0,
+    )
 
 
 @dataclass
@@ -377,12 +387,10 @@ def decoy_yield_y1_lower(mu: float, nu: float, q_mu: float, q_nu: float, y0: flo
     if mu <= nu or nu <= 0 or mu <= 0:
         return 0.0
     denom = mu * nu - nu * nu
-    if denom <= 0:
-        return 0.0
-    term = q_nu * math.exp(nu) - q_mu * math.exp(mu) * (nu / mu) ** 2
+    term = q_nu * math.exp(nu)
+    term -= q_mu * math.exp(mu) * (nu / mu) ** 2
     term -= ((mu * mu - nu * nu) / (mu * mu)) * y0
-    y1 = (mu / denom) * term
-    return max(0.0, y1)
+    return float(min(1.0, max(0.0, (mu / denom) * term)))
 
 
 def decoy_e1_upper(
@@ -396,16 +404,9 @@ def decoy_e1_upper(
     """Upper bound on single-photon error rate e_1 from decoy statistics."""
     if y1 <= 0 or nu <= 0:
         return 0.5
-    denom = y1 * nu
-    if denom <= 1e-30:
-        return 0.5
     numerator = e_nu * q_nu * math.exp(nu) - e0 * y0
-    if numerator <= 0:
-        # The hybrid finite-sample/analytic inputs are then incompatible with
-        # a positive upper estimate. Use the worst-case error, not an
-        # optimistic zero-error clipping.
-        return 0.5
-    return float(min(0.5, numerator / denom))
+    e1 = numerator / (y1 * nu)
+    return float(min(0.5, max(0.0, e1)))
 
 
 def secret_key_rate_asymptotic_decoy(

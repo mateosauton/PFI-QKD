@@ -7,9 +7,9 @@ Los resultados permiten evaluar el modelo con más precisión que una lectura vi
 
 La evidencia confirma el funcionamiento lógico del escenario implementado. Los 1.800 registros representan 2.100 ejecuciones de SeQUeNCe, porque cada repetición señuelo combina una ejecución para \(\mu\) y otra para \(\nu\). En los CSV actuales, Alice y Bob completan el número previsto de claves en todas ellas; esta comprobación se realizó sobre los datos y todavía no es una condición del validador automático. QBER se obtiene de errores y bits conservados, las tasas usan el tiempo total de generación y los clics se registran antes de que BB84 limpie sus búferes internos. Los invariantes implementados de ganancias, intervalos y contabilidad pasan en todos los archivos exportados.
 
-El barrido de visibilidad aporta una prueba adicional. La corrección local del interferómetro hace que \texttt{phase\_error} afecte estados \texttt{FreeQuantumState}; la pendiente negativa de QBER confirma que esa perturbación alcanza la salida protocolar. Es una validación interna del código y no una validación experimental del interferómetro.
+El barrido de visibilidad aporta una prueba adicional. La corrección local del interferómetro hace que \texttt{phase\_error} afecte estados \texttt{FreeQuantumState} y conserva ambos puertos en la ventana central. Las pruebas unitarias verifican probabilidad central cercana a \(1/2\), conservación de eventos y una fracción de error intermedia; la pendiente negativa de QBER confirma que esa perturbación alcanza la salida protocolar. Es una validación interna del código y no una validación experimental del interferómetro.
 
-La simulación tampoco valida por sí sola una distancia de operación. QBER permanece por debajo del umbral del indicador ideal en \SI{69.54}{\kilo\meter} y lo supera ampliamente en \SI{77.15}{\kilo\meter}, aunque la tasa mantiene holgura en ambos casos. Antes de extrapolar, deben revisarse errores por base, retardo clásico, alineación de rondas, detecciones aceptadas y composición señal--fondo.
+La simulación tampoco valida por sí sola una distancia de operación. QBER permanece por debajo del umbral del indicador ideal en \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm}{\kilo\meter} y lo supera ampliamente en \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm}{\kilo\meter}, aunque la tasa mantiene holgura en ambos casos. Antes de extrapolar, deben revisarse errores por base, retardo clásico, alineación de rondas, detecciones aceptadas y composición señal--fondo.
 
 \section{Validez de construcción de las métricas}
 
@@ -25,8 +25,8 @@ Cada métrica representa un concepto distinto. La Tabla~\ref{tab:origen_metricas
     Tasa tamizada & Bits completados y tiempo final & Salida temporal del protocolo, sujeta a control de plausibilidad \\
     \(I_\mathrm{ideal}\) & Tasa tamizada, QBER y \(f_\mathrm{EC}\) & Indicador monofotónico ideal; no tasa secreta WCS \\
     \(R_\mathrm{ref}\) & Fuente, canal, detector y límite de conteo & Referencia media de diseño; no máximo determinista \\
-    Tasa sin señuelos & Cota PNS conservadora y QBER simulado & Estimador asintótico híbrido \\
-    Tasa señuelo & Ganancias analíticas y errores simulados & Estimador asintótico, no clave finita componible \\
+    Tasa sin señuelos & Cota PNS, QBER agrupada y \(q=3/8\) & Diagnóstico con fórmula asintótica \\
+    Tasa señuelo & Ganancias analíticas, QBER agrupada y \(q=3/8\) & Diagnóstico; no clave finita componible \\
     \bottomrule
   \end{tabularx}
   \caption{Origen y alcance de las métricas utilizadas.}
@@ -39,13 +39,13 @@ Esta separación corrige una ambigüedad frecuente. El hecho de que \(I_\mathrm{
 
 Las \PThreeRepetitions{} corridas por punto permiten estimar dispersión y comparar efectos. QBER usa un intervalo binomial de Wilson sobre conteos agrupados; las tasas conservan la variación entre corridas. Wilson supone intercambiabilidad de los bits y no captura sobredispersión entre semillas. Por eso sus bandas describen la proporción agrupada, mientras los intervalos t, Welch y de regresión describen variación Monte Carlo entre corridas. Una extensión debería informar ambos niveles mediante un modelo binomial jerárquico, un intervalo por conglomerados o un resumen de las QBER por repetición.
 
-El control por repetición muestra el alcance de esa limitación. A \SI{16.23}{\kilo\meter}, el intervalo t de las 30 QBER es \([0{,}115;0{,}328]\)\%, frente al Wilson agrupado \([0{,}138;0{,}354]\)\%; ambos describen una región similar. A \SI{92.38}{\kilo\meter}, el intervalo por repetición es \([44{,}139;46{,}929]\)\%, mientras Wilson da \([44{,}423;46{,}650]\)\%. La concordancia sostiene la presencia del régimen de error alto, aunque cada intervalo responde a una fuente de variación distinta.
+El control por repetición muestra el alcance de esa limitación. A \SI{16.23}{\kilo\meter}, el intervalo t de las 30 QBER es \([0{,}150;0{,}371]\)\%, frente al Wilson agrupado \([0{,}169;0{,}402]\)\%; ambos describen una región similar. A \SI{92.38}{\kilo\meter}, el intervalo por repetición es \([43{,}242;46{,}133]\)\%, mientras Wilson da \([43{,}579;45{,}802]\)\%. La concordancia sostiene la presencia del régimen de error alto, aunque cada intervalo responde a una fuente de variación distinta.
 
-El contraste de eficiencia queda completamente por encima de cero y resuelve el efecto entre 0,05 y 0,85. El contraste de fondo incluye cero y produce \(p=\num[round-mode=places,round-precision=3]{\PThreeDarkPValue}\), apenas por encima del umbral convencional. La primera conclusión verifica sensibilidad del modelo; la segunda no demuestra ausencia de influencia física. Ninguna de las dos habilita seleccionar hardware sin restringir resolución, tiempo muerto, ventana y pérdidas a un equipo real.
+El contraste de eficiencia queda completamente por encima de cero y resuelve el efecto entre 0,05 y 0,85. El contraste de fondo incluye cero y produce \(p=\num[round-mode=places,round-precision=3]{\PThreeDarkPValue}\), claramente por encima del umbral convencional. La primera conclusión verifica sensibilidad del modelo; la segunda no demuestra ausencia de influencia física. Ninguna de las dos habilita seleccionar hardware sin restringir resolución, tiempo muerto, ventana y pérdidas a un equipo real.
 
 La regresión de visibilidad sí resuelve una pendiente negativa. Sin embargo, su potencia proviene en parte de imponer \(p_\mathrm{fase}=(1-V)/2\). La prueba confirma la respuesta del modelo a su entrada. Para evaluar hardware, la variable independiente debe provenir de mediciones de visibilidad y deriva, no de una relación fijada por software.
 
-La sensibilidad robusta no cambia ese resultado: con covarianza HC3, la pendiente es \(-0{,}1005\) y su IC del 95\% es \([-0{,}1061;-0{,}0949]\), prácticamente igual al intervalo OLS informado. Para las tasas señuelo, el bootstrap percentil produce IC de \([92{,}6;200{,}3]\), \([26{,}0;70{,}3]\) y \([0;0]\)\,kbit/s a 5, 23,89 y \SI{90}{\kilo\meter}. Los intervalos t correspondientes son \([86{,}6;205{,}4]\), \([24{,}0;71{,}9]\) y \([0;0]\)\,kbit/s. La cercanía sostiene las conclusiones descriptivas; la amplitud de los dos primeros intervalos y la mezcla de ceros conservadores impiden atribuirles cobertura de seguridad.
+La sensibilidad robusta no cambia ese resultado: con covarianza HC3, la pendiente es \(-0{,}1663\) y su IC del 95\% es \([-0{,}1735;-0{,}1591]\), prácticamente igual al intervalo OLS informado y compatible con la referencia \(-1/6\). Para las tasas señuelo, el bootstrap percentil sobre conteos agrupados produce IC de \([223{,}7;235{,}2]\), \([95{,}5;100{,}1]\) y \([0;0]\)\,kbit/s a 5, 23,89 y \SI{90}{\kilo\meter}. Estos intervalos cuantifican variación Monte Carlo del diagnóstico; no son cotas de seguridad ni sustituyen un análisis de clave finita.
 
 \section{Validez del control analítico}
 
@@ -59,9 +59,9 @@ Los doce puntos de visibilidad conservan holgura. La pendiente de QBER y las tas
 
 La comparación del cuarto experimento corrige el sesgo que produciría usar intensidades de señal distintas. Ambos casos usan \(\mu=0{,}1\); la configuración señuelo agrega \(\nu=0{,}05\). La diferencia observada se debe al método para estimar la contribución monofotónica.
 
-El estimador conserva cuatro limitaciones. Primero, \(Q_\mu\) y \(Q_\nu\) son ganancias analíticas, no frecuencias medidas en clases de pulsos elegidas al azar. Segundo, el rendimiento de fondo usa una ventana supuesta de \SI{1}{\nano\second} que no existe como compuerta calibrada dentro del receptor. Tercero, el error de fase se aproxima con QBER agregada. Cuarto, el tratamiento es asintótico.
+El diagnóstico conserva cuatro limitaciones. Primero, \(Q_\mu\) y \(Q_\nu\) son ganancias analíticas, no frecuencias medidas en clases de pulsos elegidas al azar. Segundo, el rendimiento de fondo usa una ventana supuesta de \SI{1}{\nano\second} que no existe como compuerta calibrada dentro del receptor. Tercero, el error de fase se aproxima con QBER agregada. Cuarto, se aplica una fórmula asintótica a una muestra Monte Carlo finita. El agrupamiento y el bootstrap corrigen el orden de cálculo, pero no convierten la salida en un análisis de clave finita.
 
-El reemplazo \(e_1^U=1/2\) aparece en \PThreeDecoyFallbackTotal{} de 300 repeticiones pareadas y en \PThreeDecoyFallbackDistances{} distancias. Es una decisión conservadora ante un numerador no positivo, pero su frecuencia muestra que las medias de corto y medio alcance mezclan corridas informativas con contribuciones nulas. La estimación permanece positiva hasta \SI{71.11}{\kilo\meter} y se anula desde \SI{80.56}{\kilo\meter}; aun ese último punto positivo no constituye alcance validado.
+El reemplazo \(e_1^U=1/2\) se evalúa una vez por distancia después de agrupar los conteos y aparece en \PThreeDecoyFallbackDistances{} de los diez puntos. Es una decisión conservadora ante un numerador no positivo. A diferencia del cálculo por claves cortas, el estimador puntual no mezcla tasas obtenidas antes de agrupar; el bootstrap repite el mismo orden de operaciones en cada remuestreo. Aun el último punto con estimación positiva constituye un diagnóstico del modelo y no un alcance validado.
 
 \section{Validez externa y Campus Miguelete}
 
@@ -75,13 +75,14 @@ La utilidad para el campus es más acotada y concreta. El modelo indica qué deb
 
 El canal clásico se representa como medio de coordinación, pero el modelo no implementa autenticación criptográfica. Tampoco ejecuta reconciliación, verificación, amplificación de privacidad ni administración de claves. En consecuencia, ninguna salida es una clave entregable a una aplicación.
 
-El modelo no incluye ataques laterales, saturación inducida, manipulación del detector, fugas del modulador ni caracterización de indistinguibilidad entre intensidades. La seguridad de una implementación exige cerrar esas hipótesis y aplicar análisis de clave finita. Las advertencias no son anexos editoriales: delimitan qué afirmaciones pueden sostener los resultados.
+El modelo no incluye ataques laterales, saturación inducida, manipulación del detector, fugas del modulador ni caracterización de indistinguibilidad entre intensidades \cite{scarani2009security}. La seguridad de una implementación exige cerrar esas hipótesis y aplicar análisis de clave finita. Las advertencias no son anexos editoriales: delimitan qué afirmaciones pueden sostener los resultados.
 
+\clearpage
 \section{Criterios para pasar a una maqueta}
 
 El paso al laboratorio requiere criterios medibles:
 
-\begin{table}[htbp]
+\begin{table}[H]
   \centering
   \begin{tabularx}{\textwidth}{p{0.24\textwidth}p{0.30\textwidth}X}
     \toprule

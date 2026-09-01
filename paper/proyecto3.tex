@@ -116,7 +116,7 @@ El objetivo general es evaluar un enlace Alice--Bob BB84 \textit{time-bin} media
   \item \textquestiondown Qué diferencia produce la estimación con estados señuelo frente a la estimación conservadora sin señuelos, manteniendo igual intensidad de señal?
 \end{itemize}
 
-El aporte de esta etapa no es una cifra aislada. Se entrega un flujo auditable que conserva semillas, errores, bits, tiempos y clics de cada repetición; separa una métrica ideal de posprocesamiento de estimadores asintóticos bajo supuestos explícitos; aplica incertidumbre estadística acorde con cada variable; y contrasta la salida de SeQUeNCe con una referencia analítica externa. Esto permite informar resultados negativos y señalar regiones donde el modelo requiere una auditoría adicional, sin presentar esa referencia estadística como una ley física determinista.
+El aporte de esta etapa no es una cifra aislada. Se entrega un flujo auditable que conserva semillas, errores, bits, tiempos y clics de cada repetición; separa una métrica ideal de posprocesamiento de diagnósticos basados en fórmulas asintóticas; aplica incertidumbre estadística acorde con cada variable; y contrasta la salida de SeQUeNCe con una referencia analítica externa. Esto permite informar resultados negativos y señalar regiones donde el modelo requiere una auditoría adicional, sin presentar esa referencia estadística como una ley física determinista.
 
 \section{Experimentos}
 
@@ -128,7 +128,7 @@ El repositorio usa una modificación local explícita en el archivo
 \begin{center}
   \path{sequence/components/interferometer.py}.
 \end{center}
-Allí se corrigió la aplicación de \texttt{phase\_error} a estados \texttt{FreeQuantumState}. Es necesaria para representar visibilidad menor que uno y se registra en el resumen JSON. La versión efectiva es SeQUeNCe 0.8.5 más ese parche local.
+Allí se corrigió la aplicación de \texttt{phase\_error} a estados \texttt{FreeQuantumState} y la conservación de ambos puertos en la ventana central. Para estados X, la salida combinada contiene probabilidad \(1/4\), \(1/2\) y \(1/4\) en las ventanas temprana, central y tardía; la ventana central se dirige a uno de los dos detectores según la fase \cite{rusca2018simplified}. Pruebas estadísticas verifican la conservación de eventos y una tasa de error intermedia. La versión efectiva es SeQUeNCe 0.8.5 más esos parches locales.
 
 \begin{figure}[htbp]
   \centering
@@ -172,7 +172,7 @@ La ganancia total para intensidad media \(\mu\) es
   \label{eq:gain}
 \end{equation}
 
-Con elección uniforme de bases, \(q=1/2\), se construye la tasa de referencia
+Con elección uniforme de bases y selección de la ventana central en X, la eficiencia protocolar es \(q=1/4+(1/4)(1/2)=3/8\). La tasa de referencia es
 
 \begin{equation}
   R_{\mathrm{ref}}
@@ -224,7 +224,7 @@ El error monofotónico y la tasa del caso sin señuelos se estiman mediante
   e_{1,\mathrm{no}}^{U}
     &=\min\!\left\{\frac{1}{2},\frac{E_\mu Q_\mu}{Q_1^{L}}\right\},\\
   R_{\mathrm{no}}
-    &=\frac{f_{\mathrm{rep}}}{2}
+    &=\frac{3f_{\mathrm{rep}}}{8}
       \max\!\left\{0,-Q_\mu f_{\mathrm{EC}}\hbin{E_\mu}
       +Q_1^{L}\left(1-\hbin{e_{1,\mathrm{no}}^{U}}\right)\right\},
   \label{eq:no-decoy-rate}
@@ -243,22 +243,22 @@ Con estados señuelo se emplean \cite{loMaChen2005,maQiZhaoLo2005}
   Q_1^{L}&=\mu e^{-\mu}Y_1^{L}.
 \end{align}
 
-El estimador asintótico con señuelos es
+El diagnóstico basado en la fórmula asintótica con señuelos es
 
 \begin{equation}
-  R_{\mathrm{decoy}}\geq\frac{f_{\mathrm{rep}}}{2}
+  R_{\mathrm{decoy}}\geq\frac{3f_{\mathrm{rep}}}{8}
   \left[-Q_\mu f_{\mathrm{EC}}\hbin{E_\mu}
   +Q_1^{L}(1-\hbin{e_1^{U}})\right].
   \label{eq:decoy-rate}
 \end{equation}
 
-En este experimento, \(Y_0=\num{\PThreeDecoyVacuumYield}\) se deriva analíticamente de \SI{80}{\hertz}, tres detectores y una ventana supuesta de \SI{1}{\nano\second}. SeQUeNCe usa la misma tasa de conteos oscuros, pero el receptor simulado no implementa una compuerta electrónica de esa duración; por lo tanto, la ventana pertenece a la parte analítica del estimador híbrido. Las tasas de error provienen de cada corrida de SeQUeNCe y el error de fase se aproxima con su QBER agregada internamente, bajo una hipótesis explícita de simetría entre bases. Por ello, el resultado es asintótico y no una cota de seguridad componible. Si el numerador de \(e_1^U\) resulta no positivo por la combinación de muestra finita y ganancias analíticas, se adopta conservadoramente \(e_1^U=1/2\), en lugar de truncarlo a cero.
+En este experimento, \(Y_0=\num{\PThreeDecoyVacuumYield}\) se deriva analíticamente de \SI{80}{\hertz}, tres detectores y una ventana supuesta de \SI{1}{\nano\second}. SeQUeNCe usa la misma tasa de conteos oscuros, pero el receptor simulado no implementa una compuerta electrónica de esa duración. Los errores y bits de las 30 repeticiones se agrupan por intensidad antes de aplicar la fórmula no lineal. El IC del 95\,\% usa 20.000 remuestreos bootstrap pareados que repiten ese orden. Por ello, el resultado es un diagnóstico híbrido basado en una fórmula asintótica y no una cota de seguridad componible. Si el numerador de \(e_1^U\) agrupado resulta no positivo, se adopta conservadoramente \(e_1^U=1/2\).
 
 \subsection*{Diseño estadístico y reproducibilidad}
 
-Cada punto se ejecuta con \PThreeRepetitions{} pares de semillas independientes y deterministas. Cada repetición genera claves de \PThreeKeyBits{} bits. Los barridos de distancia y señuelos usan una clave por ejecución y reúnen 7.680 bits por intensidad y punto; detector y visibilidad usan cuatro claves y reúnen 30.720 bits. Para QBER se usa un intervalo de Wilson del 95\,\% sobre errores y bits agrupados \cite{wilson1927}. Para tasas e indicadores se usa la media y un intervalo t de Student del 95\,\% entre repeticiones. Los efectos entre extremos se evalúan con diferencia de Welch; la tendencia de visibilidad, mediante regresión lineal con intervalo y valor \(p\) \cite{welch1947}. Estos intervalos cuantifican incertidumbre Monte Carlo, no seguridad de clave finita.
+Cada punto se ejecuta con \PThreeRepetitions{} pares de semillas independientes y deterministas. Cada repetición genera claves de \PThreeKeyBits{} bits. Los barridos de distancia y señuelos usan una clave por ejecución y reúnen 7.680 bits por intensidad y punto; detector y visibilidad usan cuatro claves y reúnen 30.720 bits. Para QBER se usa un intervalo de Wilson del 95\,\% sobre errores y bits agrupados \cite{wilson1927}. En los experimentos 1 a 3, tasas e indicadores usan la media y un intervalo t de Student del 95\,\% entre repeticiones. En el cuarto, el estimador puntual usa conteos agrupados y el intervalo usa bootstrap pareado sobre esos conteos \cite{efron1979bootstrap}. Los efectos entre extremos se evalúan con diferencia de Welch; la tendencia de visibilidad, mediante regresión lineal con intervalo y valor \(p\) \cite{welch1947}. Estos intervalos cuantifican incertidumbre Monte Carlo, no seguridad de clave finita.
 
-Se exportan agregados por punto y una fila por repetición con semillas, claves, bits, errores, tiempo, tasa y clics por detector. En el caso señuelo esos campos se conservan por separado para \(\mu\) y \(\nu\). El resumen JSON registra fecha UTC, métodos, versión y hashes SHA-256 del script, el parche del interferómetro, la configuración del proyecto, las dependencias y cada conjunto de datos. Las cifras del documento provienen de \texttt{proyecto3\_results.tex}, generado en la misma corrida.
+Se exportan agregados por punto y una fila por repetición con semillas, claves, bits, errores, tiempo y clics por detector. Los tres primeros experimentos guardan también tasas por corrida. En el caso señuelo, los campos básicos se conservan por separado para \(\mu\) y \(\nu\), mientras las tasas se calculan sólo después de agrupar. El resumen JSON registra fecha UTC, métodos, versión y hashes SHA-256 del script, el parche del interferómetro, la configuración del proyecto, las dependencias y cada conjunto de datos. Las cifras del documento provienen de \texttt{proyecto3\_results.tex}, generado en la misma corrida.
 
 \begin{table}[htbp]
   \centering
@@ -271,7 +271,7 @@ Se exportan agregados por punto y una fila por repetición con semillas, claves,
     Longitud de clave & Bits por clave completada & \PThreeKeyBits{} bits \\
     Repeticiones & Corridas independientes por punto & \PThreeRepetitions{} \\
     Ventana analítica & Exposición usada para \(Y_0\) & \SI{1}{\nano\second} \\
-    Factor de tamizado & Bases compatibles & \(q=1/2\) \\
+    Eficiencia protocolar & Bases y ventana central X & \(q=3/8\) \\
     \bottomrule
   \end{tabularx}
   \caption{Parámetros comunes y su interpretación.}
@@ -319,7 +319,7 @@ sifted_rate_reference = 0.5 * min(
 
 \textbf{Experimento 2: detector.} Se fija la distancia en \SI{5}{\kilo\meter} y se elimina el retardo clásico adicional para reducir su influencia. Primero se barre eficiencia y luego tasa de conteos oscuros. Para el segundo barrido se fija \(\eta_d=0{,}85\), lo que conserva holgura frente a la referencia analítica en todo el rango de fondo. Se espera mayor disponibilidad de clics al aumentar eficiencia y mayor error al aumentar fondo. Las conclusiones se basan en intervalos para diferencias, no en superposición visual de bandas.
 
-\textbf{Experimento 3: visibilidad.} Se fija la distancia en \SI{30}{\kilo\meter} y se impone \(p_{\mathrm{fase}}=(1-V)/2\). Se espera una pendiente negativa de QBER. Como la relación se introduce como entrada, es una prueba de sensibilidad interna, no una validación independiente de un interferómetro. El mismo diagnóstico de referencia se aplica a todos los puntos y condiciona la interpretación de las tasas, no la comprobación lógica de la respuesta de QBER.
+\textbf{Experimento 3: visibilidad.} Se fija la distancia en \SI{30}{\kilo\meter} y se impone \(p_{\mathrm{fase}}=(1-V)/2\). La base X aporta un tercio de los bits aceptados, por lo que, sin otros errores variables, se espera \(E(V)\simeq(1-V)/6\) y una pendiente cercana a \(-1/6\). Como la relación se introduce como entrada, es una prueba de sensibilidad interna, no una validación independiente de un interferómetro. El mismo diagnóstico de referencia se aplica a todos los puntos y condiciona la interpretación de las tasas, no la comprobación lógica de la respuesta de QBER.
 
 \textbf{Experimento 4: estados señuelo.} Los dos estimadores usan \(\mu=0{,}1\), por lo que la comparación aísla el método de estimación. Se espera que el caso sin señuelos se anule cuando no pueda acotarse una contribución monofotónica positiva después de descontar pulsos multifotónicos y fondo, mientras la estimación con \(\nu=0{,}05\) conserve información adicional sobre \(Y_1\).
 
@@ -327,7 +327,7 @@ sifted_rate_reference = 0.5 * min(
 
 \subsection*{Distancia y referencia analítica}
 
-La Figura~\ref{fig:p3_exp1_distance} muestra la caída de ganancia y la QBER agrupada. El IC del 95\,\% de la tasa tamizada permanece por debajo de la referencia en los 14 puntos. QBER es 8,750\,\% a \SI{69.54}{\kilo\meter} y aumenta a 30,273\,\% en \SI{77.15}{\kilo\meter}. La transición caracteriza al modelo y no define una distancia límite del sistema.
+La Figura~\ref{fig:p3_exp1_distance} muestra la caída de ganancia y la QBER agrupada. El IC del 95\,\% de la tasa tamizada permanece por debajo de la referencia en los 14 puntos. QBER es \num[round-mode=places,round-precision=3]{\PThreeQberTransitionLowPct}\,\% a \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm}{\kilo\meter} y aumenta a \num[round-mode=places,round-precision=3]{\PThreeQberTransitionHighPct}\,\% en \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm}{\kilo\meter}. La transición caracteriza al modelo y no define una distancia límite del sistema.
 
 \begin{figure}[htbp]
   \centering
@@ -399,16 +399,16 @@ La regresión sobre corridas queda resumida por
   \label{fig:p3_exp3_visibility}
 \end{figure}
 
-La tendencia es coherente con la relación impuesta \(p_{\mathrm{fase}}=(1-V)/2\). Verifica la propagación lógica del parámetro, pero no demuestra estabilidad térmica, balance de caminos ni visibilidad alcanzable en hardware. Los \PThreeVisibilityNoMarginPoints{} niveles sin holgura indican que los doce puntos satisfacen el control de tasa. El indicador sigue siendo una salida del modelo y no evidencia cuantitativa de factibilidad física.
+La tendencia tiene el signo esperado para la relación impuesta \(p_{\mathrm{fase}}=(1-V)/2\). La referencia para su magnitud es \(-1/6\), porque los bits X representan un tercio del conjunto aceptado. El barrido verifica la propagación lógica del parámetro, pero no demuestra estabilidad térmica, balance de caminos ni visibilidad alcanzable en hardware. Ninguno de los doce niveles pierde holgura frente al control de tasa. El indicador sigue siendo una salida del modelo y no evidencia cuantitativa de factibilidad física.
 
 \subsection*{Comparación con estados señuelo}
 
-A \SI{5}{\kilo\meter}, la estimación sin señuelos es \SI{\PThreeNoDecoyFiveKbps}{\kilo bit\per\second} y la estimación con señuelos es \SI{\PThreeDecoyFiveKbps}{\kilo bit\per\second}. Cerca de \SI{24}{\kilo\meter}, la primera vale \SI{\PThreeNoDecoyTwentyFourKbps}{\kilo bit\per\second}, mientras la estimación decoy conserva \SI{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second}. La estimación señuelo permanece positiva hasta \SI{71.11}{\kilo\meter} y se anula en 80,56 y \SI{90}{\kilo\meter}. En el barrido completo, el fallback aparece en \PThreeDecoyFallbackTotal{} de 300 corridas, distribuidas en \PThreeDecoyFallbackDistances{} de las 10 distancias. Esta frecuencia explica parte de la dispersión y limita la lectura de la media.
+A \SI{5}{\kilo\meter}, la estimación sin señuelos es \SI{\PThreeNoDecoyFiveKbps}{\kilo bit\per\second} y la estimación con señuelos es \SI{\PThreeDecoyFiveKbps}{\kilo bit\per\second}. Cerca de \SI{24}{\kilo\meter}, la primera vale \SI{\PThreeNoDecoyTwentyFourKbps}{\kilo bit\per\second}, mientras la estimación decoy conserva \SI{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second}. La estimación señuelo permanece positiva hasta \SI{71.11}{\kilo\meter} y se anula en 80,56 y \SI{90}{\kilo\meter}. El reemplazo conservador \(e_1^U=1/2\) se evalúa después de agrupar cada distancia y no se activa en ninguno de los diez puntos. Los ceros finales se deben al nivel de error observado.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.9\textwidth]{exp4_decoy_impact.png}
-  \caption{Estimadores asintóticos sin y con estados señuelo, ambos con \(\mu=0{,}1\). La configuración señuelo usa \(\nu=0{,}05\) y \(Y_0=\num{\PThreeDecoyVacuumYield}\), derivado del mismo modelo de fondo.}
+  \caption{Diagnósticos con conteos agrupados y fórmulas asintóticas, ambos con \(\mu=0{,}1\). Las bandas son IC bootstrap pareados del 95\,\%; la configuración señuelo usa \(\nu=0{,}05\) y \(Y_0=\num{\PThreeDecoyVacuumYield}\).}
   \label{fig:p3_exp4_decoy}
 \end{figure}
 
@@ -423,7 +423,7 @@ La diferencia proviene de estimar \(Y_1\) y \(e_1\), no de aumentar la intensida
     \toprule
     Experimento & Resultado & Interpretación defendible \\
     \midrule
-    Distancia & QBER 8,750\,\% a 69,54 km y 30,273\,\% a 77,15 km & Transición del modelo; no fija alcance QKD. \\
+    Distancia & QBER \num[round-mode=places,round-precision=3]{\PThreeQberTransitionLowPct}\,\% a \num[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm} km y \num[round-mode=places,round-precision=3]{\PThreeQberTransitionHighPct}\,\% a \num[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm} km & Transición del modelo; no fija alcance QKD. \\
     Eficiencia & Diferencia \SI{\PThreeEffDifferenceKbps}{\kilo bit\per\second}, con IC y \(p\) & El efecto se juzga por contraste y referencia. \\
     Fondo & QBER \num{\PThreeDarkFirstQberPct}--\num{\PThreeDarkLastQberPct}\,\% & Ventanas y clics permiten auditar su observabilidad. \\
     Visibilidad & Pendiente QBER \num{\PThreeVisibilityQberSlope} & Sensibilidad al error impuesto, no desempeño físico. \\
@@ -438,21 +438,21 @@ Los cuatro CSV agregados, cuatro CSV de corridas, el resumen JSON, las cinco fig
 
 \section{Conclusiones}
 
-La hipótesis se sostiene con alcance preciso: la simulación de eventos discretos es útil para convertir el diseño de un banco QKD en preguntas medibles y detectar cuándo una salida exige revisar los supuestos. No se obtuvo una certificación criptográfica ni una distancia máxima. Se obtuvo un procedimiento reproducible para distinguir comportamiento interno, referencias analíticas de diseño y estimadores asintóticos bajo modelos específicos.
+La hipótesis se sostiene con alcance preciso: la simulación de eventos discretos es útil para convertir el diseño de un banco QKD en preguntas medibles y detectar cuándo una salida exige revisar los supuestos. No se obtuvo una certificación criptográfica ni una distancia máxima. Se obtuvo un procedimiento reproducible para distinguir comportamiento interno, referencias analíticas de diseño y diagnósticos basados en fórmulas asintóticas.
 
-El barrido de distancia conserva holgura de tasa en los 14 puntos y localiza un aumento de QBER entre 69,54 y \SI{77.15}{\kilo\meter}. Desde el segundo punto, el indicador ideal es nulo. La transición no es una frontera de factibilidad: exige estudiar errores por base, fondo y alineación de rondas antes de extrapolar.
+El barrido de distancia conserva holgura de tasa en los 14 puntos y localiza un aumento de QBER entre \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm}{\kilo\meter} y \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm}{\kilo\meter}. Desde el segundo punto, el indicador ideal es nulo. La transición no es una frontera de factibilidad: exige estudiar errores por base, fondo y alineación de rondas antes de extrapolar.
 
 El experimento de detector fue reformulado para reducir el retardo adicional, registrar clics y evaluar diferencias directamente. El efecto de eficiencia queda resuelto entre extremos; el intervalo de fondo incluye cero y produce \(p=\num{\PThreeDarkPValue}\). Una caracterización de hardware deberá restringir el barrido a un equipo real, separar clics de señal y fondo e incorporar ventanas medidas, tiempo muerto, \textit{jitter} y pérdidas internas.
 
 El barrido de visibilidad muestra una pendiente negativa de QBER cuantificada. Era esperable porque el error de fase se deriva de \(V\); el aporte es verificar que la dependencia se propaga correctamente por el modelo. Los doce niveles conservan holgura frente a la referencia de tasa. El laboratorio deberá sustituir la relación impuesta por mediciones de deriva térmica, desbalance óptico y estabilidad temporal.
 
-La comparación de señuelos corrige tres ambigüedades. Las ganancias analíticas usan un único fondo derivado de conteos oscuros y una ventana supuesta; el caso sin señuelos descuenta también la contribución de vacío; y un numerador no positivo en \(e_1^U\) activa el valor conservador \(1/2\). Además, ambas configuraciones comparten \(\mu=0{,}1\), por lo que la diferencia no se atribuye a potencia distinta. El resultado explica la utilidad de estimar la contribución monofotónica, aunque sigue limitado por su carácter asintótico, híbrido y no componible.
+La comparación de señuelos corrige cuatro ambigüedades. Las ganancias analíticas usan un único fondo derivado de conteos oscuros y una ventana supuesta; el caso sin señuelos descuenta también la contribución de vacío; ambas configuraciones comparten \(\mu=0{,}1\); y la fórmula no lineal se aplica después de agrupar los conteos, con bootstrap pareado. Un numerador no positivo en \(e_1^U\) activa el valor conservador \(1/2\). El resultado explica la utilidad de estimar la contribución monofotónica, aunque sigue siendo híbrido y no componible.
 
 En relación con Proyecto 3, el avance verificable es:
 
 \begin{itemize}
   \item un enlace Alice--Bob BB84 \textit{time-bin} documentado en SeQUeNCe;
-  \item separación entre indicador monofotónico ideal y estimadores para fuente coherente débil;
+  \item separación entre indicador monofotónico ideal y diagnósticos para fuente coherente débil;
   \item \PThreeRepetitions{} repeticiones por punto con intervalos adecuados a QBER, tasas y efectos;
   \item resultados individuales, semillas, errores, tiempos y clics por detector;
   \item fondo, ventana, tamizado y límite de conteo en una referencia analítica explícita;
@@ -460,7 +460,7 @@ En relación con Proyecto 3, el avance verificable es:
   \item generación conjunta de datos, figuras y macros, seguida de compilación reproducible del PDF.
 \end{itemize}
 
-Los próximos pasos son implementar elección de intensidades dentro del protocolo, separar estadísticas por base, analizar clave finita, modelar autenticación y posprocesamiento, calibrar pérdidas y ventanas con datos de laboratorio, y comparar con un receptor real. Hasta entonces, las tasas decoy son estimadores asintóticos de diseño y \(I_{\mathrm{ideal}}\) es un indicador diagnóstico, nunca una clave certificada.
+Los próximos pasos son implementar elección de intensidades dentro del protocolo, separar estadísticas por base, analizar clave finita, modelar autenticación y posprocesamiento, calibrar pérdidas y ventanas con datos de laboratorio, y comparar con un receptor real. Hasta entonces, las curvas decoy son diagnósticos de diseño basados en fórmulas asintóticas y \(I_{\mathrm{ideal}}\) es un indicador diagnóstico, nunca una clave certificada.
 
 \bibliographystyle{ieeetr}
 \bibliography{references}

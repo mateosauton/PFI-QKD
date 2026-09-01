@@ -124,6 +124,8 @@ La normalización es importante porque un sistema QKD práctico no termina en el
 
 Un documento especialmente relevante es ETSI GS QKD 014, que define una API REST para entrega de claves \cite{etsiQKD014}. La existencia de esa API no implica que el presente proyecto deba implementarla, pero sí define una frontera conceptual: una entidad de aplicación segura puede pedir material de clave a un sistema QKD/KMS mediante una interfaz acordada. Esta idea permite discutir aplicaciones futuras sin confundirlas con los resultados físicos de la simulación.
 
+ETSI GS QKD 020 V1.1.1, publicada en junio de 2026, complementa esa interfaz hacia el interior de la infraestructura: especifica el protocolo y el formato de datos de una API REST interoperable entre sistemas de administración de claves QKD \cite{etsiQKD020}. QKD 014 describe la entrega entre el KMS y la aplicación; QKD 020 aborda la coordinación entre KMS. La distinción resulta pertinente para una futura red UNSAM con más de un enlace o con un nodo confiable, aunque ninguna de las dos interfaces se implementa en la simulación de este trabajo.
+
 Otro documento útil es ETSI GS QKD 016, orientado a perfiles de protección Common Criteria para pares de módulos QKD prepare-and-measure \cite{etsiQKD016}. En este trabajo no se realiza una evaluación Common Criteria, pero el documento refuerza una idea central: la seguridad de QKD práctica depende de módulos concretos, supuestos de implementación, interfaces, control de acceso y protección física. Por eso la simulación debe leerse como paso de diseño, no como certificación.
 
 \section{Productos comerciales y parámetros de referencia}
@@ -153,4 +155,5 @@ La comparación con productos comerciales debe hacerse con cuidado. Una tasa pub
 
 La simulación de redes cuánticas tiene varios niveles posibles. Un cálculo cerrado de tasa permite estudiar límites analíticos, pero no representa eventos, mensajes ni componentes. Un simulador físico detallado puede modelar decoherencia y estados con mayor fidelidad, pero puede exigir parámetros que aún no se conocen. SeQUeNCe se ubica en un punto intermedio útil para este PFI: modela eventos discretos, componentes de hardware, canales y protocolos de red \cite{wu2021sequence}.
 
+\enlargethispage{\baselineskip}
 El artículo de SeQUeNCe lo presenta como un simulador personalizable de redes cuánticas, orientado a prototipos que capturen tecnologías y protocolos actuales y futuros \cite{wu2021sequence}. Esa descripción encaja con el trabajo: no se busca únicamente calcular una curva de tasa, sino construir un escenario Alice--Bob que pueda evolucionar hacia topologías de red. La elección también es práctica: el repositorio ya contiene SeQUeNCe y la implementación BB84 utilizada por el experimento.

@@ -52,7 +52,10 @@ DEFAULT_CLASSICAL_EXTRA_DELAY_PS = int(1e9)  # 1 ms for processing (like bb84_lo
 DEFAULT_REPETITIONS = 30
 DEFAULT_WORKERS = min(8, os.cpu_count() or 1)
 DEFAULT_DETECTION_WINDOW_PS = 1_000
-BB84_SIFT_FACTOR = 0.5
+# Equal basis probabilities give 1/4 accepted Z-Z pulses. X-X pulses account
+# for another 1/4, but only the central MZI window (probability 1/2) is kept.
+TIME_BIN_PROTOCOL_EFFICIENCY = 3.0 / 8.0
+DECOY_BOOTSTRAP_SAMPLES = 20_000
 
 
 def _binary_entropy(p: float) -> float:
@@ -336,7 +339,7 @@ def run_single_simulation(p: SimParams) -> dict[str, Any]:
         p.frequency_hz * total_click_probability,
         3.0 * p.count_rate_hz,
     )
-    sifted_rate_reference_bps = BB84_SIFT_FACTOR * raw_click_rate_reference_bps
+    sifted_rate_reference_bps = TIME_BIN_PROTOCOL_EFFICIENCY * raw_click_rate_reference_bps
     detector_clicks = [detection_counter.counts.get(detector.name, 0) for detector in qsd.detectors]
 
     return {
@@ -429,19 +432,21 @@ def secret_key_rate_asymptotic_decoy(
     e1: float,
     pulse_rate: float,
     f_ec: float = 1.16,
+    protocol_efficiency: float = TIME_BIN_PROTOCOL_EFFICIENCY,
 ) -> float:
     """
     Asymptotic BB84 secret key rate (bits/s) with decoy-style single-photon bounds.
 
     Uses R >= pulse_rate * q * ( -Q_mu f H(E_mu) + Q_1^L (1 - H(e_1)) ),
-    Q_1^L = mu * exp(-mu) * Y_1^L, q = 1/2 for BB84 sifting factor in this form.
+    Q_1^L = mu * exp(-mu) * Y_1^L. Here q=3/8 accounts for equal
+    basis probabilities and central-window postselection in the time-bin receiver.
     """
     if y1 <= 0:
         return 0.0
     q1 = mu * math.exp(-mu) * y1
     h1 = _binary_entropy(min(max(e1, 1e-15), 1 - 1e-15))
     hmu = _binary_entropy(min(max(e_mu, 1e-15), 1 - 1e-15))
-    r_pulse = 0.5 * (-q_mu * f_ec * hmu + q1 * (1.0 - h1))
+    r_pulse = protocol_efficiency * (-q_mu * f_ec * hmu + q1 * (1.0 - h1))
     return max(0.0, r_pulse) * pulse_rate
 
 
@@ -452,6 +457,7 @@ def secret_key_rate_asymptotic_no_decoy(
     y0: float,
     pulse_rate: float,
     f_ec: float = 1.16,
+    protocol_efficiency: float = TIME_BIN_PROTOCOL_EFFICIENCY,
 ) -> float:
     """Conservative WCS rate without decoys under a photon-number-splitting model.
 
@@ -467,7 +473,7 @@ def secret_key_rate_asymptotic_no_decoy(
     if q1_lower <= 0:
         return 0.0
     e1_upper = min(0.5, max(0.0, e_mu * q_mu / q1_lower))
-    r_pulse = 0.5 * (
+    r_pulse = protocol_efficiency * (
         -q_mu * f_ec * _binary_entropy(e_mu)
         + q1_lower * (1.0 - _binary_entropy(e1_upper))
     )
@@ -550,6 +556,9 @@ def plot_experiment_1(
 ) -> None:
     import matplotlib.pyplot as plt
 
+    has_unconfirmed_margin = (
+        reference_no_margin_start_distance > reference_margin_max_distance
+    )
     fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
     ax1 = axes[0]
     c1 = "tab:blue"
@@ -583,7 +592,13 @@ def plot_experiment_1(
         lw=1,
         label="Último punto con holgura confirmada",
     )
-    ax1.axvspan(reference_no_margin_start_distance, distances_km[-1], color="red", alpha=0.06)
+    if has_unconfirmed_margin:
+        ax1.axvspan(
+            reference_no_margin_start_distance,
+            distances_km[-1],
+            color="red",
+            alpha=0.06,
+        )
     ax1.legend(loc="upper left")
     ax1.grid(True, linestyle="--", alpha=0.35)
 
@@ -593,7 +608,13 @@ def plot_experiment_1(
     ax1b.set_ylabel("Ganancia total analítica por pulso")
     ax1b.set_title("Señal y fondo en la ventana analítica supuesta")
     ax1b.axvline(reference_margin_max_distance, color="black", ls=":", lw=1)
-    ax1b.axvspan(reference_no_margin_start_distance, distances_km[-1], color="red", alpha=0.06)
+    if has_unconfirmed_margin:
+        ax1b.axvspan(
+            reference_no_margin_start_distance,
+            distances_km[-1],
+            color="red",
+            alpha=0.06,
+        )
     ax1b.grid(True, linestyle="--", alpha=0.35)
     ax1b.set_yscale("log")
 
@@ -630,13 +651,14 @@ def plot_experiment_1(
         lw=1,
         label="Último punto con holgura confirmada",
     )
-    ax2.axvspan(
-        reference_no_margin_start_distance,
-        distances_km[-1],
-        color="red",
-        alpha=0.06,
-        label="IC 95 % alcanza la referencia analítica",
-    )
+    if has_unconfirmed_margin:
+        ax2.axvspan(
+            reference_no_margin_start_distance,
+            distances_km[-1],
+            color="red",
+            alpha=0.06,
+            label="IC 95 % alcanza la referencia analítica",
+        )
     ax2.legend()
     fig2.tight_layout()
     fig2.savefig(out_dir / "exp1_skr_distance.png", dpi=150)
@@ -800,18 +822,18 @@ def plot_experiment_4(
     fig, ax = plt.subplots(figsize=(8, 4.5))
     _plot_mean_ci(
         ax, distances_km, skr_no_decoy, skr_no_decoy_low, skr_no_decoy_high,
-        color="tab:blue", marker="o", label=r"Sin señuelos ($\mu=0{,}1$)", lw=1.5
+        color="tab:blue", marker="o", label=r"Sin señuelos ($\mu=0{,}1$), IC bootstrap 95 %", lw=1.5
     )
     _plot_mean_ci(
         ax, distances_km, skr_decoy, skr_decoy_low, skr_decoy_high,
-        color="tab:orange", marker="s", label=r"Con señuelos ($\mu=0{,}1$, $\nu=0{,}05$)", lw=1.5
+        color="tab:orange", marker="s", label=r"Con señuelos ($\mu=0{,}1$, $\nu=0{,}05$), IC bootstrap 95 %", lw=1.5
     )
     ax.set_yscale("symlog", linthresh=1.0)
     _style_axes(
         ax,
         "Distancia (km)",
-        "Estimador asintótico de tasa (bit/s)",
-        "Experimento 4: comparación de modelos",
+        "Diagnóstico de tasa basado en fórmula asintótica (bit/s)",
+        "Experimento 4: estimación agrupada e IC bootstrap",
     )
     ax.legend()
     fig.tight_layout()
@@ -1283,10 +1305,6 @@ def experiment_4_decoy_distance(
         q_nu = wcs_gain(nu, eta_ch, eta_d, vacuum_yield)
         y1 = decoy_yield_y1_lower(mu, nu, q_mu, q_nu, vacuum_yield)
 
-        no_values = []
-        decoy_values = []
-        e1_values = []
-        e1_fallbacks = []
         runs_mu = _run_replicates(
             base_mu, repetitions, seed_base=50_000 + i * 200, executor=executor
         )
@@ -1296,25 +1314,6 @@ def experiment_4_decoy_distance(
         for repetition, (r_mu, r_nu) in enumerate(zip(runs_mu, runs_nu, strict=True)):
             e_mu = r_mu["mean_qber"] if math.isfinite(r_mu["mean_qber"]) else 0.5
             e_nu = r_nu["mean_qber"] if math.isfinite(r_nu["mean_qber"]) else 0.5
-            e1_numerator = e_nu * q_nu * math.exp(nu) - e0 * vacuum_yield
-            e1_fallback = e1_numerator <= 0
-            e1 = decoy_e1_upper(e_nu, q_nu, e0, vacuum_yield, y1, nu)
-            no_values.append(
-                secret_key_rate_asymptotic_no_decoy(
-                    mu,
-                    q_mu,
-                    e_mu,
-                    vacuum_yield,
-                    base_mu.frequency_hz,
-                )
-            )
-            decoy_values.append(
-                secret_key_rate_asymptotic_decoy(
-                    mu, q_mu, e_mu, y1, e1, base_mu.frequency_hz
-                )
-            )
-            e1_values.append(e1)
-            e1_fallbacks.append(e1_fallback)
             run_records.append(
                 {
                     "experimento": "estados_senuelo",
@@ -1343,35 +1342,77 @@ def experiment_4_decoy_distance(
                     "clics_detector_0_nu": r_nu["detector_clicks"][0],
                     "clics_detector_1_nu": r_nu["detector_clicks"][1],
                     "clics_detector_2_nu": r_nu["detector_clicks"][2],
-                    "e1_cota_superior": e1,
-                    "e1_fallback_conservador": e1_fallback,
-                    "tasa_sin_senuelos_bps": no_values[-1],
-                    "tasa_con_senuelos_bps": decoy_values[-1],
                     "clics_mu": r_mu["total_detector_clicks"],
                     "clics_nu": r_nu["total_detector_clicks"],
                 }
             )
 
-        no_mean, no_low, no_high = _mean_t_ci(no_values)
-        de_mean, de_low, de_high = _mean_t_ci(decoy_values)
-        skr_no.append(no_mean)
+        mu_bits = np.asarray([run["total_sifted_bits"] for run in runs_mu], dtype=np.int64)
+        mu_errors = np.asarray([run["total_errors"] for run in runs_mu], dtype=np.int64)
+        nu_bits = np.asarray([run["total_sifted_bits"] for run in runs_nu], dtype=np.int64)
+        nu_errors = np.asarray([run["total_errors"] for run in runs_nu], dtype=np.int64)
+
+        def pooled_estimates(indices: np.ndarray) -> tuple[float, float, float, float, bool]:
+            selected_mu_bits = int(mu_bits[indices].sum())
+            selected_nu_bits = int(nu_bits[indices].sum())
+            e_mu = (
+                float(mu_errors[indices].sum()) / selected_mu_bits
+                if selected_mu_bits > 0
+                else 0.5
+            )
+            e_nu = (
+                float(nu_errors[indices].sum()) / selected_nu_bits
+                if selected_nu_bits > 0
+                else 0.5
+            )
+            e1_numerator = e_nu * q_nu * math.exp(nu) - e0 * vacuum_yield
+            e1_fallback = e1_numerator <= 0 or y1 <= 0
+            e1 = decoy_e1_upper(e_nu, q_nu, e0, vacuum_yield, y1, nu)
+            no_decoy = secret_key_rate_asymptotic_no_decoy(
+                mu, q_mu, e_mu, vacuum_yield, base_mu.frequency_hz
+            )
+            decoy = secret_key_rate_asymptotic_decoy(
+                mu, q_mu, e_mu, y1, e1, base_mu.frequency_hz
+            )
+            return no_decoy, decoy, e_mu, e_nu, e1_fallback
+
+        all_indices = np.arange(repetitions, dtype=np.int64)
+        no_estimate, de_estimate, pooled_e_mu, pooled_e_nu, e1_fallback = pooled_estimates(
+            all_indices
+        )
+        pooled_e1 = decoy_e1_upper(
+            pooled_e_nu, q_nu, e0, vacuum_yield, y1, nu
+        )
+
+        rng = np.random.default_rng(70_000 + i)
+        bootstrap_no = np.empty(DECOY_BOOTSTRAP_SAMPLES, dtype=float)
+        bootstrap_de = np.empty(DECOY_BOOTSTRAP_SAMPLES, dtype=float)
+        for sample in range(DECOY_BOOTSTRAP_SAMPLES):
+            indices = rng.integers(0, repetitions, size=repetitions)
+            bootstrap_no[sample], bootstrap_de[sample], _, _, _ = pooled_estimates(indices)
+        no_low, no_high = np.percentile(bootstrap_no, [2.5, 97.5])
+        de_low, de_high = np.percentile(bootstrap_de, [2.5, 97.5])
+
+        skr_no.append(no_estimate)
         skr_no_low.append(no_low)
         skr_no_high.append(no_high)
-        skr_de.append(de_mean)
+        skr_de.append(de_estimate)
         skr_de_low.append(de_low)
         skr_de_high.append(de_high)
         records.append(
             {
                 "experimento": "estados_senuelo",
                 "distancia_km": float(d_km),
-                "tasa_sin_senuelos_media_bps": no_mean,
-                "tasa_sin_senuelos_ic95_bajo_bps": no_low,
-                "tasa_sin_senuelos_ic95_alto_bps": no_high,
-                "tasa_con_senuelos_media_bps": de_mean,
-                "tasa_con_senuelos_ic95_bajo_bps": de_low,
-                "tasa_con_senuelos_ic95_alto_bps": de_high,
+                "tasa_sin_senuelos_estimador_bps": no_estimate,
+                "tasa_sin_senuelos_bootstrap_ic95_bajo_bps": float(no_low),
+                "tasa_sin_senuelos_bootstrap_ic95_alto_bps": float(no_high),
+                "tasa_con_senuelos_estimador_bps": de_estimate,
+                "tasa_con_senuelos_bootstrap_ic95_bajo_bps": float(de_low),
+                "tasa_con_senuelos_bootstrap_ic95_alto_bps": float(de_high),
                 "q_mu": q_mu,
                 "q_nu": q_nu,
+                "qber_mu_agrupada": pooled_e_mu,
+                "qber_nu_agrupada": pooled_e_nu,
                 "mu_sin_senuelos": mu,
                 "q_sin_senuelos": q_mu,
                 "p_multifoton_sin_senuelos": 1.0
@@ -1383,11 +1424,13 @@ def experiment_4_decoy_distance(
                     - math.exp(-mu) * vacuum_yield,
                 ),
                 "y1_cota_inferior": y1,
-                "e1_media": float(np.mean(e1_values)),
-                "corridas_e1_fallback_conservador": int(sum(e1_fallbacks)),
+                "e1_cota_superior": pooled_e1,
+                "e1_fallback_conservador": e1_fallback,
                 "y0": vacuum_yield,
                 "mu": mu,
                 "nu": nu,
+                "eficiencia_protocolo_time_bin": TIME_BIN_PROTOCOL_EFFICIENCY,
+                "bootstrap_remuestreos": DECOY_BOOTSTRAP_SAMPLES,
                 "repeticiones": repetitions,
                 "claves_por_repeticion": base_mu.num_keys,
                 "horizonte_s": base_mu.runtime_ps * 1e-12,
@@ -1471,11 +1514,14 @@ def _validate_outputs(*experiments: dict[str, Any]) -> None:
     for record in experiments[3]["records"]:
         assert 0.0 <= float(record["q_nu"]) <= float(record["q_mu"]) <= 1.0
         assert float(record["mu_sin_senuelos"]) == float(record["mu"])
-        assert float(record["tasa_sin_senuelos_media_bps"]) >= 0.0
-        assert float(record["tasa_con_senuelos_media_bps"]) >= 0.0
-        assert float(record["tasa_con_senuelos_media_bps"]) <= (
-            0.5 * DEFAULT_FREQUENCY_HZ * float(record["q_mu"])
+        assert float(record["tasa_sin_senuelos_estimador_bps"]) >= 0.0
+        assert float(record["tasa_con_senuelos_estimador_bps"]) >= 0.0
+        assert float(record["tasa_con_senuelos_estimador_bps"]) <= (
+            TIME_BIN_PROTOCOL_EFFICIENCY * DEFAULT_FREQUENCY_HZ * float(record["q_mu"])
         ) + 1e-9
+        assert 0.0 <= float(record["qber_mu_agrupada"]) <= 0.5
+        assert 0.0 <= float(record["qber_nu_agrupada"]) <= 0.5
+        assert float(record["eficiencia_protocolo_time_bin"]) == TIME_BIN_PROTOCOL_EFFICIENCY
     for run in experiments[3]["run_records"]:
         for suffix in ("mu", "nu"):
             assert int(run[f"bits_tamizados_{suffix}"]) >= int(run[f"errores_{suffix}"]) >= 0
@@ -1496,8 +1542,13 @@ def _write_latex_results(
     """Write the numerical values cited by Proyecto 3 from the same run."""
     valid_index = int(np.where(e1["distances_km"] == e1["valid_max_distance"])[0][0])
     invalid_index = int(np.where(e1["distances_km"] == e1["invalid_start_distance"])[0][0])
+    qber_valid_indices = np.where(e1["qbers"] < simple_rate_qber_cutoff())[0]
+    qber_transition_low_index = int(qber_valid_indices[-1])
+    qber_transition_high_index = min(qber_transition_low_index + 1, len(e1["records"]) - 1)
     distance_valid = e1["records"][valid_index]
     distance_invalid = e1["records"][invalid_index]
+    qber_transition_low = e1["records"][qber_transition_low_index]
+    qber_transition_high = e1["records"][qber_transition_high_index]
     valid_efficiency_indices = np.where(e2["valid_eff"])[0]
     efficiency_first = e2["records"][int(valid_efficiency_indices[0])]
     efficiency_last = e2["records"][int(valid_efficiency_indices[-1])]
@@ -1513,6 +1564,11 @@ def _write_latex_results(
         "PThreeKeyBits": DEFAULT_KEY_LENGTH,
         "PThreeTransitionLowKm": e1["valid_max_distance"],
         "PThreeTransitionHighKm": e1["invalid_start_distance"],
+        "PThreeReferenceMarginMaxKm": e1["valid_max_distance"],
+        "PThreeQberTransitionLowKm": qber_transition_low["distancia_km"],
+        "PThreeQberTransitionHighKm": qber_transition_high["distancia_km"],
+        "PThreeQberTransitionLowPct": 100.0 * qber_transition_low["qber_media"],
+        "PThreeQberTransitionHighPct": 100.0 * qber_transition_high["qber_media"],
         "PThreeDistanceQberPct": 100.0 * distance_valid["qber_media"],
         "PThreeDistanceQberLowPct": 100.0 * distance_valid["qber_ic95_bajo"],
         "PThreeDistanceQberHighPct": 100.0 * distance_valid["qber_ic95_alto"],
@@ -1548,17 +1604,17 @@ def _write_latex_results(
         "PThreeVisibilityCorrelation": e3["qber_trend"]["r_pearson"],
         "PThreeVisibilityNoMarginPoints": int(np.count_nonzero(~e3["reference_margin"])),
         "PThreeDecoyVacuumYield": decoy_first["y0"],
-        "PThreeNoDecoyFiveKbps": decoy_first["tasa_sin_senuelos_media_bps"] / 1e3,
-        "PThreeDecoyFiveKbps": decoy_first["tasa_con_senuelos_media_bps"] / 1e3,
-        "PThreeNoDecoyTwentyFourKbps": decoy_third["tasa_sin_senuelos_media_bps"] / 1e3,
-        "PThreeDecoyTwentyFourKbps": decoy_third["tasa_con_senuelos_media_bps"] / 1e3,
-        "PThreeDecoyNinetyKbps": decoy_last["tasa_con_senuelos_media_bps"] / 1e3,
-        "PThreeDecoyNinetyFallbacks": decoy_last["corridas_e1_fallback_conservador"],
+        "PThreeNoDecoyFiveKbps": decoy_first["tasa_sin_senuelos_estimador_bps"] / 1e3,
+        "PThreeDecoyFiveKbps": decoy_first["tasa_con_senuelos_estimador_bps"] / 1e3,
+        "PThreeNoDecoyTwentyFourKbps": decoy_third["tasa_sin_senuelos_estimador_bps"] / 1e3,
+        "PThreeDecoyTwentyFourKbps": decoy_third["tasa_con_senuelos_estimador_bps"] / 1e3,
+        "PThreeDecoyNinetyKbps": decoy_last["tasa_con_senuelos_estimador_bps"] / 1e3,
+        "PThreeDecoyNinetyFallbacks": int(decoy_last["e1_fallback_conservador"]),
         "PThreeDecoyFallbackTotal": sum(
-            int(record["corridas_e1_fallback_conservador"]) for record in e4["records"]
+            int(record["e1_fallback_conservador"]) for record in e4["records"]
         ),
         "PThreeDecoyFallbackDistances": sum(
-            int(record["corridas_e1_fallback_conservador"] > 0) for record in e4["records"]
+            int(record["e1_fallback_conservador"]) for record in e4["records"]
         ),
     }
     lines = ["% Generated by proyecto3_simulation.py; do not edit manually."]
@@ -1605,11 +1661,17 @@ def main() -> None:
                 e1["distances_km"], e1["qbers"], threshold=simple_rate_qber_cutoff()
             )
         )
-        print(
-            f"The 95% interval remains below the analytical rate reference through "
-            f"{e1['valid_max_distance']:.1f} km; the first point without confirmed margin is "
-            f"{e1['invalid_start_distance']:.1f} km."
-        )
+        if e1["invalid_start_distance"] > e1["valid_max_distance"]:
+            print(
+                f"The 95% interval remains below the analytical rate reference through "
+                f"{e1['valid_max_distance']:.1f} km; the first point without confirmed margin is "
+                f"{e1['invalid_start_distance']:.1f} km."
+            )
+        else:
+            print(
+                "The 95% interval remains below the analytical rate reference at all "
+                f"sampled distances through {e1['valid_max_distance']:.1f} km."
+            )
 
         print("\n=== Experiment 2: Detector sensitivity ===")
         e2 = experiment_2_detector_sweep(out_dir, args.repetitions, executor)
@@ -1653,20 +1715,22 @@ def main() -> None:
         "pulse_rate_hz": DEFAULT_FREQUENCY_HZ,
         "key_length_bits": DEFAULT_KEY_LENGTH,
         "detection_window_ps": DEFAULT_DETECTION_WINDOW_PS,
-        "bb84_sift_factor": BB84_SIFT_FACTOR,
+        "time_bin_protocol_efficiency": TIME_BIN_PROTOCOL_EFFICIENCY,
         "fiber_attenuation_db_km": DEFAULT_ALPHA_DB_KM,
         "ideal_indicator_f_ec": 1.16,
         "ideal_indicator_qber_cutoff": simple_rate_qber_cutoff(),
         "decoy_estimator": {
-            "scope": "asymptotic hybrid estimator; not a composable finite-key bound",
+            "scope": "asymptotic formula applied to pooled finite Monte Carlo counts; not a composable finite-key bound",
             "phase_error_assumption": "basis-symmetric error, e_phase approximated from aggregate QBER",
             "nonpositive_e1_numerator": "conservative fallback e1=0.5",
             "vacuum_yield_model": "three detectors times assumed analytic gate and dark-count rate",
+            "protocol_efficiency": "q=3/8: equal basis choices plus central-window postselection in X",
+            "interval": "paired pooled-count bootstrap, 20000 resamples per distance",
         },
         "seed_policy": "deterministic non-overlapping pairs documented in proyecto3_simulation.py",
         "statistical_methods": {
             "qber": "pooled Wilson score interval, 95%",
-            "rates": "two-sided Student-t interval across independent runs, 95%",
+            "rates": "two-sided Student-t interval across independent runs, 95%; decoy curves use paired pooled-count bootstrap",
             "effects": "Welch difference interval or OLS slope interval, 95%",
         },
         "effects": {
@@ -1705,10 +1769,16 @@ def main() -> None:
     q = e1["qbers"]
     print("\n--- Summary ---")
     print(summarize_max_distance(d, q, threshold=simple_rate_qber_cutoff()))
-    print(
-        f"Analytical-reference margin transition: {e1['valid_max_distance']:.1f} to "
-        f"{e1['invalid_start_distance']:.1f} km."
-    )
+    if e1["invalid_start_distance"] > e1["valid_max_distance"]:
+        print(
+            f"Analytical-reference margin transition: {e1['valid_max_distance']:.1f} to "
+            f"{e1['invalid_start_distance']:.1f} km."
+        )
+    else:
+        print(
+            "Analytical-reference margin confirmed at all sampled distances through "
+            f"{e1['valid_max_distance']:.1f} km."
+        )
     valid_indices = np.where(e2["valid_eff"])[0]
     if valid_indices.size >= 2:
         i0, i1 = int(valid_indices[0]), int(valid_indices[-1])

@@ -84,8 +84,8 @@ def test_Interferometer_get():
 
     # qstate = |e+l>
     log0, log1 = create_intf(time_bin["bases"][1][0])
-    assert abs(len(log0) / len(log1)) - 2 < 0.1
-    assert len(log0 + log1) / NUM_TRIALS - 3 / 4 < 0.1
+    assert abs(len(log0) / len(log1) - 3) < 0.2
+    assert abs(len(log0 + log1) / NUM_TRIALS - 1) < 0.01
 
     counter1 = 0
     counter2 = 0
@@ -100,7 +100,7 @@ def test_Interferometer_get():
         else:
             assert False
 
-    assert abs(counter1 / counter3 - 1) < 0.1 and abs(counter3 / counter2 - 0.5) < 0.1
+    assert abs(counter1 / counter3 - 1) < 0.1 and abs(counter3 / counter2 - 0.25) < 0.05
 
     counter1 = 0
     counter2 = 0
@@ -124,12 +124,21 @@ def test_Interferometer_phase_error_flips_x_basis_output():
     middle_1 = sum(time % 1e6 == time_bin["bin_separation"] for time in log1)
 
     assert middle_0 == 0
-    assert middle_1 > NUM_TRIALS * 0.2
+    assert middle_1 > NUM_TRIALS * 0.45
+
+    log0, log1 = create_intf(time_bin["bases"][1][0], phase_error=0.2)
+    middle_0 = sum(time % 1e6 == time_bin["bin_separation"] for time in log0)
+    middle_1 = sum(time % 1e6 == time_bin["bin_separation"] for time in log1)
+    central = middle_0 + middle_1
+
+    assert abs(len(log0 + log1) / NUM_TRIALS - 1) < 0.01
+    assert abs(central / NUM_TRIALS - 0.5) < 0.03
+    assert abs(middle_1 / central - 0.2) < 0.03
 
     # qstate = |e-l>
     log0, log1 = create_intf(time_bin["bases"][1][1])
-    assert abs(len(log0) / len(log1)) - 2 < 0.1
-    assert len(log0 + log1) / NUM_TRIALS - 3 / 4 < 0.1
+    assert abs(len(log1) / len(log0) - 3) < 0.2
+    assert abs(len(log0 + log1) / NUM_TRIALS - 1) < 0.01
 
     counter1 = 0
     counter2 = 0
@@ -144,7 +153,7 @@ def test_Interferometer_phase_error_flips_x_basis_output():
         else:
             assert False
 
-    assert abs(counter1 / counter3 - 1) < 0.1 and abs(counter3 / counter2 - 0.5) < 0.1
+    assert abs(counter1 / counter3 - 1) < 0.1 and abs(counter3 / counter2 - 0.25) < 0.05
 
     counter1 = 0
     counter2 = 0

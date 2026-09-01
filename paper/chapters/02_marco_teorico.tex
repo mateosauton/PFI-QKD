@@ -25,7 +25,7 @@ El trabajo combina tres planos que deben mantenerse separados para no mezclar co
 
 El plano computacional describe cómo esos fenómenos se representan dentro de un simulador. SeQUeNCe no es un cálculo simbólico de BB84: es un simulador de eventos discretos. La línea temporal agenda emisiones, propagaciones, recepciones, clics y mensajes clásicos; cada evento modifica el estado de un nodo o de un componente. Esta elección es importante porque el experimento no sólo pregunta por una fórmula de tasa, sino por el comportamiento de una arquitectura Alice--Bob compuesta por objetos, canales y protocolos.
 
-El plano criptográfico describe qué se puede afirmar sobre los bits generados. BB84 produce correlaciones entre Alice y Bob, pero una clave final requiere estimación de error, reconciliación, contabilización de fuga y amplificación de privacidad. En este trabajo, la simulación ejecuta transmisión, medición y tamizado. Los barridos 1 a 3 producen un indicador ideal; el cuarto agrega estimadores asintóticos con y sin señuelos. Ninguno equivale a ejecutar un sistema completo de clave final.
+El plano criptográfico describe qué se puede afirmar sobre los bits generados. BB84 produce correlaciones entre Alice y Bob, pero una clave final requiere estimación de error, reconciliación, contabilización de fuga y amplificación de privacidad. En este trabajo, la simulación ejecuta transmisión, medición y tamizado. Los barridos 1 a 3 producen un indicador ideal; el cuarto agrega diagnósticos basados en fórmulas asintóticas con y sin señuelos. Ninguno equivale a ejecutar un sistema completo de clave final.
 
 \begin{table}[H]
   \centering
@@ -54,7 +54,7 @@ Un sistema QKD completo puede separarse en cuatro etapas:
   \item \textbf{Amplificación de privacidad}: se comprime la clave reconciliada para reducir información potencialmente conocida por un adversario.
 \end{enumerate}
 
-Este proyecto simula con detalle la transmisión, detección y tamizado implementados por BB84 en SeQUeNCe. La corrección de errores y la amplificación de privacidad no se ejecutan como protocolos completos. En los tres primeros experimentos sólo se resume su efecto mediante un indicador ideal; el cuarto usa estimadores asintóticos con y sin estados señuelo. Esta decisión define el alcance del trabajo: se evalúan el comportamiento lógico del modelo y la sensibilidad de sus componentes, no la factibilidad física ni la certificación de una clave final lista para producción.
+Este proyecto simula con detalle la transmisión, detección y tamizado implementados por BB84 en SeQUeNCe. La corrección de errores y la amplificación de privacidad no se ejecutan como protocolos completos. En los tres primeros experimentos sólo se resume su efecto mediante un indicador ideal; el cuarto usa diagnósticos basados en fórmulas asintóticas con y sin estados señuelo. Esta decisión define el alcance del trabajo: se evalúan el comportamiento lógico del modelo y la sensibilidad de sus componentes, no la factibilidad física ni la certificación de una clave final lista para producción.
 
 \section{Canal clásico, corrección de errores y privacidad}
 
@@ -216,7 +216,7 @@ Para una intensidad media \(\mu\), una transmitancia total \(\eta\) y una eficie
   \label{eq:pdet}
 \end{equation}
 
-En este proyecto, los estados señuelo se incorporan de manera analítica. El script calcula cotas asintóticas para \(Y_1\), la probabilidad de detección condicionada a un fotón, y \(e_1\), la tasa de error de eventos monofotónicos. Para dos intensidades \(\mu>\nu>0\), el estimador implementado utiliza \cite{maQiZhaoLo2005}
+En este proyecto, los estados señuelo se incorporan de manera analítica. El script aplica fórmulas asintóticas para acotar \(Y_1\), la probabilidad de detección condicionada a un fotón, y \(e_1\), la tasa de error de eventos monofotónicos. Los errores se calculan después de agrupar los bits y errores de las 30 repeticiones de cada intensidad; no se evalúa la fórmula por separado sobre cada clave corta. Para dos intensidades \(\mu>\nu>0\), el diagnóstico implementado utiliza \cite{maQiZhaoLo2005}
 
 \begin{align}
   Y_1^L &= \max\!\left\{0,
@@ -243,7 +243,7 @@ donde \(Q_\mu\) y \(Q_\nu\) son las ganancias de señal y señuelo, \(E_\mu\) y 
   \label{eq:skr_decoy}
 \end{equation}
 
-donde \(q=1/2\) representa el factor de tamizado BB84 y \(f_\text{rep}\) es la tasa de repetición de pulsos. Las ecuaciones~\eqref{eq:y1_decoy}--\eqref{eq:skr_decoy} especifican exactamente el estimador usado en el cuarto experimento. Es asintótico: no incorpora correcciones de tamaño finito ni constituye por sí solo una prueba componible de seguridad.
+donde \(f_\text{rep}\) es la tasa de repetición de pulsos. Para el receptor activo de este trabajo, \(q=3/8\): la coincidencia Z--Z ocurre con probabilidad \(1/4\) y acepta ambas ventanas, mientras la coincidencia X--X ocurre con probabilidad \(1/4\) y conserva sólo la ventana central, que contiene la mitad de las detecciones. \(Q_\mu\) y \(Q_\nu\) describen detecciones antes de esa selección; \(q\) las lleva al conjunto aceptado, cuyos errores se resumen mediante \(E_\mu\) y \(E_\nu\). Esta combinación supone ganancias independientes de la base y usa el QBER agregado como error representativo del conjunto aceptado. Las ecuaciones~\eqref{eq:y1_decoy}--\eqref{eq:skr_decoy} son asintóticas, pero aquí se alimentan con ganancias analíticas y QBER de una muestra Monte Carlo finita. Por ello, la salida se denomina diagnóstico basado en una fórmula asintótica; no es una cota de clave finita ni una prueba componible de seguridad.
 
 \section{Codificación time-bin}
 
@@ -302,6 +302,19 @@ Para medir superposiciones \textit{time-bin}, Bob necesita un sistema interferom
   \label{eq:phase_visibility}
 \end{equation}
 
+El Mach--Zehnder desbalanceado produce dos modos espaciales de salida y tres ventanas temporales \cite{rusca2018simplified}. Para un estado de la base X ideal, la suma de ambos puertos contiene un cuarto de la probabilidad en la ventana temprana, un medio en la ventana central y un cuarto en la tardía. La interferencia dirige la ventana central a D1 o D2 según la fase relativa; las ventanas laterales no determinan el bit X y se descartan. El modelo conserva los dos puertos y, por tanto, no introduce una pérdida adicional en la ventana central. Una prueba estadística verifica tanto la probabilidad central próxima a \(1/2\) como la fracción de errores impuesta por \(p_\text{fase}\).
+
+Esta selección también fija la pendiente esperada del QBER agregado. De las detecciones aceptadas en el caso ideal, \(2/3\) provienen de coincidencias Z--Z y \(1/3\) de coincidencias X--X centrales. Si el único error variable es \(p_\text{fase}\) en X, entonces
+
+\begin{equation}
+  E_\text{agregado}(V)
+  \simeq \frac{1}{3}p_\text{fase}
+  = \frac{1-V}{6},
+  \label{eq:qber_visibility_weighted}
+\end{equation}
+
+antes de agregar fondo y efectos finitos. Por eso el barrido de visibilidad debe aproximarse a una pendiente \(-1/6\), no a la pendiente \(-1/2\) de \(p_\text{fase}\) aislado.
+
 La tesis de López Grande presenta implementaciones de DCC en fibra tanto con polarización como con modos temporales, y remarca los desafíos tecnológicos asociados a preparación, transmisión y detección de estados \cite{lopezGrande2018}. En este trabajo, \textit{time-bin} no es solo un detalle de codificación: determina qué variable experimental conviene barrer, por qué se estudia visibilidad y por qué la sincronización temporal debe tratarse como parte central del diseño.
 
 \begin{figure}[H]
@@ -325,7 +338,7 @@ La tesis de López Grande presenta implementaciones de DCC en fibra tanto con po
     \draw[arrow] (mzi) -- (d1);
     \draw[arrow] (mzi) -- (d2);
   \end{tikzpicture}
-  \caption{Receptor \textit{time-bin} conceptual: medición directa para base Z y camino interferométrico para base X.}
+  \caption{Receptor \textit{time-bin} conceptual: medición directa para base Z y dos puertos monitoreados en el Mach--Zehnder de la base X. Sólo la ventana central de D1/D2 forma bits X.}
   \label{fig:receptor_timebin}
 \end{figure}
 

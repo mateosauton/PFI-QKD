@@ -9,7 +9,7 @@ Este Proyecto Final Integrador se ubica en el cruce entre telecomunicaciones, ó
 
 \section{Hipótesis de trabajo}
 
-La hipótesis del proyecto es que una simulación de eventos discretos de un enlace BB84 \textit{time-bin} permite formular y responder preguntas de diseño antes de construir el banco físico. La hipótesis se considera respaldada si el flujo conserva la trazabilidad de cada corrida, reproduce dependencias impuestas de forma controlada, cuantifica la incertidumbre Monte Carlo y detecta regiones donde la salida deja de ser coherente con una referencia analítica independiente. No exige que todas las variables produzcan un efecto significativo: un resultado no concluyente también informa el diseño cuando se reporta con su intervalo y sus supuestos.
+La hipótesis del proyecto es que una simulación de eventos discretos de un enlace BB84 \textit{time-bin} permite formular y responder preguntas de diseño antes de construir el banco físico. La hipótesis se considera respaldada si el flujo conserva la trazabilidad de cada corrida, reproduce dependencias impuestas de forma controlada, cuantifica la incertidumbre Monte Carlo y somete la salida a una referencia analítica independiente, clasificando en cada región si conserva o pierde holgura frente a ella. No exige observar una pérdida de holgura ni que todas las variables produzcan un efecto significativo: tanto la coherencia en toda la grilla como un resultado no concluyente informan el diseño cuando se reportan con sus intervalos y supuestos.
 
 La hipótesis no afirma que la simulación certifique seguridad criptográfica ni que determine la factibilidad física del Campus Miguelete. Esas afirmaciones exigirían mediciones de rutas, un modelo de implementación cerrado, análisis de ataques laterales, calibraciones y posprocesamiento completo. El alcance es producir una base de ingeniería que indique qué ensayar, qué salidas pueden interpretarse y qué supuestos deben reemplazarse por mediciones.
 
@@ -26,7 +26,7 @@ La evaluación de la hipótesis usa cuatro criterios observables:
 
 \section{Objetivo general}
 
-Diseñar y evaluar mediante simulación un banco de pruebas de QKD BB84 \textit{time-bin} de dos nodos, cuantificando QBER, tasa tamizada, respuesta ideal de posprocesamiento y estimadores asintóticos con estados señuelo, con trazabilidad estadística y límites de interpretación explícitos.
+Diseñar y evaluar mediante simulación un banco de pruebas de QKD BB84 \textit{time-bin} de dos nodos, cuantificando QBER, tasa tamizada, respuesta ideal de posprocesamiento y diagnósticos basados en fórmulas asintóticas con estados señuelo, con trazabilidad estadística y límites de interpretación explícitos.
 
 \section{Objetivos específicos}
 
@@ -34,7 +34,7 @@ Diseñar y evaluar mediante simulación un banco de pruebas de QKD BB84 \textit{
   \item Construir un escenario Alice--Bob en SeQUeNCe usando nodos QKD, canal cuántico, canal clásico, fuente óptica y detección \textit{time-bin}.
   \item Barrer distancia de fibra y contrastar QBER y tasa tamizada con una referencia analítica de detecciones.
   \item Evaluar sensibilidad frente a eficiencia, conteos oscuros y visibilidad mediante intervalos y contrastes estadísticos.
-  \item Comparar estimadores asintóticos con y sin estados señuelo usando igual intensidad de señal.
+  \item Comparar diagnósticos basados en fórmulas asintóticas con y sin estados señuelo usando igual intensidad de señal.
   \item Vincular los resultados con criterios de selección de nodos, fibra, detectores y arquitectura de una futura maqueta en el Campus Miguelete.
   \item Documentar limitaciones del modelo para evitar interpretar la simulación como validación experimental o prueba formal de seguridad.
 \end{itemize}
@@ -43,7 +43,7 @@ Diseñar y evaluar mediante simulación un banco de pruebas de QKD BB84 \textit{
 
 Las notas de trabajo del proyecto definen un objetivo más amplio que la ejecución de cuatro barridos numéricos: estudiar una posible red QKD para el Campus Miguelete de la UNSAM, comenzando por un enlace punto a punto y dejando preparada la discusión para una extensión a tres nodos con administración de claves. En ese marco, la simulación cumple el rol de primera herramienta de diseño. Permite estimar qué tan exigente es el enlace antes de relevar toda la infraestructura, comprar componentes o montar un banco óptico completo.
 
-La trayectoria prevista del PFI puede leerse en etapas. Primero se estudian los fundamentos de QKD y el estado del arte. Luego se releva el campus para identificar edificios, distancias, ductos, disponibilidad de fibra, seguridad física y accesibilidad de los posibles nodos. Con esos datos se simula una red punto a punto en SeQUeNCe, usando BB84, parámetros de hardware realistas y métricas diferenciadas: QBER, tasa tamizada, indicador ideal y estimadores asintóticos con y sin estados señuelo. En una etapa posterior se contrasta la simulación con una prueba corta de laboratorio, se seleccionan dispositivos y medios, se evalúan costos y se formula un plan de implementación. Como extensión, se considera una red de tres nodos con un nodo intermedio confiable y un sistema de administración de claves (KMS) que entregue material criptográfico a aplicaciones de red.
+La trayectoria prevista del PFI puede leerse en etapas. Primero se estudian los fundamentos de QKD y el estado del arte. Luego se releva el campus para identificar edificios, distancias, ductos, disponibilidad de fibra, seguridad física y accesibilidad de los posibles nodos. Con esos datos se simula una red punto a punto en SeQUeNCe, usando BB84, parámetros exploratorios inspirados en hardware disponible y métricas diferenciadas: QBER, tasa tamizada, indicador ideal y diagnósticos analíticos con y sin estados señuelo. En una etapa posterior se contrasta la simulación con una prueba corta de laboratorio, se seleccionan dispositivos y medios, se evalúan costos y se formula un plan de implementación. Como extensión, se considera una red de tres nodos con un nodo intermedio confiable y un sistema de administración de claves (KMS) que entregue material criptográfico a aplicaciones de red.
 
 La Figura~\ref{fig:campus_architecture} sintetiza esa visión. No representa una topología definitiva del campus, sino el tipo de arquitectura que el trabajo busca informar: un canal cuántico óptico, un canal clásico autenticado, nodos con funciones diferenciadas, una capa de administración de claves y aplicaciones que consumen claves renovadas por el enlace QKD.
 
@@ -58,7 +58,7 @@ La Figura~\ref{fig:campus_architecture} sintetiza esa visión. No representa una
 
 El primer aporte es metodológico. El flujo autoritativo conserva \PThreeRepetitions{} repeticiones por punto, semillas, bits, errores, tiempos y clics por detector. También exporta CSV agregados y por repetición, intervalos, pruebas estadísticas, figuras, macros LaTeX y un manifiesto con hashes. Los números del documento se insertan desde esa salida, por lo que una nueva ejecución no depende de transcripción manual.
 
-El segundo aporte es técnico. El proyecto separa tres clases de resultado que no deben confundirse: QBER y tasa tamizada producidos por eventos de SeQUeNCe, un indicador ideal de posprocesamiento y estimadores asintóticos para una fuente coherente débil. Además, contrasta la tasa simulada con una referencia de detecciones. La corrida corregida conserva holgura de tasa en toda la grilla, pero presenta un aumento abrupto de QBER entre 69,54 y \SI{77.15}{\kilo\meter}. Separar ambos diagnósticos evita convertir una salida internamente consistente en alcance físico o tasa secreta certificada.
+El segundo aporte es técnico. El proyecto separa tres clases de resultado que no deben confundirse: QBER y tasa tamizada producidos por eventos de SeQUeNCe, un indicador ideal de posprocesamiento y diagnósticos basados en fórmulas asintóticas para una fuente coherente débil. Además, contrasta la tasa simulada con una referencia de detecciones. Separar ambos diagnósticos evita convertir una salida internamente consistente en alcance físico o tasa secreta certificada.
 
 El tercer aporte es de arquitectura. El trabajo conecta el enlace físico punto a punto con una visión de red de campus. Para una implementación real no alcanza con que Alice y Bob intercambien bits: hay que decidir dónde se ubican los nodos, cómo se separan canal cuántico y canal clásico, qué fibra se usa, cómo se protegen físicamente los equipos, qué aplicación consume la clave y qué rol cumple un KMS. El trabajo introduce esa discusión sin sobredimensionarla: el experimento sigue siendo de dos nodos, pero sus resultados se escriben en términos útiles para una red futura.
 

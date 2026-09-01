@@ -25,9 +25,9 @@ La frecuencia de pulsos es \SI{80}{\mega\hertz} y la atenuación distribuida es 
     Atenuación de fibra & \SI{0.2}{\decibel\per\kilo\meter} & Pérdida distribuida \\
     Longitud de clave & \PThreeKeyBits{} bits & Bits por clave completada \\
     Repeticiones & \PThreeRepetitions{} por punto & Incertidumbre Monte Carlo \\
-    Factor de tamizado & \(q=1/2\) & Probabilidad de bases compatibles \\
+    Eficiencia protocolar \textit{time-bin} & \(q=3/8\) & Coincidencia de bases y selección central en X \\
     Ventana analítica & \SI{1}{\nano\second} & Exposición usada sólo para modelar fondo \\
-    Ineficiencia de reconciliación & \(f_\mathrm{EC}=1{,}16\) & Indicador ideal y estimadores asintóticos \\
+    Ineficiencia de reconciliación & \(f_\mathrm{EC}=1{,}16\) & Indicador ideal y fórmulas de tasa \\
     \bottomrule
   \end{tabularx}
   \caption{Parámetros comunes de la ejecución autoritativa.}
@@ -81,7 +81,7 @@ La tasa de referencia para clics tamizados es
 
 \begin{equation}
   R_{\mathrm{ref}}
-  =\frac{1}{2}\min\{f_{\mathrm{rep}}Q_\mu,3R_{\mathrm{max,det}}\}.
+  =\frac{3}{8}\min\{f_{\mathrm{rep}}Q_\mu,3R_{\mathrm{max,det}}\}.
   \label{eq:referencia_tasa}
 \end{equation}
 
@@ -105,9 +105,9 @@ Cuando \(Q_1^L>0\), el error monofotónico se acota con
   \label{eq:no_decoy_e1}
 \end{equation}
 
-si \(Q_1^L=0\), la tasa sin señuelos se anula. El caso con señuelos usa las cotas de \(Y_1^L\), \(e_1^U\) y la tasa asintótica de la Ecuación~\ref{eq:skr_decoy}. Las ganancias son analíticas y los errores provienen de SeQUeNCe. El error de fase se aproxima mediante QBER agregada, bajo una hipótesis de simetría entre bases. Si el numerador de \(e_1^U\) resulta no positivo por la combinación de muestra finita y ganancias analíticas, se adopta el valor conservador \(e_1^U=1/2\).
+si \(Q_1^L=0\), la tasa sin señuelos se anula. El caso con señuelos usa las cotas de \(Y_1^L\), \(e_1^U\) y la fórmula asintótica de la Ecuación~\ref{eq:skr_decoy}. Las ganancias son analíticas y cada QBER se obtiene agrupando errores y bits de las 30 repeticiones de su intensidad. El error de fase se aproxima mediante esa QBER agregada, bajo una hipótesis de simetría entre bases. Si el numerador de \(e_1^U\) resulta no positivo, se adopta el valor conservador \(e_1^U=1/2\).
 
-La ventana de \SI{1}{\nano\second} sólo pertenece al cálculo de \(Y_0\). El receptor simulado no implementa una compuerta electrónica calibrada de esa duración. Por esta razón, las curvas son estimadores asintóticos híbridos y no cotas de seguridad componible ni de clave finita.
+La ventana de \SI{1}{\nano\second} sólo pertenece al cálculo de \(Y_0\). El receptor simulado no implementa una compuerta electrónica calibrada de esa duración. Por esta razón, las curvas son diagnósticos híbridos basados en fórmulas asintóticas y no cotas de seguridad componible ni de clave finita.
 
 \section{Diseño estadístico}
 
@@ -115,7 +115,7 @@ QBER es una proporción de errores sobre bits. Se informa con intervalo de Wilso
 
 Los intervalos t, Welch y de regresión cuantifican variación entre corridas Monte Carlo; Wilson caracteriza la proporción agrupada bajo el supuesto binomial indicado. Ninguno es un intervalo de seguridad de clave finita. La elección de \PThreeRepetitions{} repeticiones permite estimar dispersión y contrastes con un costo computacional manejable; no proviene de un cálculo previo de potencia. Por eso un efecto no resuelto se informa como tal y no como ausencia física del efecto.
 
-Como control post hoc se reanalizan los CSV sin ejecutar nuevas simulaciones. Se comparan bandas Wilson con intervalos t sobre las 30 QBER por repetición en distancias representativas; para la pendiente de visibilidad se calcula una covarianza robusta HC3 \cite{mackinnonWhite1985}; y para la media señuelo se aplica bootstrap percentil con 100.000 remuestreos y semilla 20260901 \cite{efron1979bootstrap}. Estos controles no reemplazan un diseño jerárquico ni garantizan cobertura exacta, pero muestran si las conclusiones dependen de homoscedasticidad, normalidad aproximada o agrupamiento de bits.
+Para el cuarto experimento, el estimador puntual se calcula una sola vez con los conteos agrupados. Su IC del 95\% se obtiene mediante 20.000 remuestreos bootstrap de los pares \((\mu,\nu)\): cada remuestreo vuelve a sumar bits y errores antes de aplicar las fórmulas no lineales \cite{efron1979bootstrap}. Como controles adicionales se comparan bandas Wilson con intervalos t sobre las 30 QBER por repetición en distancias representativas y se calcula una covarianza robusta HC3 para la pendiente de visibilidad \cite{mackinnonWhite1985}. Estos análisis no reemplazan un diseño jerárquico ni garantizan cobertura criptográfica.
 
 \section{Configuración de los barridos}
 
@@ -161,18 +161,18 @@ Como control post hoc se reanalizan los CSV sin ejecutar nuevas simulaciones. Se
 
 \textbf{Procedimiento.} Se fija la distancia en \SI{30}{\kilo\meter} y se aplica \(p_\mathrm{fase}=(1-V)/2\) al interferómetro. Se ajusta una regresión de QBER sobre \(V\) usando las corridas individuales y se mantiene el control de tasa frente a \(R_\mathrm{ref}\).
 
-\textbf{Expectativa.} La pendiente de QBER debe ser negativa. Como la relación se impone como entrada, el resultado verifica la propagación lógica del parámetro; no valida estabilidad térmica, balance de caminos ni visibilidad alcanzable por hardware.
+\textbf{Expectativa.} La pendiente de QBER debe ser negativa y próxima a \(-1/6\) en el régimen ideal de la Ecuación~\ref{eq:qber_visibility_weighted}. Como la relación se impone como entrada, el resultado verifica la propagación lógica del parámetro; no valida estabilidad térmica, balance de caminos ni visibilidad alcanzable por hardware.
 
 \subsection{Experimento 4: estados señuelo}
 
 \textbf{Pregunta técnica.} Comparar una estimación conservadora sin señuelos con una estimación señuelo manteniendo \(\mu=0{,}1\).
 
-\textbf{Procedimiento.} En cada distancia se ejecutan 30 pares de simulaciones: una ejecución para \(\mu\) y otra para \(\nu\) en cada repetición. Los errores provienen del simulador; \(Q_\mu\), \(Q_\nu\), \(Y_1^L\) y el fondo provienen de fórmulas analíticas. Cada registro pareado indica si fue necesario usar \(e_1^U=1/2\).
+\textbf{Procedimiento.} En cada distancia se ejecutan 30 pares de simulaciones: una ejecución para \(\mu\) y otra para \(\nu\) en cada repetición. Los errores provienen del simulador; \(Q_\mu\), \(Q_\nu\), \(Y_1^L\) y el fondo provienen de fórmulas analíticas. Se agrupan los conteos de cada intensidad, se aplica una sola vez la fórmula de tasa y se construye el intervalo mediante bootstrap pareado sobre conteos agrupados. El indicador de reemplazo \(e_1^U=1/2\) se informa por distancia, no por clave corta.
 
 \textbf{Expectativa.} La tasa sin señuelos debe anularse cuando no puede acotarse una contribución monofotónica positiva después de descontar pulsos multifotónicos y vacío. La configuración señuelo puede conservar una cota positiva porque usa la segunda intensidad para estimar \(Y_1\). La comparación muestra el valor del método de estimación, no una implementación decoy completa.
 
 \section{Proveniencia y reproducibilidad}
 
-La ejecución conserva una fila por repetición con semillas, claves completadas, bits, errores, tiempo, tasa y clics por detector. Para el experimento señuelo, esos campos se separan para \(\mu\) y \(\nu\) dentro de la misma fila pareada. En total hay 1.800 registros de repetición, que representan 2.100 ejecuciones de SeQUeNCe: 1.500 en los tres primeros experimentos y 600 en el cuarto. El manifiesto registra fecha UTC, SeQUeNCe 0.8.5, el parche local, métodos estadísticos y hashes SHA-256 del script, dependencias y ocho conjuntos de datos. Las cifras del Capítulo~\ref{chap:resultados} provienen de \path{experiments/results/proyecto3_results.tex}, generado por la misma ejecución del flujo.
+La ejecución conserva una fila por repetición con semillas, claves completadas, bits, errores, tiempo y clics por detector. Los tres primeros experimentos guardan además sus tasas por corrida. En el experimento señuelo, los campos básicos se separan para \(\mu\) y \(\nu\) dentro de la misma fila pareada; las tasas sólo aparecen en el archivo agregado, después de sumar conteos. En total hay 1.800 registros de repetición, que representan 2.100 ejecuciones de SeQUeNCe: 1.500 en los tres primeros experimentos y 600 en el cuarto. El manifiesto registra fecha UTC, SeQUeNCe 0.8.5, el parche local, métodos estadísticos y hashes SHA-256 del script, dependencias y ocho conjuntos de datos. Las cifras del Capítulo~\ref{chap:resultados} provienen de \path{experiments/results/proyecto3_results.tex}, generado por la misma ejecución del flujo.
 
-El flujo valida el orden de intervalos, \(I_\mathrm{ideal}\leq R_\mathrm{tam}\), ganancias en \([0,1]\), contabilidad de clics y límites de los estimadores. La finalización del número solicitado de claves se comprobó sobre los CSV de esta ejecución, pero no forma parte de las aserciones automáticas actuales. Esos controles verifican consistencia del cálculo. No sustituyen una prueba de seguridad ni una comparación con hardware.
+El flujo valida el orden de intervalos, \(I_\mathrm{ideal}\leq R_\mathrm{tam}\), ganancias en \([0,1]\), contabilidad de clics y límites de los diagnósticos. La finalización del número solicitado de claves se comprobó sobre los CSV de esta ejecución, pero no forma parte de las aserciones automáticas actuales. Esos controles verifican consistencia del cálculo. No sustituyen una prueba de seguridad ni una comparación con hardware.

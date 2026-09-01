@@ -1,7 +1,7 @@
 \chapter{Fragmentos de código relevantes}
 \label{app:codigo}
 
-Este apéndice selecciona principalmente fragmentos de \path{experiments/proyecto3_simulation.py}. El ejemplo de bootstrap reproduce un control post hoc aplicado a los CSV y se identifica como tal; no pertenece al generador autoritativo. El objetivo es mostrar cómo las decisiones metodológicas se traducen a código. Los recortes no reemplazan los archivos ejecutables ni sus validaciones.
+Este apéndice selecciona principalmente fragmentos de \path{experiments/proyecto3_simulation.py}. El bootstrap de la comparación señuelo pertenece al generador autoritativo y opera sobre conteos agrupados; HC3 y los intervalos t de sensibilidad se reproducen desde los CSV. El objetivo es mostrar cómo las decisiones metodológicas se traducen a código. Los recortes no reemplazan los archivos ejecutables ni sus validaciones.
 
 \section{Parámetros y semillas}
 
@@ -65,6 +65,23 @@ La distancia y atenuación se aplican al canal cuántico, mientras el retardo ad
 
 La versión base de SeQUeNCe 0.8.5 no aplicaba correctamente ese error a \texttt{FreeQuantumState}. El repositorio corrige \path{sequence/components/interferometer.py}. Sin el parche, barrer \(V\) no produciría la respuesta documentada; por eso su hash forma parte del manifiesto.
 
+La misma implementación conserva ahora ambos puertos en la ventana central:
+
+\begin{lstlisting}[language=Python, caption={Selección de puerto para estados X en el Mach--Zehnder.}]
+if quantum_state.state == (
+    complex(sqrt(1/2)), complex(sqrt(1/2))
+):
+    if random_num <= 0.25:
+        time = 0
+    elif random_num <= 0.5:
+        time = 2 * self.path_difference
+    else:
+        time = self.path_difference
+        detector_num = 0
+\end{lstlisting}
+
+Para \(\lvert+\rangle\), las ventanas laterales suman probabilidad \(1/2\) y la central suma \(1/2\), dirigida al puerto 0; \(\lvert-\rangle\) usa la misma distribución y dirige la ventana central al puerto 1. El error de fase intercambia esos destinos con la probabilidad configurada. Las pruebas verifican conservación de eventos, fracción central y error intermedio.
+
 \section{Tasa agregada y referencia}
 
 \begin{lstlisting}[language=Python, caption={Cálculo de la tasa tamizada de una repetición.}]
@@ -101,13 +118,13 @@ def wcs_gain(mu, eta_channel, eta_det, y0):
 y0 = background_yield(p.dark_count_hz, p.detection_window_ps)
 q_mu = wcs_gain(p.mean_photon_num, eta_ch,
                 p.detector_efficiency, y0)
-sifted_rate_reference = 0.5 * min(
+sifted_rate_reference = (3.0 / 8.0) * min(
     p.frequency_hz * q_mu,
     3 * p.count_rate_hz,
 )
 \end{lstlisting}
 
-\texttt{background\_yield} convierte tasa oscura y ventana supuesta en probabilidad por pulso para tres detectores. \texttt{wcs\_gain} combina ese fondo con la probabilidad de no recibir señal. El factor \(1/2\) representa tamizado por bases y el mínimo impone disponibilidad de pulsos o límite agregado de conteo. La referencia es un control medio; no se programa como tope de cada corrida.
+\texttt{background\_yield} convierte tasa oscura y ventana supuesta en probabilidad por pulso para tres detectores. \texttt{wcs\_gain} combina ese fondo con la probabilidad de no recibir señal. El factor \(3/8\) suma la aceptación Z--Z (\(1/4\)) y X--X central (\(1/4\times1/2\)); el mínimo impone disponibilidad de pulsos o límite agregado de conteo. La referencia es un control medio; no se programa como tope de cada corrida.
 
 \section{Indicador ideal}
 
@@ -145,20 +162,21 @@ def _wilson_qber_ci(runs, confidence=0.95):
 
 QBER es una proporción y puede estar cerca de cero. Wilson conserva mejor comportamiento que la aproximación normal simple en ese régimen, siempre que los bits agrupados puedan tratarse como intercambiables. No captura dependencia dentro de una clave ni heterogeneidad entre repeticiones. Las tasas usan intervalos t porque cada repetición produce una observación continua; las diferencias de detector usan Welch para no imponer varianzas iguales.
 
-Como control posterior, las medias señuelo se remuestrean a nivel de repetición:
+Para el cuarto experimento se remuestrean pares de repeticiones y se vuelven a agrupar sus conteos:
 
-\begin{lstlisting}[language=Python, caption={Bootstrap percentil usado como análisis de sensibilidad.}]
-rng = np.random.default_rng(20260901)
-indices = rng.integers(
-    0, rates.size, size=(100_000, rates.size)
-)
-bootstrap_means = rates[indices].mean(axis=1)
-ci_bootstrap = np.quantile(
-    bootstrap_means, [0.025, 0.975]
-)
+\begin{lstlisting}[language=Python, caption={Bootstrap pareado con agrupamiento previo a la fórmula no lineal.}]
+rng = np.random.default_rng(70_000 + distance_index)
+for sample in range(DECOY_BOOTSTRAP_SAMPLES):
+    indices = rng.integers(0, repetitions, size=repetitions)
+    bootstrap_no[sample], bootstrap_de[sample], _, _, _ = (
+        pooled_estimates(indices)
+    )
+
+no_low, no_high = np.percentile(bootstrap_no, [2.5, 97.5])
+de_low, de_high = np.percentile(bootstrap_de, [2.5, 97.5])
 \end{lstlisting}
 
-Este cálculo usa las 30 tasas ya exportadas y no vuelve a ejecutar SeQUeNCe. El remuestreo conserva como unidad la repetición completa, por lo que tolera asimetría y valores nulos mejor que una justificación puramente normal \cite{efron1979bootstrap}. Para visibilidad se usa además HC3, que pondera cada residuo por \((1-h_{ii})^{-2}\) y reduce la dependencia del intervalo respecto de homoscedasticidad \cite{mackinnonWhite1985}. Ninguno de estos controles convierte los resultados en cotas de clave finita.
+El remuestreo conserva como unidad el par completo y respeta el orden \emph{agrupar y luego transformar}. Así evita promediar salidas no lineales calculadas sobre claves de 256 bits \cite{efron1979bootstrap}. Para visibilidad se usa además HC3, que pondera cada residuo por \((1-h_{ii})^{-2}\) y reduce la dependencia del intervalo respecto de homoscedasticidad \cite{mackinnonWhite1985}. Ninguno de estos controles convierte los resultados en cotas de clave finita.
 
 \section{Cota señuelo y caso conservador}
 
@@ -172,7 +190,7 @@ def decoy_e1_upper(e_nu, q_nu, e0, y0, y1, nu):
     return min(0.5, numerator / (y1 * nu))
 \end{lstlisting}
 
-Un numerador no positivo aparece cuando la combinación de error simulado, ganancia analítica y muestra finita no sostiene una cota positiva. Truncarlo a cero supondría ausencia de error y aumentaría la tasa. El código adopta \(1/2\), que anula la contribución secreta de esos eventos. El flujo cuenta cada activación para que la media no oculte esta decisión.
+Un numerador no positivo aparece cuando la combinación de error simulado agrupado, ganancia analítica y muestra finita no sostiene una cota positiva. Truncarlo a cero supondría ausencia de error y aumentaría la tasa. El código adopta \(1/2\), que anula la contribución monofotónica del diagnóstico. El flujo registra la activación una vez por distancia.
 
 \section{Validaciones y manifiesto}
 

@@ -17,10 +17,10 @@ Los cuatro criterios de verificación se cumplen. La evidencia conserva parámet
     Objetivo & Estado & Evidencia \\
     \midrule
     Escenario Alice--Bob \textit{time-bin} & Cumplido & SeQUeNCe 0.8.5, componentes, canales y parche identificados \\
-    Barrido de distancia & Cumplido con límite & QBER bajo el umbral ideal hasta 69,54 km y aumento abrupto en 77,15 km; no es alcance físico \\
+    Barrido de distancia & Cumplido con límite & QBER bajo el umbral ideal hasta \num[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm} km y aumento abrupto en \num[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm} km; no es alcance físico \\
     Sensibilidad del detector & Cumplido & Efecto de eficiencia resuelto; efecto de fondo no resuelto al 5\% \\
     Sensibilidad a visibilidad & Cumplido internamente & Pendiente QBER negativa y doce puntos con holgura de tasa \\
-    Comparación señuelo & Cumplido como estimador & Igual \(\mu\), cota asintótica híbrida y reemplazos conservadores registrados \\
+    Comparación señuelo & Cumplido como diagnóstico & Igual \(\mu\), conteos agrupados, bootstrap y límites registrados \\
     Diseño Campus Miguelete & Parcial & Topología y criterios definidos; faltan ruta y pérdidas medidas \\
     Trazabilidad & Cumplido & 60 agregados, 1.800 registros, 2.100 ejecuciones, macros y hashes \\
     \bottomrule
@@ -31,13 +31,13 @@ Los cuatro criterios de verificación se cumplen. La evidencia conserva parámet
 
 \section{Conclusiones por experimento}
 
-El barrido de distancia reproduce la caída de ganancia y conserva holgura de tasa en los 14 puntos. QBER es 8,750\% a \SI{69.54}{\kilo\meter} y 30,273\% a \SI{77.15}{\kilo\meter}; desde ese segundo punto el indicador ideal es nulo. El intervalo localiza una transición del modelo que exige auditar errores por base, alineación de rondas y fondo. No establece una distancia máxima del enlace.
+El barrido de distancia reproduce la caída de ganancia y conserva holgura de tasa en los 14 puntos. QBER es \num[round-mode=places,round-precision=3]{\PThreeQberTransitionLowPct}\% a \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm}{\kilo\meter} y \num[round-mode=places,round-precision=3]{\PThreeQberTransitionHighPct}\% a \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm}{\kilo\meter}; desde ese segundo punto el indicador ideal es nulo. El intervalo localiza una transición del modelo que exige auditar errores por base, alineación de rondas y fondo. No establece una distancia máxima del enlace.
 
 El experimento de detector resuelve el efecto de eficiencia entre extremos: el intervalo de \(\Delta I\) va de \num[round-mode=places,round-precision=1]{\PThreeEffDifferenceLowKbps} a \num[round-mode=places,round-precision=1]{\PThreeEffDifferenceHighKbps}\,kbit/s y \(p<0{,}001\). Para fondo, el intervalo va de \num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceLowKbps} a \num[round-mode=places,round-precision=1]{\PThreeDarkDifferenceHighKbps}\,kbit/s y \(p=\num[round-mode=places,round-precision=3]{\PThreeDarkPValue}\), por lo que no se resuelve degradación al 5\%. La tendencia de eficiencia verifica la propagación del parámetro, pero no basta para ordenar equipos: una comparación de hardware debe incorporar ventanas, tiempo muerto, fluctuación temporal y pérdidas internas medidas.
 
 El barrido de visibilidad confirma una pendiente negativa de QBER. Era esperable porque \(p_\mathrm{fase}\) se calcula desde \(V\); el resultado demuestra que la dependencia llega a BB84 después de corregir el interferómetro. Los doce puntos conservan holgura de tasa. Esto no demuestra estabilidad física ni reemplaza mediciones de visibilidad, deriva y pérdidas internas.
 
-La comparación de estados señuelo muestra la utilidad de estimar la contribución monofotónica. Con igual \(\mu=0{,}1\), la tasa sin señuelos se anula cerca de \SI{24}{\kilo\meter}, mientras la estimación señuelo conserva \SI[round-mode=places,round-precision=1]{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second} y permanece positiva hasta \SI{71.11}{\kilo\meter}. Ambas estimaciones son nulas desde \SI{80.56}{\kilo\meter}. El resultado depende de ganancias analíticas, error de fase aproximado y tratamiento asintótico. Los \PThreeDecoyFallbackTotal{} reemplazos conservadores en 300 repeticiones pareadas deben considerarse al interpretar la media.
+La comparación de estados señuelo muestra la utilidad de estimar la contribución monofotónica. Con igual \(\mu=0{,}1\), la tasa sin señuelos se anula cerca de \SI{24}{\kilo\meter}, mientras la estimación señuelo conserva \SI[round-mode=places,round-precision=1]{\PThreeDecoyTwentyFourKbps}{\kilo bit\per\second} y permanece positiva hasta \SI{71.11}{\kilo\meter}. Ambas estimaciones son nulas desde \SI{80.56}{\kilo\meter}. El resultado depende de ganancias analíticas, error de fase aproximado y tratamiento asintótico. Ninguna de las diez estimaciones agrupadas activa el reemplazo conservador de \(e_1^U\).
 
 \section{Aporte para la implementación UNSAM}
 
@@ -54,14 +54,14 @@ Las principales limitaciones son:
   \item la ventana de \SI{1}{\nano\second} es analítica y no una compuerta implementada en el receptor;
   \item el barrido de eficiencia excede la especificación del detector comercial usado como referencia;
   \item el modelo no separa errores por base ni ejecuta autenticación, reconciliación y amplificación de privacidad;
-  \item el estimador señuelo es asintótico, híbrido y no componible;
+  \item el diagnóstico señuelo aplica una fórmula asintótica a datos finitos, combina entradas analíticas y simuladas y no es componible;
   \item no se modelan ataques laterales, deriva térmica, dispersión, pérdidas internas ni calibración dinámica;
   \item el campus no cuenta aún con una ruta óptica medida ni una lista de materiales cotizada.
 \end{itemize}
 
 \section{Trabajo futuro priorizado}
 
-La primera prioridad es explicar la transición de QBER entre 69,54 y \SI{77.15}{\kilo\meter}. Para ello deben exportarse errores por base y ronda, marcas temporales de mensajes, índices emparejados y composición de clics de señal y fondo. La prueba debe verificar si el aumento proviene del régimen físico idealizado o de alineación y solapamiento en la implementación protocolar.
+La primera prioridad es explicar la transición de QBER entre \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionLowKm}{\kilo\meter} y \SI[round-mode=places,round-precision=2]{\PThreeQberTransitionHighKm}{\kilo\meter}. Para ello deben exportarse errores por base y ronda, marcas temporales de mensajes, índices emparejados y composición de clics de señal y fondo. La prueba debe verificar si el aumento proviene del régimen físico idealizado o de alineación y solapamiento en la implementación protocolar.
 
 La segunda prioridad es medir una ruta del Campus Miguelete con OTDR o instrumentación equivalente. El resultado debe incluir longitud óptica, atenuación total, conectores, empalmes, fibras disponibles y restricciones de acceso. Con esos datos puede calcularse un presupuesto de enlace específico.
 

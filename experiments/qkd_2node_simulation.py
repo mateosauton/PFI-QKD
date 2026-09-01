@@ -704,6 +704,48 @@ def secret_key_rate_asymptotic_no_decoy(
     return max(0.0, r_pulse) * pulse_rate
 
 
+def decoy_comparison_rates(
+    qber_reference: float,
+    qber_signal: float,
+    qber_weak: float,
+    eta_channel: float,
+    eta_detector: float,
+    pulse_rate: float,
+    y0: float,
+    mu_reference: float,
+    mu_signal: float,
+    nu: float,
+) -> dict[str, float]:
+    """Return matched no-decoy and vacuum+weak decoy rate estimates."""
+    q_reference = wcs_detection_prob(mu_reference, eta_channel, eta_detector, y0)
+    q_mu = wcs_detection_prob(mu_signal, eta_channel, eta_detector, y0)
+    q_nu = wcs_detection_prob(nu, eta_channel, eta_detector, y0)
+    y1_lower = decoy_yield_y1_lower(mu_signal, nu, q_mu, q_nu, y0)
+    e1_upper = decoy_e1_upper(qber_weak, q_nu, 0.5, y0, y1_lower, nu)
+    return {
+        "no_decoy_reference_bps": secret_key_rate_asymptotic_no_decoy(
+            mu_reference, q_reference, qber_reference, y0, pulse_rate
+        ),
+        "no_decoy_matched_bps": secret_key_rate_asymptotic_no_decoy(
+            mu_signal, q_mu, qber_signal, y0, pulse_rate
+        ),
+        "decoy_bps": secret_key_rate_asymptotic_decoy(
+            mu_signal,
+            q_mu,
+            qber_signal,
+            y1_lower,
+            e1_upper,
+            pulse_rate,
+        ),
+        "q_reference": q_reference,
+        "q_mu": q_mu,
+        "q_nu": q_nu,
+        "y1_lower": y1_lower,
+        "e1_upper": e1_upper,
+        "q1_lower": mu_signal * math.exp(-mu_signal) * y1_lower,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Plotting (matplotlib)
 # ---------------------------------------------------------------------------
@@ -1076,11 +1118,66 @@ def plot_experiment_3(
     plt.close(fig)
 
 
+def plot_experiment_2_timing_control(
+    records: list[dict[str, Any]], out_dir: Path
+) -> None:
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    for delay_ps, marker, color in (
+        (0, "o", "tab:blue"),
+        (DEFAULT_CLASSICAL_EXTRA_DELAY_PS, "s", "tab:orange"),
+    ):
+        selected = sorted(
+            (
+                record
+                for record in records
+                if record["retardo_clasico_extra_ps"] == delay_ps
+            ),
+            key=lambda record: record["longitud_clave_bits"],
+        )
+        ax.errorbar(
+            [record["longitud_clave_bits"] for record in selected],
+            [record["tasa_tamizada_media_bps"] for record in selected],
+            yerr=[
+                [
+                    record["tasa_tamizada_media_bps"]
+                    - record["tasa_tamizada_ic95_bajo_bps"]
+                    for record in selected
+                ],
+                [
+                    record["tasa_tamizada_ic95_alto_bps"]
+                    - record["tasa_tamizada_media_bps"]
+                    for record in selected
+                ],
+            ],
+            color=color,
+            marker=marker,
+            capsize=4,
+            label=f"Retardo extra: {delay_ps * 1e-9:g} ms",
+        )
+    ax.set_xscale("log", base=2)
+    ax.set_xticks([128, 2048], labels=["128", "2048"])
+    _style_axes(
+        ax,
+        "Longitud de clave (bit)",
+        "Tasa tamizada (bit/s)",
+        "Control 2 x 2: longitud de clave y retardo clásico",
+    )
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out_dir / "exp2_timing_control.png", dpi=150)
+    plt.close(fig)
+
+
 def plot_experiment_4(
     distances_km: np.ndarray,
-    skr_no_decoy: np.ndarray,
-    skr_no_decoy_low: np.ndarray,
-    skr_no_decoy_high: np.ndarray,
+    skr_no_decoy_reference: np.ndarray,
+    skr_no_decoy_reference_low: np.ndarray,
+    skr_no_decoy_reference_high: np.ndarray,
+    skr_no_decoy_matched: np.ndarray,
+    skr_no_decoy_matched_low: np.ndarray,
+    skr_no_decoy_matched_high: np.ndarray,
     skr_decoy: np.ndarray,
     skr_decoy_low: np.ndarray,
     skr_decoy_high: np.ndarray,
@@ -1092,12 +1189,23 @@ def plot_experiment_4(
     _plot_mean_ci(
         ax,
         distances_km,
-        skr_no_decoy,
-        skr_no_decoy_low,
-        skr_no_decoy_high,
+        skr_no_decoy_reference,
+        skr_no_decoy_reference_low,
+        skr_no_decoy_reference_high,
         color="tab:blue",
         marker="o",
         label=r"Sin señuelos ($\mu=0{,}1$)",
+        lw=1.5,
+    )
+    _plot_mean_ci(
+        ax,
+        distances_km,
+        skr_no_decoy_matched,
+        skr_no_decoy_matched_low,
+        skr_no_decoy_matched_high,
+        color="tab:green",
+        marker="^",
+        label=r"Sin señuelos, comparación pareada ($\mu=0{,}6$)",
         lw=1.5,
     )
     _plot_mean_ci(
@@ -1108,7 +1216,7 @@ def plot_experiment_4(
         skr_decoy_high,
         color="tab:orange",
         marker="s",
-        label=r"Con señuelos ($\mu=0{,}1$, $\nu=0{,}05$)",
+        label=r"Vacío+débil ($\mu=0{,}6$, $\nu=0{,}2$)",
         lw=1.5,
     )
     ax.set_yscale("symlog", linthresh=1.0)
@@ -1127,6 +1235,95 @@ def plot_experiment_4(
 # ---------------------------------------------------------------------------
 # Experiments
 # ---------------------------------------------------------------------------
+
+
+def timing_control_configurations() -> list[SimParams]:
+    """Return the 2 x 2 key-length and classical-delay control scenarios."""
+    return [
+        SimParams(
+            distance_km=50.0,
+            detector_efficiency=0.2,
+            dark_count_hz=100.0,
+            key_length=key_length,
+            num_keys=DEFAULT_NUM_KEYS,
+            runtime_ps=8e12,
+            classical_extra_delay_ps=delay_ps,
+        )
+        for key_length in (128, 2048)
+        for delay_ps in (0, DEFAULT_CLASSICAL_EXTRA_DELAY_PS)
+    ]
+
+
+def experiment_2_timing_control(
+    out_dir: Path,
+    repetitions: int = DEFAULT_REPETITIONS,
+    executor: ProcessPoolExecutor | None = None,
+) -> dict[str, Any]:
+    """Run the 2 x 2 detector-timing control with auditable repetitions."""
+    records: list[dict[str, Any]] = []
+    raw_records: list[dict[str, Any]] = []
+    for point_index, base in enumerate(timing_control_configurations()):
+        runs = _run_replicates(
+            base,
+            repetitions,
+            seed_base=35_000 + point_index * 100,
+            executor=executor,
+        )
+        q_mean, q_low, q_high = _wilson_qber_ci(runs, completed_only=True)
+        rate_mean, rate_low, rate_high = _stats_from_runs(
+            runs,
+            "aggregate_sifted_rate_bps",
+            seed=35_500 + point_index,
+            completed_only=True,
+        )
+        ideal_mean, ideal_low, ideal_high = _ideal_rate_stats_from_runs(
+            runs,
+            seed=35_600 + point_index,
+            completed_only=True,
+        )
+        raw_records.extend(
+            _raw_run_record(
+                "control_temporal",
+                point_index,
+                "retardo_clasico_extra_ps",
+                float(base.classical_extra_delay_ps),
+                repetition,
+                run,
+            )
+            for repetition, run in enumerate(runs)
+        )
+        records.append(
+            {
+                "experimento": "control_temporal",
+                "distancia_km": base.distance_km,
+                "longitud_clave_bits": base.key_length,
+                "retardo_clasico_extra_ps": base.classical_extra_delay_ps,
+                "retardo_clasico_extra_s": base.classical_extra_delay_ps * 1e-12,
+                "qber_media": q_mean,
+                "qber_ic95_bajo": q_low,
+                "qber_ic95_alto": q_high,
+                "tasa_tamizada_media_bps": rate_mean,
+                "tasa_tamizada_ic95_bajo_bps": rate_low,
+                "tasa_tamizada_ic95_alto_bps": rate_high,
+                "indicador_ideal_media_bps": ideal_mean,
+                "indicador_ideal_ic95_bajo_bps": ideal_low,
+                "indicador_ideal_ic95_alto_bps": ideal_high,
+                "repeticiones": repetitions,
+                "corridas_completas": sum(
+                    run["completed_requested_keys"] for run in runs
+                ),
+                "corridas_incompletas": sum(
+                    not run["completed_requested_keys"] for run in runs
+                ),
+                "claves_por_repeticion": base.num_keys,
+                "horizonte_s": base.runtime_ps * 1e-12,
+            }
+        )
+    return {
+        "records": records,
+        "raw_records": raw_records,
+        "plot": lambda: plot_experiment_2_timing_control(records, out_dir),
+    }
 
 
 def experiment_1_distance_sweep(
@@ -1601,17 +1798,18 @@ def experiment_4_decoy_distance(
     repetitions: int = DEFAULT_REPETITIONS,
     executor: ProcessPoolExecutor | None = None,
 ) -> dict[str, Any]:
-    """Compare no-decoy and decoy bounds at the same signal intensity."""
-    mu = 0.1
-    nu = 0.05
+    """Compare a conservative reference and matched signal/decoy bounds."""
+    mu_reference = 0.1
+    mu_signal = 0.6
+    nu = 0.2
     dark_count_hz = 80.0
     vacuum_yield = background_yield(dark_count_hz, DEFAULT_DETECTION_WINDOW_PS)
     distances_km = np.linspace(5, 90, 10)
-    skr_no, skr_no_low, skr_no_high = [], [], []
+    skr_reference, skr_reference_low, skr_reference_high = [], [], []
+    skr_matched, skr_matched_low, skr_matched_high = [], [], []
     skr_de, skr_de_low, skr_de_high = [], [], []
     eta_d = 0.12
     alpha = DEFAULT_ALPHA_DB_KM
-    e0 = 0.5
     records = []
     raw_records = []
 
@@ -1620,65 +1818,108 @@ def experiment_4_decoy_distance(
         att = alpha / 1000.0
         eta_ch = channel_transmittance(d_m, att)
 
-        base_mu = SimParams(
+        base_reference = SimParams(
             distance_km=float(d_km),
-            mean_photon_num=mu,
+            mean_photon_num=mu_reference,
             detector_efficiency=eta_d,
             dark_count_hz=dark_count_hz,
             visibility=0.97,
             runtime_ps=1.8e12,
-            num_keys=3,
+            num_keys=DEFAULT_NUM_KEYS,
         )
-        base_nu = SimParams(
+        base_signal = SimParams(
+            distance_km=float(d_km),
+            mean_photon_num=mu_signal,
+            detector_efficiency=eta_d,
+            dark_count_hz=dark_count_hz,
+            visibility=0.97,
+            runtime_ps=1.8e12,
+            num_keys=DEFAULT_NUM_KEYS,
+        )
+        base_weak = SimParams(
             distance_km=float(d_km),
             mean_photon_num=nu,
             detector_efficiency=eta_d,
             dark_count_hz=dark_count_hz,
             visibility=0.97,
             runtime_ps=1.8e12,
-            num_keys=3,
+            num_keys=DEFAULT_NUM_KEYS,
         )
-        q_mu = wcs_gain(mu, eta_ch, eta_d, vacuum_yield)
-        q_nu = wcs_gain(nu, eta_ch, eta_d, vacuum_yield)
-        y1 = decoy_yield_y1_lower(mu, nu, q_mu, q_nu, vacuum_yield)
 
-        no_values = []
+        reference_values = []
+        matched_values = []
         decoy_values = []
         e1_values = []
         e1_fallbacks = []
-        runs_mu = _run_replicates(
-            base_mu, repetitions, seed_base=50_000 + i * 200, executor=executor
+        runs_reference = _run_replicates(
+            base_reference,
+            repetitions,
+            seed_base=50_000 + i * 200,
+            executor=executor,
         )
-        runs_nu = _run_replicates(
-            base_nu, repetitions, seed_base=60_000 + i * 200, executor=executor
+        runs_signal = _run_replicates(
+            base_signal,
+            repetitions,
+            seed_base=60_000 + i * 200,
+            executor=executor,
         )
-        for repetition, (r_mu, r_nu) in enumerate(zip(runs_mu, runs_nu, strict=True)):
-            e_mu = r_mu["mean_qber"] if math.isfinite(r_mu["mean_qber"]) else 0.5
-            e_nu = r_nu["mean_qber"] if math.isfinite(r_nu["mean_qber"]) else 0.5
-            e1_numerator = e_nu * q_nu * math.exp(nu) - e0 * vacuum_yield
-            e1_fallback = e1_numerator <= 0
-            e1 = decoy_e1_upper(e_nu, q_nu, e0, vacuum_yield, y1, nu)
-            no_rate = secret_key_rate_asymptotic_no_decoy(
-                mu,
-                q_mu,
-                e_mu,
-                vacuum_yield,
-                base_mu.frequency_hz,
+        runs_weak = _run_replicates(
+            base_weak,
+            repetitions,
+            seed_base=70_000 + i * 200,
+            executor=executor,
+        )
+        point_signal_records = []
+        for repetition, (run_reference, run_signal, run_weak) in enumerate(
+            zip(runs_reference, runs_signal, runs_weak, strict=True)
+        ):
+            e_reference = (
+                run_reference["mean_qber"]
+                if math.isfinite(run_reference["mean_qber"])
+                else 0.5
             )
-            decoy_rate = secret_key_rate_asymptotic_decoy(
-                mu, q_mu, e_mu, y1, e1, base_mu.frequency_hz
+            e_signal = (
+                run_signal["mean_qber"]
+                if math.isfinite(run_signal["mean_qber"])
+                else 0.5
             )
-            completed_pair = (
-                r_mu["completed_requested_keys"] and r_nu["completed_requested_keys"]
+            e_weak = (
+                run_weak["mean_qber"]
+                if math.isfinite(run_weak["mean_qber"])
+                else 0.5
             )
-            if completed_pair:
-                no_values.append(no_rate)
-                decoy_values.append(decoy_rate)
-                e1_values.append(e1)
+            comparison = decoy_comparison_rates(
+                qber_reference=e_reference,
+                qber_signal=e_signal,
+                qber_weak=e_weak,
+                eta_channel=eta_ch,
+                eta_detector=eta_d,
+                pulse_rate=base_signal.frequency_hz,
+                y0=vacuum_yield,
+                mu_reference=mu_reference,
+                mu_signal=mu_signal,
+                nu=nu,
+            )
+            e1_fallback = comparison["e1_upper"] >= 0.5
+            completed_triplet = all(
+                run["completed_requested_keys"]
+                for run in (run_reference, run_signal, run_weak)
+            )
+            if completed_triplet:
+                reference_values.append(comparison["no_decoy_reference_bps"])
+                matched_values.append(comparison["no_decoy_matched_bps"])
+                decoy_values.append(comparison["decoy_bps"])
+                e1_values.append(comparison["e1_upper"])
                 e1_fallbacks.append(e1_fallback)
             for experiment_name, intensity_name, intensity, run in (
-                ("decoy_signal_mu", "mu", mu, r_mu),
-                ("decoy_weak_nu", "nu", nu, r_nu),
+                (
+                    "decoy_reference_mu",
+                    "mu_reference",
+                    mu_reference,
+                    run_reference,
+                ),
+                ("decoy_signal_mu", "mu_signal", mu_signal, run_signal),
+                ("decoy_weak_nu", "nu", nu, run_weak),
             ):
                 record = _raw_run_record(
                     experiment_name,
@@ -1691,26 +1932,47 @@ def experiment_4_decoy_distance(
                 record.update(
                     {
                         "intensidad_senuelo": intensity_name,
-                        "mu_senal": mu,
+                        "mu_referencia": mu_reference,
+                        "mu_senal": mu_signal,
                         "nu_debil": nu,
                         "y0": vacuum_yield,
-                        "q_mu": q_mu,
-                        "q_nu": q_nu,
-                        "y1_cota_inferior": y1,
-                        "corrida_pareada_completa": completed_pair,
-                        "e1_cota_superior": e1,
-                        "e1_fallback_conservador": e1_fallback,
-                        "tasa_sin_senuelos_bps": no_rate,
-                        "tasa_con_senuelos_bps": decoy_rate,
+                        "corrida_pareada_completa": completed_triplet,
                     }
                 )
+                if intensity_name == "mu_signal":
+                    record.update(
+                        {
+                            "E_reference": e_reference,
+                            "E_mu": e_signal,
+                            "E_nu": e_weak,
+                            "q_reference": comparison["q_reference"],
+                            "q_mu": comparison["q_mu"],
+                            "q_nu": comparison["q_nu"],
+                            "y1_cota_inferior": comparison["y1_lower"],
+                            "e1_cota_superior": comparison["e1_upper"],
+                            "q1_cota_inferior": comparison["q1_lower"],
+                            "e1_fallback_conservador": e1_fallback,
+                            "tasa_sin_senuelos_referencia_bps": comparison[
+                                "no_decoy_reference_bps"
+                            ],
+                            "tasa_sin_senuelos_pareada_bps": comparison[
+                                "no_decoy_matched_bps"
+                            ],
+                            "tasa_con_senuelos_bps": comparison["decoy_bps"],
+                        }
+                    )
+                    point_signal_records.append(record)
                 raw_records.append(record)
 
-        no_mean, no_low, no_high = _mean_t_ci(no_values)
+        reference_mean, reference_low, reference_high = _mean_t_ci(reference_values)
+        matched_mean, matched_low, matched_high = _mean_t_ci(matched_values)
         de_mean, de_low, de_high = _mean_t_ci(decoy_values)
-        skr_no.append(no_mean)
-        skr_no_low.append(no_low)
-        skr_no_high.append(no_high)
+        skr_reference.append(reference_mean)
+        skr_reference_low.append(reference_low)
+        skr_reference_high.append(reference_high)
+        skr_matched.append(matched_mean)
+        skr_matched_low.append(matched_low)
+        skr_matched_high.append(matched_high)
         skr_de.append(de_mean)
         skr_de_low.append(de_low)
         skr_de_high.append(de_high)
@@ -1718,53 +1980,61 @@ def experiment_4_decoy_distance(
             {
                 "experimento": "estados_senuelo",
                 "distancia_km": float(d_km),
-                "tasa_sin_senuelos_media_bps": no_mean,
-                "tasa_sin_senuelos_ic95_bajo_bps": no_low,
-                "tasa_sin_senuelos_ic95_alto_bps": no_high,
+                "tasa_sin_senuelos_media_bps": reference_mean,
+                "tasa_sin_senuelos_ic95_bajo_bps": reference_low,
+                "tasa_sin_senuelos_ic95_alto_bps": reference_high,
+                "tasa_sin_senuelos_pareada_media_bps": matched_mean,
+                "tasa_sin_senuelos_pareada_ic95_bajo_bps": matched_low,
+                "tasa_sin_senuelos_pareada_ic95_alto_bps": matched_high,
                 "tasa_con_senuelos_media_bps": de_mean,
                 "tasa_con_senuelos_ic95_bajo_bps": de_low,
                 "tasa_con_senuelos_ic95_alto_bps": de_high,
-                "q_mu": q_mu,
-                "q_nu": q_nu,
-                "mu_sin_senuelos": mu,
-                "q_sin_senuelos": q_mu,
-                "p_multifoton_sin_senuelos": 1.0 - math.exp(-mu) * (1.0 + mu),
+                "q_reference": point_signal_records[0]["q_reference"],
+                "q_mu": point_signal_records[0]["q_mu"],
+                "q_nu": point_signal_records[0]["q_nu"],
+                "mu_sin_senuelos": mu_reference,
+                "q_sin_senuelos": point_signal_records[0]["q_reference"],
+                "p_multifoton_sin_senuelos": 1.0
+                - math.exp(-mu_reference) * (1.0 + mu_reference),
                 "q1_sin_senuelos_cota_inferior": max(
                     0.0,
-                    q_mu
-                    - (1.0 - math.exp(-mu) * (1.0 + mu))
-                    - math.exp(-mu) * vacuum_yield,
+                    point_signal_records[0]["q_reference"]
+                    - (1.0 - math.exp(-mu_reference) * (1.0 + mu_reference))
+                    - math.exp(-mu_reference) * vacuum_yield,
                 ),
-                "y1_cota_inferior": y1,
+                "y1_cota_inferior": point_signal_records[0]["y1_cota_inferior"],
                 "e1_media": float(np.mean(e1_values)) if e1_values else float("nan"),
                 "corridas_e1_fallback_conservador": int(sum(e1_fallbacks)),
                 "y0": vacuum_yield,
-                "mu": mu,
+                "mu": mu_reference,
+                "mu_senal": mu_signal,
                 "nu": nu,
                 "repeticiones": repetitions,
                 "corridas_completas": sum(
                     record["corrida_pareada_completa"]
-                    for record in raw_records[-2 * repetitions :]
-                    if record["intensidad_senuelo"] == "mu"
+                    for record in point_signal_records
                 ),
                 "corridas_incompletas": sum(
                     not record["corrida_pareada_completa"]
-                    for record in raw_records[-2 * repetitions :]
-                    if record["intensidad_senuelo"] == "mu"
+                    for record in point_signal_records
                 ),
-                "claves_por_repeticion": base_mu.num_keys,
-                "horizonte_s": base_mu.runtime_ps * 1e-12,
+                "claves_por_repeticion": base_signal.num_keys,
+                "horizonte_s": base_signal.runtime_ps * 1e-12,
             }
         )
 
     arr_d = distances_km
-    arr_no = np.array(skr_no)
+    arr_reference = np.array(skr_reference)
+    arr_matched = np.array(skr_matched)
     arr_de = np.array(skr_de)
     return {
         "distances_km": arr_d,
-        "skr_no_decoy": arr_no,
-        "skr_no_decoy_low": np.array(skr_no_low),
-        "skr_no_decoy_high": np.array(skr_no_high),
+        "skr_no_decoy": arr_reference,
+        "skr_no_decoy_low": np.array(skr_reference_low),
+        "skr_no_decoy_high": np.array(skr_reference_high),
+        "skr_no_decoy_matched": arr_matched,
+        "skr_no_decoy_matched_low": np.array(skr_matched_low),
+        "skr_no_decoy_matched_high": np.array(skr_matched_high),
         "skr_decoy": arr_de,
         "skr_decoy_low": np.array(skr_de_low),
         "skr_decoy_high": np.array(skr_de_high),
@@ -1772,9 +2042,12 @@ def experiment_4_decoy_distance(
         "raw_records": raw_records,
         "plot": lambda: plot_experiment_4(
             arr_d,
-            arr_no,
-            np.array(skr_no_low),
-            np.array(skr_no_high),
+            arr_reference,
+            np.array(skr_reference_low),
+            np.array(skr_reference_high),
+            arr_matched,
+            np.array(skr_matched_low),
+            np.array(skr_matched_high),
             arr_de,
             np.array(skr_de_low),
             np.array(skr_de_high),
@@ -1813,9 +2086,18 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _validate_outputs(*experiments: dict[str, Any]) -> None:
+def _validate_outputs(
+    e1: dict[str, Any],
+    e2: dict[str, Any],
+    e3: dict[str, Any],
+    e4: dict[str, Any],
+    timing_control: dict[str, Any] | None = None,
+) -> None:
     """Fail fast if exported aggregates violate statistical and accounting invariants."""
-    for experiment in experiments[:3]:
+    standard_experiments = [e1, e2, e3]
+    if timing_control is not None:
+        standard_experiments.append(timing_control)
+    for experiment in standard_experiments:
         for record in experiment["records"]:
             qber = float(record["qber_media"])
             assert 0.0 <= qber <= 0.5
@@ -1838,18 +2120,29 @@ def _validate_outputs(*experiments: dict[str, Any]) -> None:
             )
             assert int(run["clics_detector_total"]) >= 0
 
-    for record in experiments[3]["records"]:
-        assert 0.0 <= float(record["q_nu"]) <= float(record["q_mu"]) <= 1.0
+    for record in e4["records"]:
+        assert (
+            0.0
+            <= float(record["q_reference"])
+            <= float(record["q_nu"])
+            <= float(record["q_mu"])
+            <= 1.0
+        )
         assert float(record["mu_sin_senuelos"]) == float(record["mu"])
         assert float(record["tasa_sin_senuelos_media_bps"]) >= 0.0
+        assert float(record["tasa_sin_senuelos_pareada_media_bps"]) >= 0.0
         assert float(record["tasa_con_senuelos_media_bps"]) >= 0.0
         assert (
             float(record["tasa_con_senuelos_media_bps"])
             <= (0.5 * DEFAULT_FREQUENCY_HZ * float(record["q_mu"])) + 1e-9
         )
-    for run in experiments[3]["raw_records"]:
-        assert run["experimento"] in {"decoy_signal_mu", "decoy_weak_nu"}
-        assert run["intensidad_senuelo"] in {"mu", "nu"}
+    for run in e4["raw_records"]:
+        assert run["experimento"] in {
+            "decoy_reference_mu",
+            "decoy_signal_mu",
+            "decoy_weak_nu",
+        }
+        assert run["intensidad_senuelo"] in {"mu_reference", "mu_signal", "nu"}
         assert int(run["bits_tamizados"]) >= int(run["errores"]) >= 0
         assert int(run["claves_completadas"]) >= 0
         assert float(run["tiempo_hasta_ultima_clave_s"]) >= 0.0
@@ -1963,6 +2256,61 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def run_experiment_suite(
+    out_dir: Path,
+    repetitions: int,
+    executor: ProcessPoolExecutor | None,
+) -> dict[str, dict[str, Any]]:
+    """Run every configured experiment exactly once."""
+    return {
+        "distance": experiment_1_distance_sweep(out_dir, repetitions, executor),
+        "detector": experiment_2_detector_sweep(out_dir, repetitions, executor),
+        "timing": experiment_2_timing_control(out_dir, repetitions, executor),
+        "visibility": experiment_3_visibility_sweep(out_dir, repetitions, executor),
+        "decoy": experiment_4_decoy_distance(out_dir, repetitions, executor),
+    }
+
+
+def build_output_datasets(
+    suite: dict[str, dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    """Build summary datasets and the one canonical run-level dataset."""
+    experiment_order = ("distance", "detector", "timing", "visibility", "decoy")
+    raw_records = [
+        record
+        for experiment_name in experiment_order
+        for record in suite[experiment_name]["raw_records"]
+    ]
+    return {
+        "exp1_distance_data.csv": suite["distance"]["records"],
+        "exp2_detector_data.csv": suite["detector"]["records"],
+        "exp2_timing_control_data.csv": suite["timing"]["records"],
+        "exp3_visibility_data.csv": suite["visibility"]["records"],
+        "exp4_decoy_data.csv": suite["decoy"]["records"],
+        "experiment_runs.csv": raw_records,
+    }
+
+
+def timing_control_manifest_entry(
+    experiment: dict[str, Any], repetitions: int
+) -> dict[str, Any]:
+    """Describe the timing control in the reproducibility manifest."""
+    del experiment
+    configurations = timing_control_configurations()
+    return {
+        "design": "2x2 key_length_bits by classical_extra_delay_ps",
+        "key_lengths_bits": sorted({config.key_length for config in configurations}),
+        "classical_extra_delays_ps": sorted(
+            {config.classical_extra_delay_ps for config in configurations}
+        ),
+        "requested_repetitions_per_cell": repetitions,
+        "keys_per_run": DEFAULT_NUM_KEYS,
+        "summary_dataset": "exp2_timing_control_data.csv",
+        "figure": "exp2_timing_control.png",
+        "raw_dataset": "experiment_runs.csv",
+    }
+
+
 def main() -> None:
     args = _parse_args()
     if args.repetitions < 1:
@@ -1976,46 +2324,22 @@ def main() -> None:
     print("Parallel workers:", args.workers)
 
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
-        print("\n=== Experiment 1: Distance sweep ===")
-        e1 = experiment_1_distance_sweep(out_dir, args.repetitions, executor)
-        print(
-            summarize_max_distance(
-                e1["distances_km"], e1["qbers"], threshold=simple_rate_qber_cutoff()
-            )
-        )
-        print(
-            f"The 95% interval remains below the analytical rate reference through "
-            f"{e1['valid_max_distance']:.1f} km; it first overlaps that reference at "
-            f"{e1['invalid_start_distance']:.1f} km."
-        )
+        print("\n=== Running five QKD experiment scenarios ===")
+        suite = run_experiment_suite(out_dir, args.repetitions, executor)
 
-        print("\n=== Experiment 2: Detector sensitivity ===")
-        e2 = experiment_2_detector_sweep(out_dir, args.repetitions, executor)
-
-        print("\n=== Experiment 3: Interferometer visibility ===")
-        e3 = experiment_3_visibility_sweep(out_dir, args.repetitions, executor)
-
-        print("\n=== Experiment 4: Decoy impact (analytic SKR) ===")
-        e4 = experiment_4_decoy_distance(out_dir, args.repetitions, executor)
-
-    _validate_outputs(e1, e2, e3, e4)
+    e1 = suite["distance"]
+    e2 = suite["detector"]
+    e2_timing = suite["timing"]
+    e3 = suite["visibility"]
+    e4 = suite["decoy"]
+    _validate_outputs(e1, e2, e3, e4, timing_control=e2_timing)
     e1["plot"]()
     e2["plot"]()
+    e2_timing["plot"]()
     e3["plot"]()
     e4["plot"]()
 
-    raw_records = [
-        record
-        for experiment in (e1, e2, e3, e4)
-        for record in experiment["raw_records"]
-    ]
-    datasets = {
-        "exp1_distance_data.csv": e1["records"],
-        "exp2_detector_data.csv": e2["records"],
-        "exp3_visibility_data.csv": e3["records"],
-        "exp4_decoy_data.csv": e4["records"],
-        "experiment_runs.csv": raw_records,
-    }
+    datasets = build_output_datasets(suite)
     for filename, records in datasets.items():
         _write_records(out_dir / filename, records)
     latex_results = out_dir / "proyecto3_results.tex"
@@ -2035,6 +2359,11 @@ def main() -> None:
         "key_length_bits": DEFAULT_KEY_LENGTH,
         "keys_per_run": DEFAULT_NUM_KEYS,
         "run_level_dataset": "experiment_runs.csv",
+        "experiments": {
+            "timing_control": timing_control_manifest_entry(
+                e2_timing, args.repetitions
+            )
+        },
         "formula_model": {
             "wcs_gain": "1-(1-Y0)*exp(-mu*eta)",
             "decoy_e1": "(E_nu*Q_nu*exp(nu)-e0*Y0)/(Y1L*nu)",
@@ -2106,7 +2435,8 @@ def main() -> None:
             )
     print(
         "Figures saved: exp1_distance_sweep.png, exp1_skr_distance.png, "
-        "exp2_detector_sensitivity.png, exp3_visibility.png, exp4_decoy_impact.png"
+        "exp2_detector_sensitivity.png, exp2_timing_control.png, "
+        "exp3_visibility.png, exp4_decoy_impact.png"
     )
     print("Tabular data saved as CSV plus experiment_summary.json")
 

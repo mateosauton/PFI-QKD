@@ -566,6 +566,38 @@ def test_experiment_csv_files_are_not_ignored():
     assert "!experiments/results/*.csv" in gitignore
 
 
+def test_generated_latex_transition_macros_are_finite_and_conditional():
+    macros = Path("experiments/results/proyecto3_results.tex").read_text(
+        encoding="ascii"
+    )
+    assert "\\newcommand{\\PThreeTransitionFound}{0}" in macros
+    assert "PThreeTransitionLowKm" not in macros
+    assert "PThreeTransitionHighKm" not in macros
+    assert "nan" not in macros.lower()
+    assert "inf" not in macros.lower()
+
+
+def test_decoy_summary_has_canonical_compatibility_aliases():
+    with Path("experiments/results/exp4_decoy_data.csv").open(
+        encoding="utf-8", newline=""
+    ) as handle:
+        row = next(csv.DictReader(handle))
+    assert row["e1_cota_superior"] == row["e1_media"]
+    assert (
+        row["tasa_sin_senuelos_igual_mu_bps"]
+        == row["tasa_sin_senuelos_pareada_media_bps"]
+    )
+    assert row["tasa_decoy_bps"] == row["tasa_con_senuelos_media_bps"]
+
+
+def test_result_csv_attributes_preserve_bytes_without_whitespace_check_noise():
+    attributes = Path(".gitattributes").read_text(encoding="utf-8")
+    assert (
+        "experiments/results/*.csv -text whitespace=trailing-space,cr-at-eol"
+        in attributes
+    )
+
+
 def test_write_records_keeps_union_of_fields(tmp_path):
     path = tmp_path / "records.csv"
     _write_records(path, [{"a": 1}, {"a": 2, "b": 3}])

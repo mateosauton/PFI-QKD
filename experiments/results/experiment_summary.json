@@ -36,7 +36,21 @@
     }
   },
   "decoy_estimator": {
-    "nonpositive_e1_numerator": "clamp al l\u00edmite f\u00edsico e1=0.5",
+    "nonpositive_e1_numerator": {
+      "run_producing_policy": {
+        "commit": "40a848bb2647ee1713172eb10b9c1d8fe0e5f858",
+        "condition": "numerator <= 0",
+        "assigned_e1": 0.0
+      },
+      "current_policy": {
+        "commit": "d0ce7c21563d303925d7381150b36cee1ca29616",
+        "condition": "numerator <= 0",
+        "assigned_e1": 0.5,
+        "interpretation": "conservative fallback"
+      },
+      "final_signal_run_activations": 0,
+      "minimum_final_numerator": 9.314776077364643e-07
+    },
     "phase_error_assumption": "basis-symmetric error, e_phase approximated from aggregate QBER",
     "scope": "asymptotic hybrid estimator; not a composable finite-key bound",
     "vacuum_yield_model": "three detectors times accepted detection window and dark-count rate"
@@ -115,6 +129,17 @@
   "latex_results": {
     "filename": "proyecto3_results.tex",
     "sha256": "88003b24b46e1d178206154b30ceba05358f8494f3333f848a5299cfaa3a2af1"
+  },
+  "method_correction_provenance": {
+    "commit": "d0ce7c21563d303925d7381150b36cee1ca29616",
+    "source_sha256": {
+      "qkd_2node_simulation.py": "36fe2a5c1d9a0e2c5c562aed5bd9a94776b64da5f35178c1f825e5b9a0251623"
+    },
+    "simulation_rerun": false,
+    "corrections": [
+      "conservative e1 fallback for nonpositive numerator",
+      "manuscript method and uncertainty clarification"
+    ]
   },
   "parallel_workers": 8,
   "proxy_asintotico_monofotonico_corte_qber": 0.09810603806878629,

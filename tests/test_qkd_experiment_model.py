@@ -637,6 +637,10 @@ def test_result_metadata_separates_simulation_and_postprocessing_provenance():
     )
     simulation = metadata["simulation_provenance"]
     postprocessing = metadata["derived_export_provenance"]
+    method_correction = metadata["method_correction_provenance"]
+    nonpositive_policy = metadata["decoy_estimator"][
+        "nonpositive_e1_numerator"
+    ]
     assert simulation["commit"] == "40a848bb2647ee1713172eb10b9c1d8fe0e5f858"
     assert simulation["command"].endswith("--repetitions 30 --workers 8")
     assert metadata["source_sha256"] == simulation["source_sha256"]
@@ -648,6 +652,32 @@ def test_result_metadata_separates_simulation_and_postprocessing_provenance():
         "canonical decoy summary aliases",
         "manifest and hash refresh",
     ]
+    assert nonpositive_policy == {
+        "run_producing_policy": {
+            "commit": simulation["commit"],
+            "condition": "numerator <= 0",
+            "assigned_e1": 0.0,
+        },
+        "current_policy": {
+            "commit": "d0ce7c21563d303925d7381150b36cee1ca29616",
+            "condition": "numerator <= 0",
+            "assigned_e1": 0.5,
+            "interpretation": "conservative fallback",
+        },
+        "final_signal_run_activations": 0,
+        "minimum_final_numerator": pytest.approx(9.314776077364643e-07),
+    }
+    assert method_correction == {
+        "commit": "d0ce7c21563d303925d7381150b36cee1ca29616",
+        "source_sha256": {
+            "qkd_2node_simulation.py": "36fe2a5c1d9a0e2c5c562aed5bd9a94776b64da5f35178c1f825e5b9a0251623"
+        },
+        "simulation_rerun": False,
+        "corrections": [
+            "conservative e1 fallback for nonpositive numerator",
+            "manuscript method and uncertainty clarification",
+        ],
+    }
     for key, relative in {
         "qkd_2node_simulation.py": "experiments/qkd_2node_simulation.py",
         "sequence/components/interferometer.py": "sequence/components/interferometer.py",
@@ -666,6 +696,16 @@ def test_result_metadata_separates_simulation_and_postprocessing_provenance():
         assert postprocessing["source_sha256"][key] == hashlib.sha256(
             postprocessing_blob
         ).hexdigest()
+    corrected_source = subprocess.check_output(
+        [
+            "git",
+            "show",
+            f"{method_correction['commit']}:experiments/qkd_2node_simulation.py",
+        ]
+    )
+    assert method_correction["source_sha256"][
+        "qkd_2node_simulation.py"
+    ] == hashlib.sha256(corrected_source).hexdigest()
 
 
 def test_write_records_keeps_union_of_fields(tmp_path):

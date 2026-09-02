@@ -25,7 +25,7 @@ experiment IDs, with SeQUeNCe `QKDNode` and `BB84` in `time_bin` encoding:
 From the repository root, run exactly:
 
 ```bash
-uv run python experiments/qkd_2node_simulation.py --repetitions 30
+uv run python experiments/qkd_2node_simulation.py --repetitions 30 --workers 8
 ```
 
 The defaults request 2048-bit keys and three keys per repetition. Each point
